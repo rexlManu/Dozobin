@@ -17,6 +17,13 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role', 16)->default('member')->index();
+            $table->string('status', 16)->default('active')->index();
+            $table->string('avatar_path')->nullable();
+            $table->string('appearance', 16)->default('system');
+            $table->string('default_expiration', 8)->default('1d');
+            $table->unsignedBigInteger('storage_limit')->default(5 * 1024 * 1024 * 1024);
+            $table->timestamp('suspended_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

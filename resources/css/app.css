@@ -1,11 +1,282 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+/*
+  IBM Plex, weight axis only: the width axis is never used, and Plex Mono is
+  static, so it loads the three weights the interface actually renders (400 for
+  everything, 400 italic and 700 for Shiki's comment and keyword tokens).
+*/
+@import '@fontsource-variable/ibm-plex-sans/wght.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/400-italic.css';
+@import '@fontsource/ibm-plex-mono/700.css';
 
-@source '../views';
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@custom-variant dark (&:is(.dark *));
 
-@theme {
-    --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+/*
+  Dōzobin design system
+  ---------------------
+  Direction: utilitarian instrument. Flat surfaces, hairline rules, mono for
+  machine-truths (sizes, codes, timestamps, mime types), sans for prose.
+  Accent is yuzu (acid citrus). Chosen because this product's whole job is
+  "press the one button that hands the thing over" - the accent marks that act
+  and nothing else. It also stays clear of the red/amber the app needs for
+  failure and expiry semantics.
+  Radius: 8px containers, 6px controls, 4px chips. Never pill except avatars.
+*/
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-destructive-soft: var(--destructive-soft);
+    --color-warn: var(--warn);
+    --color-warn-foreground: var(--warn-foreground);
+    --color-warn-soft: var(--warn-soft);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-primary-soft: var(--primary-soft);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-sunken: var(--sunken);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-3xl: 20px;
+    --radius-4xl: 24px;
+}
+
+:root {
+    --radius: 8px;
+
+    /* Light: cool paper, not cream. */
+    --background: oklch(0.981 0.0025 250);
+    --foreground: oklch(0.205 0.012 258);
+    --sunken: oklch(0.958 0.004 250);
+    --card: oklch(1 0 0);
+    --card-foreground: var(--foreground);
+    --popover: oklch(1 0 0);
+    --popover-foreground: var(--foreground);
+
+    --primary: oklch(0.855 0.178 112);
+    --primary-foreground: oklch(0.235 0.055 118);
+    --primary-soft: oklch(0.955 0.06 112);
+
+    --secondary: oklch(0.955 0.004 250);
+    --secondary-foreground: oklch(0.28 0.012 258);
+    --muted: oklch(0.955 0.004 250);
+    --muted-foreground: oklch(0.525 0.013 256);
+    --accent: oklch(0.945 0.005 250);
+    --accent-foreground: oklch(0.24 0.012 258);
+
+    --destructive: oklch(0.545 0.205 25);
+    --destructive-foreground: oklch(0.99 0.005 25);
+    --destructive-soft: oklch(0.955 0.028 25);
+    --warn: oklch(0.585 0.135 62);
+    --warn-foreground: oklch(0.99 0.01 62);
+    --warn-soft: oklch(0.958 0.04 70);
+
+    --border: oklch(0.902 0.005 250);
+    --border-strong: oklch(0.845 0.007 250);
+    --input: oklch(0.895 0.005 250);
+    --ring: oklch(0.72 0.15 112);
+}
+
+.dark {
+    /* Dark: deep slate ink, never pure black. */
+    --background: oklch(0.168 0.006 260);
+    --foreground: oklch(0.965 0.003 250);
+    --sunken: oklch(0.142 0.006 260);
+    --card: oklch(0.205 0.007 260);
+    --card-foreground: var(--foreground);
+    --popover: oklch(0.215 0.008 260);
+    --popover-foreground: var(--foreground);
+
+    --primary: oklch(0.865 0.185 112);
+    --primary-foreground: oklch(0.215 0.055 118);
+    --primary-soft: oklch(0.3 0.065 115);
+
+    --secondary: oklch(0.262 0.008 260);
+    --secondary-foreground: oklch(0.955 0.003 250);
+    --muted: oklch(0.255 0.008 260);
+    --muted-foreground: oklch(0.665 0.012 258);
+    --accent: oklch(0.272 0.009 260);
+    --accent-foreground: oklch(0.965 0.003 250);
+
+    --destructive: oklch(0.665 0.185 25);
+    --destructive-foreground: oklch(0.16 0.02 25);
+    --destructive-soft: oklch(0.3 0.07 25);
+    --warn: oklch(0.755 0.135 68);
+    --warn-foreground: oklch(0.18 0.02 68);
+    --warn-soft: oklch(0.3 0.055 68);
+
+    --border: oklch(1 0 0 / 10%);
+    --border-strong: oklch(1 0 0 / 18%);
+    --input: oklch(1 0 0 / 14%);
+    --ring: oklch(0.72 0.15 112);
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    html {
+        @apply font-sans antialiased;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        /* Countdowns, sizes and quotas sit in columns and must not jitter. */
+        font-variant-numeric: tabular-nums;
+    }
+
+    ::selection {
+        background: var(--primary);
+        color: var(--primary-foreground);
+    }
+
+    :focus-visible {
+        @apply outline-ring outline-2 outline-offset-2;
+    }
+
+    /*
+      A slashed zero, so an Access Code or a share slug can never be read wrong.
+      Plex Mono draws one by default; this keeps the intent explicit and holds
+      if the mono ever changes again.
+    */
+    .font-mono {
+        font-feature-settings: 'zero';
+    }
+}
+
+@layer components {
+    /* Small uppercase machine label. Used for column heads and field labels. */
+    /* Names a region or a column. Never a field sitting next to its control:
+       at this size the caps and tracking read heavier than the control itself. */
+    .label-mono {
+        @apply text-muted-foreground font-mono text-[10.5px] font-normal uppercase tracking-[0.1em];
+    }
+
+    /* Hairline rule that reads as structure rather than decoration. */
+    .rule {
+        @apply bg-border h-px w-full;
+    }
+
+    /*
+      The one horizontal rail the header and every full-width page share, so the
+      wordmark always starts exactly where the content starts. Centred cards
+      (sign-in, an expired Transfer Session) opt out on purpose: they are
+      objects on the page rather than the page itself.
+    */
+    .rail {
+        @apply mx-auto w-full max-w-[68rem] px-4 sm:px-6;
+    }
+
+    /*
+      Clears the home indicator on a notched phone without adding a gap on
+      anything else: the inset is 0px on every other device. max() rather than
+      a plain add, so the padding never falls below the design's own value.
+    */
+    .pb-safe {
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+}
+
+/*
+  Touch targets without a second visual scale.
+
+  This interface is dense on purpose — 28px icon buttons and 28px checkboxes are
+  what let a row of shares read as one line. Growing them to 44px for touch would
+  redraw the whole product. So the paint stays exactly where it is and the *hit
+  area* grows underneath it: a centred, invisible pseudo-element that costs no
+  layout. Coarse pointers only, so a mouse keeps the tight geometry.
+
+  Height expands unconditionally, because rows are already taller than the
+  controls in them and there is nothing above or below to steal.
+
+  The selectors key off `data-size`, not `data-slot="button"`: Radix's Slot
+  overwrites `data-slot` when a Button is `asChild` inside a trigger, so
+  `[data-slot="button"]` silently misses every dropdown and tooltip trigger —
+  which is most of the action buttons here.
+
+  Width is the careful half. Two icon buttons sitting 2px apart — Copy and the
+  actions menu on every Library row — would end up with hit areas overlapping by
+  14px, and the one later in the DOM would take the taps. That makes the first
+  button *harder* to hit than before. So width only expands for a control that
+  is the only child of its container, where there is provably nothing to steal
+  from. Packed clusters keep their real width and gain the height instead.
+*/
+@media (pointer: coarse) {
+    :is(
+        [data-size='icon-sm'],
+        [data-size='icon-xs'],
+        [data-size='sm'],
+        [data-size='xs'],
+        [data-slot='checkbox']
+    ) {
+        position: relative;
+    }
+
+    :is(
+        [data-size='icon-sm'],
+        [data-size='icon-xs'],
+        [data-size='sm'],
+        [data-size='xs'],
+        [data-slot='checkbox']
+    )::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        translate: -50% -50%;
+        width: 100%;
+        height: 100%;
+        min-height: 44px;
+    }
+
+    :is(
+            [data-size='icon-sm'],
+            [data-size='icon-xs'],
+            [data-slot='checkbox']
+        ):only-child::after {
+        min-width: 44px;
+    }
+}
+
+@utility scrollbar-slim {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

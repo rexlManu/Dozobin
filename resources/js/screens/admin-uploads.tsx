@@ -1,0 +1,811 @@
+import {
+    ArrowLeft,
+    CloudSlash,
+    DotsThree,
+    LockKey,
+    MagnifyingGlass,
+    Trash,
+    X,
+} from '@phosphor-icons/react';
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    useReactTable,
+} from '@tanstack/react-table';
+import type { SortingState } from '@tanstack/react-table';
+import { useCallback, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { useConfirm } from '@/components/confirm-dialog';
+import { DataTable } from '@/components/data-table';
+import { ExpiryLabel } from '@/components/expiry';
+import { FileGlyph } from '@/components/file-glyph';
+import { LibraryTile } from '@/components/library-tile';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import type { View } from '@/components/view-switch';
+import { ViewSwitch } from '@/components/view-switch';
+import { formatBytes, relativeTime } from '@/lib/format';
+import { Link, Navigate, useParams } from '@/lib/navigation';
+import {
+    CATEGORY_LABEL,
+    CATEGORY_ORDER,
+    shareCategory,
+    shareLabel,
+    sharePath,
+    shareSize,
+    typeChip,
+} from '@/lib/share-display';
+import type { Category } from '@/lib/share-display';
+import type { Share } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { isShareExpired, useDozo } from '@/store/store';
+
+/** The condition of a share, which is a different question from its type. */
+type State = 'any' | 'live' | 'expired' | 'missing' | 'protected';
+
+const STATES: [State, string][] = [
+    ['any', 'Any state'],
+    ['live', 'Live'],
+    ['expired', 'Expired'],
+    ['missing', 'Missing object'],
+    ['protected', 'Password'],
+];
+
+const GUEST = '__guest';
+
+function matchesState(share: Share, state: State): boolean {
+    switch (state) {
+        case 'live':
+            return share.state !== 'unavailable' && !isShareExpired(share);
+        case 'expired':
+            return isShareExpired(share);
+        case 'missing':
+            return share.state === 'unavailable';
+        case 'protected':
+            return share.password !== null;
+        default:
+            return true;
+    }
+}
+
+/**
+ * The uploads table, optionally narrowed to one owner.
+ *
+ * The per-user page is this same component with `ownerId` fixed, rather than a
+ * second table with the same columns: an administrator who learns the filters
+ * here should not have to learn them again from the other direction.
+ */
+function UploadsExplorer({ ownerId }: { ownerId?: string }) {
+    const shares = useDozo((s) => s.shares);
+    const accounts = useDozo((s) => s.accounts);
+    const deleteShares = useDozo((s) => s.deleteShares);
+    const { confirm, dialog } = useConfirm();
+
+    const scoped = ownerId !== undefined;
+
+    const [query, setQuery] = useState('');
+    const [owner, setOwner] = useState<string>('all');
+    const [state, setState] = useState<State>('any');
+    const [types, setTypes] = useState<Category[]>([]);
+    const [view, setView] = useState<View>('list');
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: 'createdAt', desc: true },
+    ]);
+    const [selection, setSelection] = useState<Record<string, boolean>>({});
+
+    const ownerName = useCallback(
+        (id: string | null) =>
+            id ? (accounts[id]?.name ?? 'Deleted account') : null,
+        [accounts],
+    );
+
+    /** Owners that actually hold something, so the menu never offers an empty pick. */
+    const ownerOptions = useMemo(() => {
+        const tally = new Map<string, number>();
+
+        for (const share of shares) {
+            tally.set(
+                share.ownerId ?? GUEST,
+                (tally.get(share.ownerId ?? GUEST) ?? 0) + 1,
+            );
+        }
+
+        const named = [...tally.entries()]
+            .filter(([id]) => id !== GUEST)
+            .map(([id, count]) => ({
+                id,
+                label: accounts[id]?.name ?? 'Deleted account',
+                count,
+            }))
+            .sort((a, b) => b.count - a.count);
+        const guests = tally.get(GUEST) ?? 0;
+
+        return guests > 0
+            ? [...named, { id: GUEST, label: 'Guest', count: guests }]
+            : named;
+    }, [shares, accounts]);
+
+    // Owner and state narrow first; the type counts below then describe what is
+    // actually on the table rather than what is on the installation.
+    const inScope = useMemo(() => {
+        const byOwner = scoped
+            ? shares.filter((s) => s.ownerId === ownerId)
+            : owner === 'all'
+              ? shares
+              : owner === GUEST
+                ? shares.filter((s) => s.ownerId === null)
+                : shares.filter((s) => s.ownerId === owner);
+
+        return byOwner.filter((s) => matchesState(s, state));
+    }, [shares, scoped, ownerId, owner, state]);
+
+    const typeCounts = useMemo(() => {
+        const tally = {} as Record<Category, number>;
+
+        for (const share of inScope) {
+            const key = shareCategory(share);
+            tally[key] = (tally[key] ?? 0) + 1;
+        }
+
+        return tally;
+    }, [inScope]);
+
+    const data = useMemo(
+        () =>
+            types.length === 0
+                ? inScope
+                : inScope.filter((s) => types.includes(shareCategory(s))),
+        [inScope, types],
+    );
+
+    const removeSelected = useCallback(
+        async (ids: string[]) => {
+            const ok = await confirm({
+                title: `Delete ${ids.length} ${ids.length === 1 ? 'share' : 'shares'}?`,
+                description:
+                    'The URLs stop working straight away, whoever owns them. Storage is credited back to each owner.',
+                confirmLabel: 'Delete',
+            });
+
+            if (!ok) {
+                return;
+            }
+
+            deleteShares(ids);
+            setSelection({});
+            toast(
+                `${ids.length} ${ids.length === 1 ? 'share' : 'shares'} deleted`,
+            );
+        },
+        [confirm, deleteShares],
+    );
+
+    const columns = useMemo(() => {
+        const col = createColumnHelper<Share>();
+
+        return [
+            col.display({
+                id: 'select',
+                header: ({ table }) => (
+                    <Checkbox
+                        aria-label="Select everything on this page"
+                        checked={table.getIsAllPageRowsSelected()}
+                        onCheckedChange={(v) =>
+                            table.toggleAllPageRowsSelected(v === true)
+                        }
+                    />
+                ),
+                cell: ({ row }) => (
+                    <Checkbox
+                        aria-label={`Select ${shareLabel(row.original)}`}
+                        checked={row.getIsSelected()}
+                        onCheckedChange={(v) => row.toggleSelected(v === true)}
+                    />
+                ),
+                meta: { className: 'w-8' },
+            }),
+            col.accessor((s) => shareLabel(s), {
+                id: 'label',
+                header: 'Share',
+                cell: ({ row }) => {
+                    const share = row.original;
+                    const broken =
+                        share.state === 'unavailable' || isShareExpired(share);
+
+                    return (
+                        <div className="flex min-w-0 items-center gap-2">
+                            <span
+                                className={cn(
+                                    'shrink-0',
+                                    broken
+                                        ? 'text-destructive'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
+                                {broken ? (
+                                    <CloudSlash className="size-4" />
+                                ) : (
+                                    <FileGlyph
+                                        mime={
+                                            share.kind === 'file'
+                                                ? share.mime
+                                                : 'text/plain'
+                                        }
+                                        filename={
+                                            share.kind === 'file'
+                                                ? share.filename
+                                                : 'paste'
+                                        }
+                                    />
+                                )}
+                            </span>
+                            <Link
+                                to={sharePath(share)}
+                                className={cn(
+                                    'truncate text-[13px] hover:underline',
+                                    share.kind === 'paste' &&
+                                        'font-mono text-[12px]',
+                                )}
+                            >
+                                {shareLabel(share)}
+                            </Link>
+                            {share.password && (
+                                <LockKey className="text-muted-foreground size-3.5 shrink-0" />
+                            )}
+                        </div>
+                    );
+                },
+            }),
+            // The owner column is the one thing the scoped page already knows, so it
+            // spends the width on something else.
+            ...(scoped
+                ? []
+                : [
+                      col.accessor(
+                          (s: Share) => ownerName(s.ownerId) ?? 'Guest',
+                          {
+                              id: 'owner',
+                              header: 'Owner',
+                              cell: ({ row }) => {
+                                  const id = row.original.ownerId;
+
+                                  if (!id) {
+                                      return (
+                                          <span className="text-muted-foreground font-mono text-[11.5px]">
+                                              Guest
+                                          </span>
+                                      );
+                                  }
+
+                                  const name = accounts[id]?.name;
+
+                                  if (!name) {
+                                      return (
+                                          <span className="text-muted-foreground font-mono text-[11.5px]">
+                                              Deleted
+                                          </span>
+                                      );
+                                  }
+
+                                  return (
+                                      <Link
+                                          to={`/admin/users/${id}`}
+                                          className="text-[12.5px] hover:underline"
+                                      >
+                                          {name}
+                                      </Link>
+                                  );
+                              },
+                          },
+                      ),
+                  ]),
+            col.accessor((s) => typeChip(s), {
+                id: 'type',
+                header: 'Type',
+                cell: (c) => (
+                    <span className="text-muted-foreground font-mono text-[11px]">
+                        {c.getValue<string>()}
+                    </span>
+                ),
+                meta: { className: 'hidden md:table-cell' },
+            }),
+            col.accessor((s) => shareSize(s), {
+                id: 'size',
+                header: 'Size',
+                cell: (c) => (
+                    <span className="font-mono text-[11.5px]">
+                        {formatBytes(c.getValue<number>())}
+                    </span>
+                ),
+            }),
+            col.accessor('views', {
+                header: 'Views',
+                cell: (c) => (
+                    <span className="font-mono text-[11.5px]">
+                        {c.getValue()}
+                    </span>
+                ),
+                meta: { className: 'hidden lg:table-cell' },
+            }),
+            col.accessor('createdAt', {
+                header: 'Added',
+                cell: (c) => (
+                    <span className="text-muted-foreground whitespace-nowrap font-mono text-[11.5px]">
+                        {relativeTime(c.getValue())}
+                    </span>
+                ),
+                meta: { className: 'hidden lg:table-cell' },
+            }),
+            // expiresAt is null for "never", which must sort last rather than first.
+            col.accessor((s) => s.expiresAt ?? Number.POSITIVE_INFINITY, {
+                id: 'expiresAt',
+                header: 'Expires',
+                cell: ({ row }) => (
+                    <ExpiryLabel
+                        expiresAt={row.original.expiresAt}
+                        className="text-[11.5px]"
+                        prefix=""
+                    />
+                ),
+                meta: { className: 'hidden sm:table-cell' },
+            }),
+            col.display({
+                id: 'actions',
+                header: '',
+                cell: ({ row }) => (
+                    <div className="flex justify-end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Share actions"
+                                >
+                                    <DotsThree weight="bold" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                    <Link to={sharePath(row.original)}>
+                                        Open share
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onSelect={() =>
+                                        void removeSelected([row.original.id])
+                                    }
+                                >
+                                    <Trash /> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                ),
+                meta: { className: 'w-10' },
+            }),
+        ];
+    }, [accounts, ownerName, removeSelected, scoped]);
+
+    // React Compiler intentionally leaves TanStack Table's mutable adapter alone.
+    // eslint-disable-next-line react-hooks/incompatible-library
+    const table = useReactTable({
+        data,
+        columns,
+        state: { sorting, globalFilter: query, rowSelection: selection },
+        onSortingChange: setSorting,
+        onGlobalFilterChange: setQuery,
+        onRowSelectionChange: setSelection,
+        getRowId: (row) => row.id,
+        globalFilterFn: (row, _id, value) => {
+            const needle = String(value).toLowerCase();
+            const owner = ownerName(row.original.ownerId) ?? 'guest';
+
+            return (
+                shareLabel(row.original).toLowerCase().includes(needle) ||
+                owner.toLowerCase().includes(needle)
+            );
+        },
+        // A grid of tiles needs more per page than a list of rows, or the pager
+        // does the scrolling that the eye was supposed to do.
+        initialState: { pagination: { pageSize: 25 } },
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+    });
+
+    const selectedIds = Object.keys(selection).filter((id) => selection[id]);
+    const rows = table.getRowModel().rows;
+    const narrowed =
+        types.length > 0 ||
+        state !== 'any' ||
+        (!scoped && owner !== 'all') ||
+        query !== '';
+
+    const toggleType = (key: Category) =>
+        setTypes((current) =>
+            current.includes(key)
+                ? current.filter((value) => value !== key)
+                : [...current, key],
+        );
+
+    return (
+        <>
+            <DataTable
+                table={table}
+                unit="share"
+                card={(row) => {
+                    const share = row.original;
+                    const broken =
+                        share.state === 'unavailable' || isShareExpired(share);
+                    const owner = ownerName(share.ownerId);
+
+                    return (
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                aria-label={`Select ${shareLabel(share)}`}
+                                className="mt-1 shrink-0"
+                                checked={row.getIsSelected()}
+                                onCheckedChange={(v) =>
+                                    row.toggleSelected(v === true)
+                                }
+                            />
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className={cn(
+                                            'shrink-0',
+                                            broken
+                                                ? 'text-destructive'
+                                                : 'text-muted-foreground',
+                                        )}
+                                    >
+                                        {broken ? (
+                                            <CloudSlash className="size-4" />
+                                        ) : (
+                                            <FileGlyph
+                                                mime={
+                                                    share.kind === 'file'
+                                                        ? share.mime
+                                                        : 'text/plain'
+                                                }
+                                                filename={
+                                                    share.kind === 'file'
+                                                        ? share.filename
+                                                        : 'paste'
+                                                }
+                                            />
+                                        )}
+                                    </span>
+                                    <Link
+                                        to={sharePath(share)}
+                                        className={cn(
+                                            'truncate text-[13.5px] font-medium',
+                                            share.kind === 'paste' &&
+                                                'font-mono text-[12.5px] font-normal',
+                                        )}
+                                    >
+                                        {shareLabel(share)}
+                                    </Link>
+                                    {share.password && (
+                                        <LockKey className="text-muted-foreground size-3.5 shrink-0" />
+                                    )}
+                                </div>
+                                <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px]">
+                                    {!scoped && (
+                                        <>
+                                            {share.ownerId && owner ? (
+                                                <Link
+                                                    to={`/admin/users/${share.ownerId}`}
+                                                    className="text-foreground"
+                                                >
+                                                    {owner}
+                                                </Link>
+                                            ) : (
+                                                <span>{owner ?? 'Guest'}</span>
+                                            )}
+                                            <span
+                                                aria-hidden
+                                                className="text-border-strong"
+                                            >
+                                                ·
+                                            </span>
+                                        </>
+                                    )}
+                                    <span>{typeChip(share)}</span>
+                                    <span
+                                        aria-hidden
+                                        className="text-border-strong"
+                                    >
+                                        ·
+                                    </span>
+                                    <span>{formatBytes(shareSize(share))}</span>
+                                    <span
+                                        aria-hidden
+                                        className="text-border-strong"
+                                    >
+                                        ·
+                                    </span>
+                                    <ExpiryLabel
+                                        expiresAt={share.expiresAt}
+                                        className="text-[11px]"
+                                        prefix=""
+                                    />
+                                </p>
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="shrink-0"
+                                        aria-label="Share actions"
+                                    >
+                                        <DotsThree weight="bold" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                        <Link to={sharePath(share)}>
+                                            Open share
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        variant="destructive"
+                                        onSelect={() =>
+                                            void removeSelected([share.id])
+                                        }
+                                    >
+                                        <Trash /> Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    );
+                }}
+                toolbar={
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <div className="relative min-w-0 flex-1">
+                                <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                                <Input
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder={
+                                        scoped
+                                            ? "Search this account's shares"
+                                            : 'Search every share on this installation'
+                                    }
+                                    aria-label="Search uploads"
+                                    className="pl-9"
+                                />
+                                {query && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="Clear search"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                                        onClick={() => setQuery('')}
+                                    >
+                                        <X />
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* The two filters share the row with the view switch and would
+                  overflow a phone at their desktop widths, so they split the
+                  space instead and the switch keeps its intrinsic size. */}
+                            <div className="flex items-center gap-2 max-sm:w-full">
+                                {!scoped && (
+                                    <Select
+                                        value={owner}
+                                        onValueChange={setOwner}
+                                    >
+                                        <SelectTrigger
+                                            aria-label="Filter by owner"
+                                            className="w-[11rem] text-[13px] max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper">
+                                            <SelectItem value="all">
+                                                All owners
+                                            </SelectItem>
+                                            {ownerOptions.map((option) => (
+                                                <SelectItem
+                                                    key={option.id}
+                                                    value={option.id}
+                                                >
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                                <Select
+                                    value={state}
+                                    onValueChange={(v) => setState(v as State)}
+                                >
+                                    <SelectTrigger
+                                        aria-label="Filter by state"
+                                        className="w-[9.5rem] text-[13px] max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper">
+                                        {STATES.map(([id, label]) => (
+                                            <SelectItem key={id} value={id}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <ViewSwitch view={view} onView={setView} />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {CATEGORY_ORDER.filter(
+                                (key) => (typeCounts[key] ?? 0) > 0,
+                            ).map((key) => {
+                                const on = types.includes(key);
+
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        aria-pressed={on}
+                                        onClick={() => toggleType(key)}
+                                        className={cn(
+                                            'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors',
+                                            on
+                                                ? 'bg-foreground text-background border-transparent'
+                                                : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground',
+                                        )}
+                                    >
+                                        {CATEGORY_LABEL[key]}
+                                        <span
+                                            className={cn(
+                                                'font-mono text-[10.5px]',
+                                                on
+                                                    ? 'opacity-60'
+                                                    : 'opacity-70',
+                                            )}
+                                        >
+                                            {typeCounts[key]}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                            {narrowed && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-auto"
+                                    onClick={() => {
+                                        setTypes([]);
+                                        setState('any');
+                                        setOwner('all');
+                                        setQuery('');
+                                    }}
+                                >
+                                    Clear filters
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                }
+                grid={
+                    view === 'grid' ? (
+                        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                            {rows.map((row) => (
+                                <LibraryTile
+                                    key={row.id}
+                                    share={row.original}
+                                    label={shareLabel(row.original)}
+                                    meta={`${typeChip(row.original)} · ${formatBytes(shareSize(row.original))}`}
+                                    selected={row.getIsSelected()}
+                                    onSelect={(value) =>
+                                        row.toggleSelected(value)
+                                    }
+                                    onDelete={() =>
+                                        void removeSelected([row.original.id])
+                                    }
+                                />
+                            ))}
+                        </ul>
+                    ) : undefined
+                }
+                selectionBar={
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => void removeSelected(selectedIds)}
+                    >
+                        <Trash /> Delete selected
+                    </Button>
+                }
+                empty={
+                    <>
+                        <p className="text-[14px] font-medium">
+                            {narrowed
+                                ? 'Nothing matches that'
+                                : 'Nothing has been shared yet'}
+                        </p>
+                        <p className="text-muted-foreground mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed">
+                            {narrowed
+                                ? 'Try a shorter search, or clear the filters.'
+                                : 'Uploads appear here the moment anyone on this installation shares something.'}
+                        </p>
+                    </>
+                }
+            />
+            {dialog}
+        </>
+    );
+}
+
+export function AdminUploadsRoute() {
+    return <UploadsExplorer />;
+}
+
+/** The same explorer, fixed to one account and reached from their detail page. */
+export function AdminUserUploadsRoute() {
+    const { accountId = '' } = useParams();
+    const account = useDozo((s) => s.accounts[accountId]);
+
+    if (!account) {
+        return <Navigate to="/admin/users" replace />;
+    }
+
+    return (
+        <div className="flex flex-col gap-5">
+            <div>
+                <Link
+                    to={`/admin/users/${accountId}`}
+                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-[12.5px] transition-colors"
+                >
+                    <ArrowLeft className="size-3.5" /> {account.name}
+                </Link>
+                <div className="mt-3 flex items-center gap-2.5">
+                    <Avatar className="size-7 rounded-md">
+                        <AvatarImage
+                            src={account.avatarSrc}
+                            alt=""
+                            className="rounded-md"
+                        />
+                        <AvatarFallback className="rounded-md text-[11px]">
+                            {account.name.slice(0, 2)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+                        Uploads by {account.name}
+                    </h2>
+                </div>
+            </div>
+            <UploadsExplorer ownerId={accountId} />
+        </div>
+    );
+}

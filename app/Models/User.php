@@ -2,31 +2,64 @@
 
 namespace App\Models;
 
+use App\Enums\Appearance;
+use App\Enums\Expiration;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property string $name
  * @property string $email
- * @property Carbon|null $email_verified_at
+ * @property CarbonImmutable|null $email_verified_at
  * @property string $password
+ * @property UserRole $role
+ * @property UserStatus $status
+ * @property string|null $avatar_path
+ * @property Appearance $appearance
+ * @property Expiration $default_expiration
+ * @property int $storage_limit
+ * @property CarbonImmutable|null $suspended_at
  * @property string|null $remember_token
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /** @var list<string> */
+    protected $fillable = [
+        'name', 'email', 'password', 'role', 'status', 'avatar_path', 'appearance',
+        'default_expiration', 'storage_limit', 'suspended_at',
+    ];
+
+    /** @return HasMany<Share, $this> */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(Share::class);
+    }
+
+    /** @return HasMany<ApiToken, $this> */
+    public function apiTokens(): HasMany
+    {
+        return $this->hasMany(ApiToken::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -36,8 +69,14 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            'email_verified_at' => 'immutable_datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
+            'status' => UserStatus::class,
+            'appearance' => Appearance::class,
+            'default_expiration' => Expiration::class,
+            'storage_limit' => 'integer',
+            'suspended_at' => 'immutable_datetime',
         ];
     }
 }
