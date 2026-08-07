@@ -1,7 +1,8 @@
+import { router, usePage } from '@inertiajs/react';
 import { ArrowRight, QrCode, WarningCircle } from '@phosphor-icons/react';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import type { IScannerControls } from '@zxing/browser';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { Countdown } from '@/components/expiry';
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link, useNavigate } from '@/lib/navigation';
-import { isTransferExpired, transferExpiresAt, useDozo } from '@/store/store';
+import { Link } from '@/lib/navigation';
+import { isTransferExpired, transferExpiresAt } from '@/lib/transfer-state';
+import type { TransferSession } from '@/lib/types';
+import type { SharedPageProps } from '@/types';
 
 const ERROR_COPY = {
     invalid:
@@ -119,7 +122,7 @@ function ScanDialog({ onCode }: { onCode: (code: string) => void }) {
                         Point the camera at a Dōzobin Transfer Session QR code.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="border-border bg-sunken relative aspect-square overflow-hidden rounded-lg border">
+                <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-sunken">
                     <video
                         ref={videoRef}
                         muted
@@ -127,11 +130,11 @@ function ScanDialog({ onCode }: { onCode: (code: string) => void }) {
                         className="size-full object-cover"
                         aria-label="QR code camera preview"
                     />
-                    <div className="border-border-strong absolute inset-6 rounded-md border-2 border-dashed" />
-                    <div className="bg-primary absolute inset-x-6 top-1/2 h-px" />
+                    <div className="absolute inset-6 rounded-md border-2 border-dashed border-border-strong" />
+                    <div className="absolute inset-x-6 top-1/2 h-px bg-primary" />
                 </div>
                 {cameraError && (
-                    <p className="text-destructive text-[12.5px] leading-relaxed">
+                    <p className="text-[12.5px] leading-relaxed text-destructive">
                         {cameraError}
                     </p>
                 )}
@@ -140,28 +143,36 @@ function ScanDialog({ onCode }: { onCode: (code: string) => void }) {
     );
 }
 
-export function TransferLobbyRoute() {
-    const navigate = useNavigate();
-    const createTransfer = useDozo((s) => s.createTransfer);
-    const joinTransfer = useDozo((s) => s.joinTransfer);
-    const transfer = useDozo((s) => s.transfer);
-    const windowMs = useDozo((s) => s.transferWindowMs());
+export function TransferLobbyRoute({
+    transfer,
+}: {
+    transfer: TransferSession | null;
+}) {
+    const windowMs =
+        usePage<SharedPageProps>().props.config.transferWindowHours *
+        60 *
+        60 *
+        1000;
 
     const [code, setCode] = useState('');
     const [error, setError] = useState<keyof typeof ERROR_COPY | null>(null);
 
-    const attempt = async (raw: string) => {
-        const result = await joinTransfer(raw);
-
-        if (result.ok) {
-            navigate(`/transfer/${raw.trim().toUpperCase()}`);
-
-            return;
-        }
-
-        setCode(raw.trim().toUpperCase());
-        setError(result.reason ?? 'invalid');
-    };
+    const attempt = useCallback((raw: string) => {
+        const normalized = raw.trim().toUpperCase();
+        setCode(normalized);
+        router.post(
+            '/transfers/join',
+            { code: normalized },
+            {
+                onError: (errors) =>
+                    setError(
+                        errors.code?.toLowerCase().includes('expired')
+                            ? 'expired'
+                            : 'invalid',
+                    ),
+            },
+        );
+    }, []);
 
     const live =
         transfer &&
@@ -174,21 +185,21 @@ export function TransferLobbyRoute() {
                 <h1 className="text-xl font-medium tracking-[-0.02em]">
                     Transfer Session
                 </h1>
-                <p className="text-muted-foreground mt-2 max-w-[62ch] text-[13.5px] leading-relaxed">
+                <p className="mt-2 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
                     A scratch space for moving things between your own devices.
                     No account, no Library, no permanent URLs. It clears itself
                     twelve hours after the last thing anyone does in it.
                 </p>
 
                 {live && (
-                    <div className="border-primary/40 bg-primary-soft/40 mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-4 py-3">
+                    <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-primary/40 bg-primary-soft/40 px-4 py-3">
                         <span className="text-[13px] font-medium">
                             A session is already open here
                         </span>
                         <span className="font-mono text-[13px] tracking-[0.14em]">
                             {transfer.code}
                         </span>
-                        <span className="text-muted-foreground font-mono text-[12px]">
+                        <span className="font-mono text-[12px] text-muted-foreground">
                             <Countdown
                                 target={transferExpiresAt(transfer, windowMs)}
                             />{' '}
@@ -204,19 +215,19 @@ export function TransferLobbyRoute() {
 
                 {/* One object split by hairlines, not three cards: the gap-px over a
             border-coloured surface is the divider. */}
-                <ol className="border-border bg-border mt-7 grid gap-px overflow-hidden rounded-lg border sm:grid-cols-3">
+                <ol className="mt-7 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
                     {STEPS.map((step, index) => (
                         <li
                             key={step.title}
-                            className="bg-background flex flex-col gap-2 p-5"
+                            className="flex flex-col gap-2 bg-background p-5"
                         >
-                            <span className="text-muted-foreground font-mono text-[11px] tracking-[0.12em]">
+                            <span className="font-mono text-[11px] tracking-[0.12em] text-muted-foreground">
                                 {String(index + 1).padStart(2, '0')}
                             </span>
                             <h2 className="text-[14px] font-medium tracking-[-0.01em]">
                                 {step.title}
                             </h2>
-                            <p className="text-muted-foreground text-[13px] leading-relaxed">
+                            <p className="text-[13px] leading-relaxed text-muted-foreground">
                                 {step.body}
                             </p>
                         </li>
@@ -224,13 +235,7 @@ export function TransferLobbyRoute() {
                 </ol>
 
                 <div className="mt-6">
-                    <Button
-                        size="lg"
-                        onClick={async () => {
-                            const session = await createTransfer();
-                            navigate(`/transfer/${session.code}`);
-                        }}
-                    >
+                    <Button size="lg" onClick={() => router.post('/transfers')}>
                         Create a session <ArrowRight />
                     </Button>
                 </div>
@@ -238,7 +243,7 @@ export function TransferLobbyRoute() {
                 {/* Joining is the other end of the same flow, not a rival offer: if you
             are here to join, someone already handed you the code. */}
                 <form
-                    className="border-border mt-8 border-t pt-6"
+                    className="mt-8 border-t border-border pt-6"
                     onSubmit={(event) => {
                         event.preventDefault();
                         void attempt(code);
@@ -265,7 +270,7 @@ export function TransferLobbyRoute() {
                                     error ? 'access-code-error' : undefined
                                 }
                                 placeholder="K7MQ2XPD"
-                                className="h-11 w-full text-center font-mono text-base uppercase tracking-[0.28em] sm:w-[13.5rem]"
+                                className="h-11 w-full text-center font-mono text-base tracking-[0.28em] uppercase sm:w-[13.5rem]"
                                 onChange={(event) => {
                                     setCode(
                                         event.target.value
@@ -289,7 +294,7 @@ export function TransferLobbyRoute() {
                     {error && (
                         <p
                             id="access-code-error"
-                            className="text-destructive mt-3 flex items-start gap-1.5 text-[12.5px]"
+                            className="mt-3 flex items-start gap-1.5 text-[12.5px] text-destructive"
                         >
                             <WarningCircle
                                 weight="fill"

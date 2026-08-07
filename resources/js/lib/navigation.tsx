@@ -1,6 +1,6 @@
 import { Link as InertiaLink, router, usePage } from '@inertiajs/react';
 import type { InertiaLinkProps } from '@inertiajs/react';
-import { createContext, forwardRef, useContext, useEffect } from 'react';
+import { forwardRef } from 'react';
 import type { ReactNode } from 'react';
 
 interface NavState {
@@ -90,65 +90,4 @@ export function useNavigate(): (
 
 export function useLocation(): { pathname: string } {
     return { pathname: pathFrom(usePage().url) };
-}
-
-export function useParams<T extends Record<string, string | undefined>>(): T {
-    const props = usePage<{ routeParams?: Record<string, unknown> }>().props;
-    const params = Object.fromEntries(
-        Object.entries(props.routeParams ?? {}).map(([key, value]) => [
-            key,
-            value == null ? undefined : String(value),
-        ]),
-    );
-
-    return params as T;
-}
-
-export function Navigate({
-    to,
-    replace = false,
-}: {
-    to: string;
-    replace?: boolean;
-}) {
-    useEffect(() => router.visit(to, { replace }), [replace, to]);
-
-    return null;
-}
-
-const OutletStack = createContext<{ elements: ReactNode[]; index: number }>({
-    elements: [],
-    index: 0,
-});
-const OutletValue = createContext<unknown>(undefined);
-
-export function OutletProvider({
-    children,
-    elements,
-}: {
-    children: ReactNode;
-    elements: ReactNode[];
-}) {
-    return (
-        <OutletStack.Provider value={{ elements, index: 0 }}>
-            {children}
-        </OutletStack.Provider>
-    );
-}
-
-export function Outlet({ context }: { context?: unknown }) {
-    const stack = useContext(OutletStack);
-    const element = stack.elements[stack.index] ?? null;
-
-    return (
-        <OutletStack.Provider value={{ ...stack, index: stack.index + 1 }}>
-            <OutletValue.Provider value={context}>
-                {element}
-            </OutletValue.Provider>
-        </OutletStack.Provider>
-    );
-}
-
-export function useOutletContext<T>(): T {
-    return useContext(OutletValue) as T;
 }

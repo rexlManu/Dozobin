@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\BuildAppStateAction;
 use App\Actions\Transfers\CreateTransferSessionAction;
+use App\Actions\Transfers\FindCurrentTransferSessionAction;
 use App\Actions\Transfers\JoinTransferSessionAction;
 use App\Actions\Transfers\ResolveTransferParticipantAction;
 use App\Actions\Transfers\TouchTransferSessionAction;
@@ -12,34 +12,61 @@ use App\Http\Requests\TouchTransferSessionRequest;
 use App\Http\Resources\TransferSessionResource;
 use App\Models\TransferSession;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final class TransferController extends Controller
 {
-    public function store(Request $request, CreateTransferSessionAction $create): TransferSessionResource
+    public function index(Request $request, FindCurrentTransferSessionAction $current): Response
     {
-        return TransferSessionResource::make($create->handle($request));
+        $session = $current->handle($request);
+
+        return Inertia::render('transfers/index', [
+            'transfer' => fn () => $session === null
+                ? null
+                : (new TransferSessionResource($session))->resolve($request),
+        ]);
     }
 
-    public function join(JoinTransferSessionRequest $request, JoinTransferSessionAction $join): TransferSessionResource
+    public function store(Request $request, CreateTransferSessionAction $create): TransferSessionResource|RedirectResponse
     {
-        return TransferSessionResource::make($join->handle($request, $request->string('code')->toString()));
+        $session = $create->handle($request);
+
+        return $request->expectsJson()
+            ? TransferSessionResource::make($session)
+            : to_route('transfers.show', $session);
+    }
+
+    public function join(JoinTransferSessionRequest $request, JoinTransferSessionAction $join): TransferSessionResource|RedirectResponse
+    {
+        $session = $join->handle($request, $request->string('code')->toString());
+
+        return $request->expectsJson()
+            ? TransferSessionResource::make($session)
+            : to_route('transfers.show', $session);
     }
 
     public function show(
         Request $request,
         TransferSession $transferSession,
         JoinTransferSessionAction $join,
-        BuildAppStateAction $state,
+        TouchTransferSessionAction $touch,
     ): Response {
-        $session = $join->handle($request, $transferSession->access_code);
+        if ($transferSession->hasExpired()) {
+            $touch->expire($transferSession);
+            $session = $transferSession->refresh()->load([
+                'items.participant',
+                'participants',
+                'activities',
+            ]);
+        } else {
+            $session = $join->handle($request, $transferSession->access_code);
+        }
 
-        return Inertia::render('dozobin', [
-            'screen' => 'transfer-session',
-            'routeParams' => ['code' => $session->access_code],
-            'state' => $state->handle($request, transfer: $session),
+        return Inertia::render('transfers/show', [
+            'transfer' => fn () => (new TransferSessionResource($session))->resolve($request),
         ]);
     }
 
@@ -60,7 +87,7 @@ final class TransferController extends Controller
         Request $request,
         TransferSession $transferSession,
         ResolveTransferParticipantAction $resolve,
-    ): JsonResponse {
+    ): JsonResponse|RedirectResponse {
         $participant = $resolve->handle($request, $transferSession);
         $participant->update(['left_at' => now()]);
         $transferSession->activities()->create([
@@ -69,6 +96,8 @@ final class TransferController extends Controller
             'description' => 'left on this device',
         ]);
 
-        return response()->json(status: 204);
+        return $request->expectsJson()
+            ? response()->json(status: 204)
+            : to_route('transfer.lobby');
     }
 }

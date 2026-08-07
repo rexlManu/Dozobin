@@ -1,3 +1,4 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     Copy,
@@ -12,7 +13,7 @@ import {
     Trash,
 } from '@phosphor-icons/react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/app-shell';
 import { useConfirm } from '@/components/confirm-dialog';
@@ -32,17 +33,14 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { requestJson } from '@/lib/api';
 import { downloadSource, downloadText } from '@/lib/download';
 import { formatBytes, relativeTime } from '@/lib/format';
-import { Link, useNavigate, useParams } from '@/lib/navigation';
-import type { TransferItem } from '@/lib/types';
+import { Link } from '@/lib/navigation';
+import { isTransferExpired, transferExpiresAt } from '@/lib/transfer-state';
+import type { TransferItem, TransferSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import {
-    EXPIRED_CODE,
-    isTransferExpired,
-    transferExpiresAt,
-    useDozo,
-} from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 function DeadSession({
     code,
@@ -55,11 +53,11 @@ function DeadSession({
 
     return (
         <div className="mx-auto w-full max-w-[30rem] px-4 py-16 sm:py-24">
-            <div className="border-border bg-card flex size-11 items-center justify-center rounded-lg border">
+            <div className="flex size-11 items-center justify-center rounded-lg border border-border bg-card">
                 {expired ? (
-                    <Hourglass className="text-muted-foreground size-5" />
+                    <Hourglass className="size-5 text-muted-foreground" />
                 ) : (
-                    <Question className="text-muted-foreground size-5" />
+                    <Question className="size-5 text-muted-foreground" />
                 )}
             </div>
             <h1 className="mt-5 text-xl font-medium tracking-[-0.02em]">
@@ -67,12 +65,12 @@ function DeadSession({
                     ? 'This session has expired'
                     : 'No session uses that code'}
             </h1>
-            <p className="text-muted-foreground mt-2 text-[13.5px] leading-relaxed">
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
                 {expired
                     ? 'Twelve hours passed with nothing happening in it, so every Transfer Item was removed. Access Codes are not reused, so this one now points at nothing.'
                     : 'Either the code was mistyped or the session it belonged to is long gone. Codes are eight characters, letters and digits.'}
             </p>
-            <p className="text-muted-foreground mt-4 font-mono text-[12px] tracking-[0.14em]">
+            <p className="mt-4 font-mono text-[12px] tracking-[0.14em] text-muted-foreground">
                 {code}
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -93,13 +91,13 @@ function LeftSession({
 }) {
     return (
         <div className="mx-auto w-full max-w-[30rem] px-4 py-16 sm:py-24">
-            <div className="border-border bg-card flex size-11 items-center justify-center rounded-lg border">
-                <SignOut className="text-muted-foreground size-5" />
+            <div className="flex size-11 items-center justify-center rounded-lg border border-border bg-card">
+                <SignOut className="size-5 text-muted-foreground" />
             </div>
             <h1 className="mt-5 text-xl font-medium tracking-[-0.02em]">
                 You left on this device
             </h1>
-            <p className="text-muted-foreground mt-2 text-[13.5px] leading-relaxed">
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
                 The session itself keeps running for the other devices in it.
                 Leaving never ends a session, and neither does anything else a
                 participant can do.
@@ -130,12 +128,12 @@ function ItemPreview({
         >
             <DialogContent className="max-w-[46rem]">
                 <DialogHeader>
-                    <DialogTitle className="break-all font-mono text-[13px]">
+                    <DialogTitle className="font-mono text-[13px] break-all">
                         {item?.name}
                     </DialogTitle>
                 </DialogHeader>
                 {item?.kind === 'text' ? (
-                    <pre className="scrollbar-slim border-border bg-sunken max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-lg border px-4 py-3 font-mono text-[12.5px] leading-[1.65]">
+                    <pre className="max-h-[26rem] scrollbar-slim overflow-auto rounded-lg border border-border bg-sunken px-4 py-3 font-mono text-[12.5px] leading-[1.65] whitespace-pre-wrap">
                         {item.body}
                     </pre>
                 ) : item?.kind === 'image' && src ? (
@@ -148,10 +146,10 @@ function ItemPreview({
                     <iframe
                         src={src}
                         title={item.name}
-                        className="border-border h-[26rem] w-full rounded-lg border"
+                        className="h-[26rem] w-full rounded-lg border border-border"
                     />
                 ) : (
-                    <div className="border-border bg-sunken text-muted-foreground rounded-lg border px-4 py-10 text-center text-[13px]">
+                    <div className="rounded-lg border border-border bg-sunken px-4 py-10 text-center text-[13px] text-muted-foreground">
                         No preview for this format. Download it on the device
                         that needs it.
                     </div>
@@ -166,13 +164,14 @@ function ItemRow({
     actorLabel,
     onPreview,
     onDelete,
+    onTouch,
 }: {
     item: TransferItem;
     actorLabel: string;
     onPreview: () => void;
     onDelete: () => void;
+    onTouch: (note: string) => void;
 }) {
-    const touchTransfer = useDozo((s) => s.touchTransfer);
     const src = item.objectUrl ?? item.demoSrc;
 
     const copy = async () => {
@@ -214,10 +213,10 @@ function ItemRow({
                 <img
                     src={src}
                     alt=""
-                    className="border-border size-10 shrink-0 rounded-md border object-cover"
+                    className="size-10 shrink-0 rounded-md border border-border object-cover"
                 />
             ) : (
-                <span className="border-border bg-sunken text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md border">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-sunken text-muted-foreground">
                     <FileGlyph
                         mime={item.mime}
                         filename={item.name}
@@ -230,7 +229,7 @@ function ItemRow({
                 <p className="truncate text-[13.5px] font-medium">
                     {item.name}
                 </p>
-                <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+                <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     {formatBytes(item.size)} · {actorLabel} ·{' '}
                     {relativeTime(item.addedAt)}
                 </p>
@@ -264,7 +263,7 @@ function ItemRow({
                             void downloadSource(src, item.name);
                         }
 
-                        touchTransfer(`downloaded ${item.name}`);
+                        onTouch(`downloaded ${item.name}`);
                     }}
                 >
                     <DownloadSimple />
@@ -282,60 +281,50 @@ function ItemRow({
     );
 }
 
-export function TransferSessionRoute() {
-    const { code = '' } = useParams();
-    const navigate = useNavigate();
-    const transfer = useDozo((s) => s.transfer);
-    const windowMs = useDozo((s) => s.transferWindowMs());
-    const joinTransfer = useDozo((s) => s.joinTransfer);
-    const addTransferItems = useDozo((s) => s.addTransferItems);
-    const deleteTransferItem = useDozo((s) => s.deleteTransferItem);
-    const leaveTransfer = useDozo((s) => s.leaveTransfer);
-    const touchTransfer = useDozo((s) => s.touchTransfer);
+export function TransferSessionRoute({
+    transfer,
+}: {
+    transfer: TransferSession;
+}) {
+    const windowMs =
+        usePage<SharedPageProps>().props.config.transferWindowHours *
+        60 *
+        60 *
+        1000;
     const { confirm, dialog } = useConfirm();
 
     const [text, setText] = useState('');
     const [composing, setComposing] = useState(false);
     const [preview, setPreview] = useState<TransferItem | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const joined = useRef(false);
-
-    const matches = transfer?.code === code;
-
-    // Opening the session is itself activity, which is the rule the countdown lives by.
-    useEffect(() => {
-        if (matches) {
-            touchTransfer();
-
-            return;
-        }
-
-        if (joined.current) {
-            return;
-        }
-
-        joined.current = true;
-        joinTransfer(code);
-    }, [code, matches, joinTransfer, touchTransfer]);
-
-    const addFiles = (files: File[]) => {
-        if (files.length === 0) {
-            return;
-        }
-
-        addTransferItems(
-            files.map((file) => ({
-                kind: file.type.startsWith('image/')
-                    ? ('image' as const)
-                    : ('file' as const),
-                name: file.name,
-                mime: file.type || 'application/octet-stream',
-                size: file.size,
-                objectUrl: URL.createObjectURL(file),
-                file,
-            })),
-        );
+    const touchTransfer = (note = '') => {
+        void requestJson(`/transfers/${transfer.code}/touch`, {
+            method: 'POST',
+            body: JSON.stringify({ note }),
+        });
     };
+
+    const addFiles = useCallback(
+        async (files: File[]) => {
+            if (files.length === 0) {
+                return;
+            }
+
+            await Promise.all(
+                files.map((file) => {
+                    const body = new FormData();
+                    body.append('file', file);
+
+                    return requestJson(`/transfers/${transfer.code}/items`, {
+                        method: 'POST',
+                        body,
+                    });
+                }),
+            );
+            router.reload({ only: ['transfer'] });
+        },
+        [transfer.code],
+    );
 
     useEffect(() => {
         const onPaste = (event: ClipboardEvent) => {
@@ -361,34 +350,18 @@ export function TransferSessionRoute() {
                 .toISOString()
                 .replace(/[:.]/g, '-')
                 .slice(0, 19);
-            addTransferItems(
-                images.map((file) => ({
-                    kind: 'image' as const,
-                    name: `screenshot-${stamp}.png`,
-                    mime: file.type,
-                    size: file.size,
-                    objectUrl: URL.createObjectURL(file),
-                    file,
-                })),
+            const renamed = images.map(
+                (file) =>
+                    new File([file], `screenshot-${stamp}.png`, {
+                        type: file.type,
+                    }),
             );
+            void addFiles(renamed);
         };
         window.addEventListener('paste', onPaste);
 
         return () => window.removeEventListener('paste', onPaste);
-    }, [addTransferItems]);
-
-    if (!transfer || !matches) {
-        const upper = code.toUpperCase();
-
-        return (
-            <AppShell>
-                <DeadSession
-                    code={upper}
-                    reason={upper === EXPIRED_CODE ? 'expired' : 'unknown'}
-                />
-            </AppShell>
-        );
-    }
+    }, [addFiles]);
 
     if (isTransferExpired(transfer, windowMs)) {
         return (
@@ -403,7 +376,7 @@ export function TransferSessionRoute() {
             <AppShell>
                 <LeftSession
                     code={transfer.code}
-                    onRejoin={() => joinTransfer(transfer.code)}
+                    onRejoin={() => router.visit(`/transfer/${transfer.code}`)}
                 />
             </AppShell>
         );
@@ -435,8 +408,7 @@ export function TransferSessionRoute() {
         });
 
         if (ok) {
-            leaveTransfer();
-            navigate('/transfer');
+            router.delete(`/transfers/${transfer.code}/leave`);
         }
     };
 
@@ -444,11 +416,11 @@ export function TransferSessionRoute() {
         <AppShell>
             {/* One strip of session facts, on hairlines rather than in a stack of
           panels: what it is called, how long it has, and who is in it. */}
-            <div className="border-border border-b">
+            <div className="border-b border-border">
                 <div className="rail flex flex-wrap items-center gap-x-5 gap-y-2.5 py-3.5">
                     <div className="flex items-center gap-2">
                         <span className="label-mono">Code</span>
-                        <span className="font-mono text-[15px] tabular-nums tracking-[0.16em]">
+                        <span className="font-mono text-[15px] tracking-[0.16em] tabular-nums">
                             {transfer.code}
                         </span>
                         <CopyButton
@@ -461,7 +433,7 @@ export function TransferSessionRoute() {
 
                     <span
                         aria-hidden
-                        className="bg-border hidden h-5 w-px sm:block"
+                        className="hidden h-5 w-px bg-border sm:block"
                     />
 
                     <div className="flex items-center gap-2">
@@ -474,10 +446,10 @@ export function TransferSessionRoute() {
 
                     <span
                         aria-hidden
-                        className="bg-border hidden h-5 w-px sm:block"
+                        className="hidden h-5 w-px bg-border sm:block"
                     />
 
-                    <div className="text-muted-foreground flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px]">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-muted-foreground">
                         {transfer.participants.map((participant) => (
                             <span
                                 key={participant.id}
@@ -486,7 +458,7 @@ export function TransferSessionRoute() {
                                 <span
                                     className={cn(
                                         participant.self &&
-                                            'text-foreground font-medium',
+                                            'font-medium text-foreground',
                                     )}
                                 >
                                     {participant.label}
@@ -507,7 +479,7 @@ export function TransferSessionRoute() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent align="end" className="w-auto">
-                                    <div className="border-border flex justify-center rounded-lg border bg-white p-3">
+                                    <div className="flex justify-center rounded-lg border border-border bg-white p-3">
                                         <QRCodeSVG
                                             value={joinUrl}
                                             size={168}
@@ -516,7 +488,7 @@ export function TransferSessionRoute() {
                                             fgColor="#111318"
                                         />
                                     </div>
-                                    <p className="text-muted-foreground mt-2.5 max-w-[20rem] text-center text-[11.5px] leading-relaxed">
+                                    <p className="mt-2.5 max-w-[20rem] text-center text-[11.5px] leading-relaxed text-muted-foreground">
                                         Point another device at this, or type
                                         the code there.
                                     </p>
@@ -532,8 +504,8 @@ export function TransferSessionRoute() {
 
             <div className="rail flex flex-col gap-4 py-5 sm:py-6">
                 {pairing && (
-                    <section className="border-border flex flex-col items-center gap-5 border-b pb-8 text-center">
-                        <div className="border-border rounded-lg border bg-white p-3">
+                    <section className="flex flex-col items-center gap-5 border-b border-border pb-8 text-center">
+                        <div className="rounded-lg border border-border bg-white p-3">
                             <QRCodeSVG
                                 value={joinUrl}
                                 size={176}
@@ -543,13 +515,13 @@ export function TransferSessionRoute() {
                             />
                         </div>
                         <div className="flex flex-col items-center gap-2">
-                            <p className="font-mono text-[26px] tabular-nums tracking-[0.18em]">
+                            <p className="font-mono text-[26px] tracking-[0.18em] tabular-nums">
                                 {transfer.code}
                             </p>
                             <h2 className="text-[15px] font-medium">
                                 Waiting for another device
                             </h2>
-                            <p className="text-muted-foreground max-w-[46ch] text-[13px] leading-relaxed">
+                            <p className="max-w-[46ch] text-[13px] leading-relaxed text-muted-foreground">
                                 Scan this or type the code over there. Every
                                 device that joins gets the same rights as this
                                 one, and nobody can end the session for the
@@ -563,9 +535,9 @@ export function TransferSessionRoute() {
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={(event) => {
                         event.preventDefault();
-                        addFiles(Array.from(event.dataTransfer.files));
+                        void addFiles(Array.from(event.dataTransfer.files));
                     }}
-                    className="border-border bg-sunken rounded-xl border px-4 py-4"
+                    className="rounded-xl border border-border bg-sunken px-4 py-4"
                 >
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="mr-auto text-[13px] font-medium">
@@ -586,7 +558,7 @@ export function TransferSessionRoute() {
                             <TextAlignLeft /> Text
                         </Button>
                     </div>
-                    <p className="text-muted-foreground mt-2 font-mono text-[11px]">
+                    <p className="mt-2 font-mono text-[11px] text-muted-foreground">
                         Drop files here · Ctrl+V pastes a screenshot · items
                         never get a public URL
                     </p>
@@ -600,7 +572,7 @@ export function TransferSessionRoute() {
                                     setText(event.target.value)
                                 }
                                 placeholder="Type or paste anything the other device needs"
-                                className="bg-background min-h-[7rem] font-mono text-[13px]"
+                                className="min-h-[7rem] bg-background font-mono text-[13px]"
                             />
                             <div className="flex justify-end gap-2">
                                 <Button
@@ -613,20 +585,19 @@ export function TransferSessionRoute() {
                                 <Button
                                     size="sm"
                                     disabled={text.trim().length === 0}
-                                    onClick={() => {
-                                        addTransferItems([
+                                    onClick={async () => {
+                                        await requestJson(
+                                            `/transfers/${transfer.code}/items`,
                                             {
-                                                kind: 'text',
-                                                name: 'Pasted text',
-                                                mime: 'text/plain',
-                                                size: new TextEncoder().encode(
-                                                    text,
-                                                ).length,
-                                                body: text,
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                    body: text,
+                                                }),
                                             },
-                                        ]);
+                                        );
                                         setText('');
                                         setComposing(false);
+                                        router.reload({ only: ['transfer'] });
                                     }}
                                 >
                                     Add text <ArrowRight />
@@ -641,7 +612,7 @@ export function TransferSessionRoute() {
                         multiple
                         className="sr-only"
                         onChange={(event) => {
-                            addFiles(Array.from(event.target.files ?? []));
+                            void addFiles(Array.from(event.target.files ?? []));
                             event.target.value = '';
                         }}
                     />
@@ -650,13 +621,13 @@ export function TransferSessionRoute() {
                 {/* While pairing, the QR above already says what to do next, so an
             empty list would only repeat it. */}
                 {(transfer.items.length > 0 || !pairing) && (
-                    <section className="border-border bg-card overflow-hidden rounded-xl border">
-                        <header className="border-border flex items-center gap-3 border-b px-3 py-2.5 sm:px-4">
+                    <section className="overflow-hidden rounded-xl border border-border bg-card">
+                        <header className="flex items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
                             <h2 className="text-[13px] font-semibold">
                                 {transfer.items.length}{' '}
                                 {transfer.items.length === 1 ? 'item' : 'items'}
                             </h2>
-                            <p className="text-muted-foreground font-mono text-[11px]">
+                            <p className="font-mono text-[11px] text-muted-foreground">
                                 {formatBytes(
                                     transfer.items.reduce(
                                         (sum, item) => sum + item.size,
@@ -671,26 +642,27 @@ export function TransferSessionRoute() {
                                 <p className="text-[14px] font-medium">
                                     Nothing here yet
                                 </p>
-                                <p className="text-muted-foreground mx-auto mt-1.5 max-w-[40ch] text-[13px] leading-relaxed">
+                                <p className="mx-auto mt-1.5 max-w-[40ch] text-[13px] leading-relaxed text-muted-foreground">
                                     Add something from this device, or open the
                                     Access Code on another one and push it from
                                     there.
                                 </p>
                             </div>
                         ) : (
-                            <ul className="divide-border divide-y">
+                            <ul className="divide-y divide-border">
                                 {transfer.items.map((item) => (
                                     <ItemRow
                                         key={item.id}
                                         item={item}
                                         actorLabel={actorLabel(item.addedBy)}
                                         onPreview={() => setPreview(item)}
+                                        onTouch={touchTransfer}
                                         onDelete={async () => {
                                             const ok = await confirm({
                                                 title: 'Delete this item?',
                                                 description: (
                                                     <>
-                                                        <span className="text-foreground font-mono">
+                                                        <span className="font-mono text-foreground">
                                                             {item.name}
                                                         </span>{' '}
                                                         is removed for every
@@ -701,7 +673,13 @@ export function TransferSessionRoute() {
                                             });
 
                                             if (ok) {
-                                                deleteTransferItem(item.id);
+                                                await requestJson(
+                                                    `/transfers/${transfer.code}/items/${item.id}`,
+                                                    { method: 'DELETE' },
+                                                );
+                                                router.reload({
+                                                    only: ['transfer'],
+                                                });
                                             }
                                         }}
                                     />
@@ -714,11 +692,11 @@ export function TransferSessionRoute() {
                 {transfer.activity.length > 0 && (
                     <section className="mt-2">
                         <p className="label-mono">Recent activity</p>
-                        <ul className="border-border mt-2.5 flex flex-col gap-1.5 border-t pt-3">
+                        <ul className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-3">
                             {transfer.activity.slice(0, 6).map((entry) => (
                                 <li
                                     key={entry.id}
-                                    className="text-muted-foreground text-[12px] leading-relaxed"
+                                    className="text-[12px] leading-relaxed text-muted-foreground"
                                 >
                                     <span className="text-foreground">
                                         {entry.actor}
@@ -731,7 +709,7 @@ export function TransferSessionRoute() {
                                 </li>
                             ))}
                         </ul>
-                        <p className="text-muted-foreground mt-3 text-[11.5px] leading-relaxed">
+                        <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
                             The clock restarts whenever someone opens the
                             session, adds, downloads, or deletes something. A
                             tab left sitting open does not count.

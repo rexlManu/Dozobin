@@ -1,3 +1,4 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     DotsThree,
     Info,
@@ -41,16 +42,17 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { requestJson } from '@/lib/api';
 import { formatBytes, relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
-import type { TransferSession } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import {
     isTransferExpired,
     mergeTransfers,
     transferExpiresAt,
-    useDozo,
-} from '@/store/store';
+} from '@/lib/transfer-state';
+import type { TransferSession } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import type { SharedPageProps } from '@/types';
 
 type Only = 'all' | 'running' | 'past';
 
@@ -61,16 +63,16 @@ function sessionSize(session: TransferSession): number {
 function StateChip({ live, mine }: { live: boolean; mine: boolean }) {
     if (!live) {
         return (
-            <span className="text-muted-foreground text-[12.5px]">Ended</span>
+            <span className="text-[12.5px] text-muted-foreground">Ended</span>
         );
     }
 
     return (
         <span className="inline-flex items-center gap-1.5 text-[12.5px]">
-            <span aria-hidden className="bg-primary size-1.5 rounded-full" />
+            <span aria-hidden className="size-1.5 rounded-full bg-primary" />
             Running
             {mine && (
-                <span className="text-muted-foreground font-mono text-[10.5px]">
+                <span className="font-mono text-[10.5px] text-muted-foreground">
                     this device
                 </span>
             )}
@@ -78,17 +80,23 @@ function StateChip({ live, mine }: { live: boolean; mine: boolean }) {
     );
 }
 
-export function AdminTransfersRoute() {
-    const live = useDozo((s) => s.transfer);
-    const history = useDozo((s) => s.transferHistory);
+export function AdminTransfersRoute({
+    transfer: live,
+    transferHistory: history,
+}: {
+    transfer: TransferSession | null;
+    transferHistory: TransferSession[];
+}) {
     const sessions = useMemo(
         () => mergeTransfers(live, history),
         [live, history],
     );
     const liveCode = live?.code ?? null;
-    const windowMs = useDozo((s) => s.transferWindowMs());
-    const endSession = useDozo((s) => s.endTransferSession);
-    const deleteSession = useDozo((s) => s.deleteTransferSession);
+    const windowMs =
+        usePage<SharedPageProps>().props.config.transferWindowHours *
+        60 *
+        60 *
+        1000;
     const { confirm, dialog } = useConfirm();
 
     const [query, setQuery] = useState('');
@@ -123,10 +131,15 @@ export function AdminTransfersRoute() {
                 return;
             }
 
-            endSession(session.code);
-            toast(`Session ${session.code} ended`);
+            await requestJson(`/admin/sessions/${session.code}`, {
+                method: 'DELETE',
+            });
+            router.reload({
+                only: ['transfer', 'transferHistory'],
+                onSuccess: () => toast(`Session ${session.code} ended`),
+            });
         },
-        [confirm, endSession],
+        [confirm],
     );
 
     const forgetSelected = useCallback(
@@ -149,16 +162,24 @@ export function AdminTransfersRoute() {
                 return;
             }
 
-            for (const code of codes) {
-                deleteSession(code);
-            }
-
-            setSelection({});
-            toast(
-                `${codes.length} ${codes.length === 1 ? 'record' : 'records'} removed`,
+            await Promise.all(
+                codes.map((code) =>
+                    requestJson(`/admin/sessions/${code}?forget=1`, {
+                        method: 'DELETE',
+                    }),
+                ),
             );
+            router.reload({
+                only: ['transfer', 'transferHistory'],
+                onSuccess: () => {
+                    setSelection({});
+                    toast(
+                        `${codes.length} ${codes.length === 1 ? 'record' : 'records'} removed`,
+                    );
+                },
+            });
         },
-        [confirm, deleteSession, sessions, windowMs],
+        [confirm, sessions, windowMs],
     );
 
     const columns = useMemo(() => {
@@ -224,7 +245,7 @@ export function AdminTransfersRoute() {
                         <span className="font-mono text-[11.5px]">
                             {row.original.participants.length}
                         </span>
-                        <span className="text-muted-foreground hidden truncate text-[12px] lg:inline">
+                        <span className="hidden truncate text-[12px] text-muted-foreground lg:inline">
                             {row.original.participants
                                 .map((p) => p.label)
                                 .join(', ')}
@@ -243,7 +264,7 @@ export function AdminTransfersRoute() {
                     // "nothing was ever shared" when the truth is "nothing is left".
                     if (isTransferExpired(session, windowMs)) {
                         return (
-                            <span className="text-muted-foreground font-mono text-[11.5px]">
+                            <span className="font-mono text-[11.5px] text-muted-foreground">
                                 —
                             </span>
                         );
@@ -263,7 +284,7 @@ export function AdminTransfersRoute() {
             col.accessor('createdAt', {
                 header: 'Started',
                 cell: (c) => (
-                    <span className="text-muted-foreground whitespace-nowrap font-mono text-[11.5px]">
+                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue())}
                     </span>
                 ),
@@ -272,7 +293,7 @@ export function AdminTransfersRoute() {
             col.accessor('lastActivityAt', {
                 header: 'Last activity',
                 cell: (c) => (
-                    <span className="text-muted-foreground whitespace-nowrap font-mono text-[11.5px]">
+                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue())}
                     </span>
                 ),
@@ -290,7 +311,7 @@ export function AdminTransfersRoute() {
 
                         if (isTransferExpired(session, windowMs)) {
                             return (
-                                <span className="text-muted-foreground font-mono text-[11.5px]">
+                                <span className="font-mono text-[11.5px] text-muted-foreground">
                                     —
                                 </span>
                             );
@@ -407,7 +428,7 @@ export function AdminTransfersRoute() {
                     <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
                         Transfer sessions
                     </h2>
-                    <p className="text-muted-foreground mt-1.5 flex max-w-[62ch] flex-wrap items-center gap-x-1.5 text-[13px] leading-relaxed">
+                    <p className="mt-1.5 flex max-w-[62ch] flex-wrap items-center gap-x-1.5 text-[13px] leading-relaxed text-muted-foreground">
                         {running === 0
                             ? 'Nothing is running right now.'
                             : `${running} ${running === 1 ? 'session is' : 'sessions are'} running.`}{' '}
@@ -426,7 +447,7 @@ export function AdminTransfersRoute() {
                                 <button
                                     type="button"
                                     aria-label="Why there are no account names here"
-                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                    className="text-muted-foreground transition-colors hover:text-foreground"
                                 >
                                     <Info className="size-3.5" />
                                 </button>
@@ -477,12 +498,12 @@ export function AdminTransfersRoute() {
                                             mine={session.code === liveCode}
                                         />
                                     </div>
-                                    <p className="text-muted-foreground mt-1 truncate text-[12px]">
+                                    <p className="mt-1 truncate text-[12px] text-muted-foreground">
                                         {session.participants
                                             .map((p) => p.label)
                                             .join(', ')}
                                     </p>
-                                    <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[11px]">
+                                    <p className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[11px] text-muted-foreground">
                                         {running ? (
                                             <>
                                                 <span>
@@ -568,7 +589,7 @@ export function AdminTransfersRoute() {
                     toolbar={
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                             <div className="relative min-w-0 flex-1">
-                                <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                                <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
@@ -581,7 +602,7 @@ export function AdminTransfersRoute() {
                                         variant="ghost"
                                         size="icon-sm"
                                         aria-label="Clear search"
-                                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                                        className="absolute top-1/2 right-1 -translate-y-1/2"
                                         onClick={() => setQuery('')}
                                     >
                                         <X />
@@ -628,7 +649,7 @@ export function AdminTransfersRoute() {
                             </p>
                             <p
                                 className={cn(
-                                    'text-muted-foreground mx-auto mt-1.5 max-w-[44ch] text-[13px] leading-relaxed',
+                                    'mx-auto mt-1.5 max-w-[44ch] text-[13px] leading-relaxed text-muted-foreground',
                                 )}
                             >
                                 {only === 'running'

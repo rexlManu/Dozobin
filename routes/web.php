@@ -2,11 +2,15 @@
 
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\InstallationSettingController;
+use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\TransferSessionController as AdminTransferSessionController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiTokenController;
-use App\Http\Controllers\AppPageController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Page\AuthPageController;
+use App\Http\Controllers\Page\HomeController;
+use App\Http\Controllers\Page\LibraryController;
+use App\Http\Controllers\Page\SettingsPageController;
 use App\Http\Controllers\PasswordResetLinkController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicShareController;
@@ -15,7 +19,7 @@ use App\Http\Controllers\TransferController;
 use App\Http\Controllers\TransferItemController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', AppPageController::class)->name('home');
+Route::get('/', HomeController::class)->name('home');
 Route::get('/s/{share}', [PublicShareController::class, 'showFile'])->name('shares.show');
 Route::get('/p/{share}', [PublicShareController::class, 'showPaste'])->name('pastes.show');
 Route::post('/shares/{share}/unlock', [PublicShareController::class, 'unlock'])->middleware('throttle:10,1')->name('shares.unlock');
@@ -25,7 +29,7 @@ Route::get('/shares/{share}/download', [PublicShareController::class, 'download'
 Route::post('/shares/files', [ShareController::class, 'storeFile'])->middleware('throttle:30,1')->name('shares.files.store');
 Route::post('/shares/pastes', [ShareController::class, 'storePaste'])->middleware('throttle:60,1')->name('shares.pastes.store');
 
-Route::get('/transfer', AppPageController::class)->name('transfer.lobby');
+Route::get('/transfer', [TransferController::class, 'index'])->name('transfer.lobby');
 Route::post('/transfers', [TransferController::class, 'store'])->middleware('throttle:20,1')->name('transfers.store');
 Route::post('/transfers/join', [TransferController::class, 'join'])->middleware('throttle:30,1')->name('transfers.join');
 Route::get('/transfer/{transferSession}', [TransferController::class, 'show'])->name('transfers.show');
@@ -36,22 +40,26 @@ Route::delete('/transfers/{transferSession}/items/{transferItem}', [TransferItem
 Route::get('/transfer-items/{transferItem}/content', [TransferItemController::class, 'content'])->name('transfer-items.content');
 
 Route::middleware('guest')->group(function (): void {
-    Route::get('/signin', AppPageController::class)->name('signin');
+    Route::get('/signin', [AuthPageController::class, 'signIn'])->name('signin');
     Route::post('/signin', [AuthController::class, 'login'])->name('login');
-    Route::get('/register', AppPageController::class)->name('register');
+    Route::get('/register', [AuthPageController::class, 'register'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
-    Route::get('/reset', AppPageController::class)->name('password.request');
+    Route::get('/reset', [AuthPageController::class, 'reset'])->name('password.request');
     Route::post('/reset', PasswordResetLinkController::class)->middleware('throttle:6,1')->name('password.email');
 });
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::delete('/shares', [ShareController::class, 'destroy'])->name('shares.destroy');
-    Route::get('/library', AppPageController::class)->name('library');
-    Route::get('/settings', fn () => redirect()->route('settings.show', 'profile'));
-    Route::get('/settings/{section}', AppPageController::class)
-        ->whereIn('section', ['profile', 'appearance', 'sharing', 'storage', 'security', 'tokens', 'sharex'])
-        ->name('settings.show');
+    Route::get('/library', LibraryController::class)->name('library');
+    Route::redirect('/settings', '/settings/profile');
+    Route::get('/settings/profile', [SettingsPageController::class, 'profile'])->name('settings.profile');
+    Route::get('/settings/appearance', [SettingsPageController::class, 'appearance'])->name('settings.appearance');
+    Route::get('/settings/sharing', [SettingsPageController::class, 'sharing'])->name('settings.sharing');
+    Route::get('/settings/storage', [SettingsPageController::class, 'storage'])->name('settings.storage');
+    Route::get('/settings/security', [SettingsPageController::class, 'security'])->name('settings.security');
+    Route::get('/settings/tokens', [SettingsPageController::class, 'tokens'])->name('settings.tokens');
+    Route::get('/settings/sharex', [SettingsPageController::class, 'sharex'])->name('settings.sharex');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -63,14 +71,17 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', fn () => redirect()->route('admin.users.index'));
-    Route::get('/users', AppPageController::class)->name('users.index');
-    Route::get('/users/{accountId}', AppPageController::class)->name('users.show');
-    Route::get('/users/{accountId}/uploads', AppPageController::class)->name('users.uploads');
-    Route::get('/uploads', AppPageController::class)->name('uploads.index');
-    Route::get('/sessions', AppPageController::class)->name('sessions.index');
-    Route::get('/settings/{section}', AppPageController::class)
-        ->whereIn('section', ['access', 'expiration', 'limits', 'file-types', 'transfer', 'housekeeping'])
-        ->name('settings.show');
+    Route::get('/users', [AdminPageController::class, 'users'])->name('users.index');
+    Route::get('/users/{user}', [AdminPageController::class, 'user'])->name('users.show');
+    Route::get('/users/{user}/uploads', [AdminPageController::class, 'userUploads'])->name('users.uploads');
+    Route::get('/uploads', [AdminPageController::class, 'uploads'])->name('uploads.index');
+    Route::get('/sessions', [AdminPageController::class, 'transfers'])->name('sessions.index');
+    Route::get('/settings/access', [AdminPageController::class, 'access'])->name('settings.access');
+    Route::get('/settings/expiration', [AdminPageController::class, 'expiration'])->name('settings.expiration');
+    Route::get('/settings/limits', [AdminPageController::class, 'limits'])->name('settings.limits');
+    Route::get('/settings/file-types', [AdminPageController::class, 'fileTypes'])->name('settings.file-types');
+    Route::get('/settings/transfer', [AdminPageController::class, 'transferSettings'])->name('settings.transfer');
+    Route::get('/settings/housekeeping', [AdminPageController::class, 'housekeeping'])->name('settings.housekeeping');
     Route::patch('/settings', [InstallationSettingController::class, 'update'])->name('settings.update');
     Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
@@ -78,7 +89,3 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'store'])->name('users.impersonate');
     Route::delete('/sessions/{transferSession}', [AdminTransferSessionController::class, 'destroy'])->name('sessions.destroy');
 });
-
-if (app()->isLocal()) {
-    Route::get('/states', AppPageController::class)->name('states');
-}

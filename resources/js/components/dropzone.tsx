@@ -110,10 +110,10 @@ export function DropCanvas({
                 <DropMark landing={dragging} />
 
                 <div className="flex flex-col items-center gap-2.5">
-                    <p className="text-balance text-[30px] font-medium leading-[1.1] tracking-[-0.025em] sm:text-[38px]">
+                    <p className="text-[30px] leading-[1.1] font-medium tracking-[-0.025em] text-balance sm:text-[38px]">
                         {dragging ? 'Let go to add them' : 'Drop files here'}
                     </p>
-                    <p className="text-muted-foreground max-w-[46ch] text-[13.5px] leading-relaxed">
+                    <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
                         Every file becomes its own share with its own URL.
                         Nothing is bundled, zipped, or grouped.
                     </p>

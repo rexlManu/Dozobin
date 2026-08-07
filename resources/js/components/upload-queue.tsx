@@ -16,7 +16,6 @@ import { formatBytes, shareUrl } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import type { ExpirationKey, Share, UploadItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useDozo } from '@/store/store';
 
 const FAILURE_TITLE: Record<NonNullable<UploadItem['failure']>, string> = {
     type: 'File type not accepted',
@@ -66,21 +65,27 @@ function UploadRow({
     share,
     expiration,
     password,
+    onRetry,
+    onRemove,
 }: {
     item: UploadItem;
     share?: Share;
     expiration: ExpirationKey;
     password: string | null;
+    onRetry: (
+        id: string,
+        expiration: ExpirationKey,
+        password: string | null,
+    ) => void;
+    onRemove: (id: string) => void;
 }) {
-    const retryUpload = useDozo((s) => s.retryUpload);
-    const removeUpload = useDozo((s) => s.removeUpload);
     const removed = item.status === 'removed';
 
     return (
         // The divider spans the window; the row's content sits on the rail.
         <li className={cn(removed && 'opacity-55')}>
             <div className="rail grid grid-cols-[auto_1fr_auto] items-start gap-x-3 gap-y-2 py-3.5">
-                <div className="text-muted-foreground mt-0.5">
+                <div className="mt-0.5 text-muted-foreground">
                     <FileGlyph
                         mime={item.mime}
                         filename={item.filename}
@@ -93,12 +98,12 @@ function UploadRow({
                         className={cn(
                             'truncate text-[13.5px] font-medium',
                             removed &&
-                                'decoration-muted-foreground line-through',
+                                'line-through decoration-muted-foreground',
                         )}
                     >
                         {item.filename}
                     </p>
-                    <p className="text-muted-foreground mt-0.5 font-mono text-[11.5px]">
+                    <p className="mt-0.5 font-mono text-[11.5px] text-muted-foreground">
                         {formatBytes(item.size)} ·{' '}
                         {mimeLabel(item.mime, item.filename)}
                     </p>
@@ -111,11 +116,11 @@ function UploadRow({
                     )}
 
                     {item.status === 'failed' && (
-                        <div className="border-destructive/30 bg-destructive-soft mt-2 rounded-md border px-3 py-2">
-                            <p className="text-destructive text-[12.5px] font-medium">
+                        <div className="mt-2 rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2">
+                            <p className="text-[12.5px] font-medium text-destructive">
                                 {FAILURE_TITLE[item.failure ?? 'network']}
                             </p>
-                            <p className="text-muted-foreground mt-0.5 text-[12px] leading-relaxed">
+                            <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
                                 {item.failureNote}
                             </p>
                         </div>
@@ -123,7 +128,7 @@ function UploadRow({
 
                     {item.status === 'done' && share && (
                         <div className="mt-2 flex items-center gap-2">
-                            <code className="border-border bg-background min-w-0 truncate rounded-md border px-2 py-1 font-mono text-[11.5px]">
+                            <code className="min-w-0 truncate rounded-md border border-border bg-background px-2 py-1 font-mono text-[11.5px]">
                                 {shareUrl(share)}
                             </code>
                         </div>
@@ -157,7 +162,7 @@ function UploadRow({
                             variant="outline"
                             size="sm"
                             onClick={() =>
-                                retryUpload(item.id, expiration, password)
+                                onRetry(item.id, expiration, password)
                             }
                         >
                             <ArrowClockwise /> Retry
@@ -168,7 +173,7 @@ function UploadRow({
                             variant="ghost"
                             size="icon-sm"
                             aria-label={`Remove ${item.filename}`}
-                            onClick={() => removeUpload(item.id)}
+                            onClick={() => onRemove(item.id)}
                         >
                             {item.status === 'failed' ? <Trash /> : <X />}
                         </Button>
@@ -182,15 +187,30 @@ function UploadRow({
 export function UploadQueue({
     expiration,
     password,
+    queue,
+    shares,
+    onStart,
+    onRetry,
+    onRemove,
+    onClear,
 }: {
     expiration: ExpirationKey;
     password: string | null;
+    queue: UploadItem[];
+    shares: Share[];
+    onStart: (
+        id: string,
+        expiration: ExpirationKey,
+        password: string | null,
+    ) => void;
+    onRetry: (
+        id: string,
+        expiration: ExpirationKey,
+        password: string | null,
+    ) => void;
+    onRemove: (id: string) => void;
+    onClear: () => void;
 }) {
-    const queue = useDozo((s) => s.queue);
-    const shares = useDozo((s) => s.shares);
-    const startUpload = useDozo((s) => s.startUpload);
-    const clearQueue = useDozo((s) => s.clearQueue);
-
     if (queue.length === 0) {
         return null;
     }
@@ -210,13 +230,13 @@ export function UploadQueue({
     return (
         // A tray that rises over the canvas rather than a card on a page. The drop
         // target stays live behind and around it, so more files can still land.
-        <section className="animate-in border-border bg-card slide-in-from-bottom-6 flex max-h-[55%] min-h-0 shrink-0 flex-col border-t duration-300 ease-out">
-            <header className="border-border shrink-0 border-b">
+        <section className="flex max-h-[55%] min-h-0 shrink-0 animate-in flex-col border-t border-border bg-card duration-300 ease-out slide-in-from-bottom-6">
+            <header className="shrink-0 border-b border-border">
                 <div className="rail flex flex-wrap items-center gap-3 py-3">
                     <h2 className="text-[13px] font-semibold">
                         {queue.length} {queue.length === 1 ? 'file' : 'files'}
                     </h2>
-                    <p className="text-muted-foreground font-mono text-[11px]">
+                    <p className="font-mono text-[11px] text-muted-foreground">
                         {summary.join(' · ')}
                     </p>
                     <div className="ml-auto flex items-center gap-2">
@@ -237,7 +257,7 @@ export function UploadQueue({
                                     .join('\n')}
                             />
                         )}
-                        <Button variant="ghost" size="sm" onClick={clearQueue}>
+                        <Button variant="ghost" size="sm" onClick={onClear}>
                             Clear list
                         </Button>
                         {ready.length > 0 && (
@@ -245,11 +265,7 @@ export function UploadQueue({
                                 size="sm"
                                 onClick={() =>
                                     ready.forEach((item) =>
-                                        startUpload(
-                                            item.id,
-                                            expiration,
-                                            password,
-                                        ),
+                                        onStart(item.id, expiration, password),
                                     )
                                 }
                             >
@@ -261,7 +277,7 @@ export function UploadQueue({
                 </div>
             </header>
 
-            <ul className="divide-border scrollbar-slim min-h-0 flex-1 divide-y overflow-auto">
+            <ul className="min-h-0 flex-1 scrollbar-slim divide-y divide-border overflow-auto">
                 {queue.map((item) => (
                     <UploadRow
                         key={item.id}
@@ -273,6 +289,8 @@ export function UploadQueue({
                         }
                         expiration={expiration}
                         password={password}
+                        onRetry={onRetry}
+                        onRemove={onRemove}
                     />
                 ))}
             </ul>

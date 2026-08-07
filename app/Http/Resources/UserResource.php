@@ -31,7 +31,11 @@ final class UserResource extends JsonResource
             'storageUsed' => (int) $used,
             'storageLimit' => $this->storage_limit,
             'defaultExpiration' => $this->default_expiration->value,
-            'tokens' => ApiTokenResource::collection($this->whenLoaded('apiTokens')),
+            'tokens' => $this->whenLoaded(
+                'apiTokens',
+                fn (): array => ApiTokenResource::collection($this->apiTokens)->resolve($request),
+                [],
+            ),
             'sessions' => $this->sessions($request),
         ];
     }

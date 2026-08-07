@@ -9,28 +9,37 @@ use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 final class ProfileController extends Controller
 {
-    public function update(UpdateProfileRequest $request, UpdateProfileAction $update): UserResource
+    public function update(UpdateProfileRequest $request, UpdateProfileAction $update): UserResource|RedirectResponse
     {
-        return UserResource::make($update->handle(
+        $user = $update->handle(
             $request->user(),
             $request->validated(),
             $request->file('avatar'),
-        )->load('apiTokens'));
+        );
+
+        if ($request->expectsJson()) {
+            return UserResource::make($user->load('apiTokens'));
+        }
+
+        return back()->with('status', 'Profile updated.');
     }
 
-    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
+    public function updatePassword(UpdatePasswordRequest $request): JsonResponse|RedirectResponse
     {
         $request->user()->update(['password' => $request->string('password')->toString()]);
 
-        return response()->json(status: 204);
+        return $request->expectsJson()
+            ? response()->json(status: 204)
+            : back()->with('status', 'Password updated.');
     }
 
-    public function destroy(Request $request, DeleteAccountAction $delete): JsonResponse
+    public function destroy(Request $request, DeleteAccountAction $delete): JsonResponse|RedirectResponse
     {
         $user = $request->user();
         $delete->handle($user);
@@ -38,13 +47,17 @@ final class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(status: 204);
+        return $request->expectsJson()
+            ? response()->json(status: 204)
+            : to_route('home');
     }
 
-    public function destroySession(Request $request, string $session, EndLoginSessionAction $end): JsonResponse
+    public function destroySession(Request $request, string $session, EndLoginSessionAction $end): JsonResponse|RedirectResponse
     {
         $end->handle($request, $request->user(), $session);
 
-        return response()->json(status: 204);
+        return $request->expectsJson()
+            ? response()->json(status: 204)
+            : back()->with('status', 'Session ended.');
     }
 }

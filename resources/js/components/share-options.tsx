@@ -19,7 +19,6 @@ import { Switch } from '@/components/ui/switch';
 import { EXPIRATION_LABEL, EXPIRATION_ORDER } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import type { ExpirationKey } from '@/lib/types';
-import { useDozo } from '@/store/store';
 
 export interface ShareOptionsValue {
     expiration: ExpirationKey;
@@ -35,15 +34,18 @@ export interface ShareOptionsValue {
 export function ShareOptions({
     value,
     onChange,
+    allowed,
+    canProtect,
+    isGuest,
     disabled,
 }: {
     value: ShareOptionsValue;
     onChange: (next: ShareOptionsValue) => void;
+    allowed: ExpirationKey[];
+    canProtect: boolean;
+    isGuest: boolean;
     disabled?: boolean;
 }) {
-    const allowed = useDozo((s) => s.allowedExpirations());
-    const canProtect = useDozo((s) => s.canProtect());
-    const isGuest = useDozo((s) => s.currentAccountId === null);
     const [reveal, setReveal] = useState(false);
     const passwordId = useId();
     const protectId = useId();
@@ -66,13 +68,13 @@ export function ShareOptions({
                     <span aria-hidden className="text-border-strong">
                         ·
                     </span>
-                    <span className="text-muted-foreground flex items-center gap-1.5 text-[12.5px] font-normal">
+                    <span className="flex items-center gap-1.5 text-[12.5px] font-normal text-muted-foreground">
                         {protectionOn && (
                             <Lock weight="fill" className="size-3" />
                         )}
                         {protectionOn ? 'Password' : 'No password'}
                     </span>
-                    <CaretDown className="text-muted-foreground size-3" />
+                    <CaretDown className="size-3 text-muted-foreground" />
                 </Button>
             </PopoverTrigger>
 
@@ -145,13 +147,13 @@ export function ShareOptions({
                                     Share password
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                                    <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id={passwordId}
                                         type={reveal ? 'text' : 'password'}
                                         autoComplete="new-password"
                                         placeholder="Password recipients will need"
-                                        className="pl-9 pr-10"
+                                        className="pr-10 pl-9"
                                         value={value.password ?? ''}
                                         disabled={disabled}
                                         onChange={(event) =>
@@ -165,7 +167,7 @@ export function ShareOptions({
                                         type="button"
                                         variant="ghost"
                                         size="icon-sm"
-                                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                                        className="absolute top-1/2 right-1 -translate-y-1/2"
                                         aria-label={
                                             reveal
                                                 ? 'Hide password'
@@ -183,7 +185,7 @@ export function ShareOptions({
                     {isGuest && (
                         <>
                             <div className="rule" />
-                            <div className="text-muted-foreground flex flex-col gap-2 text-[12px] leading-relaxed">
+                            <div className="flex flex-col gap-2 text-[12px] leading-relaxed text-muted-foreground">
                                 <p>
                                     This installation gives Guests{' '}
                                     {options
@@ -201,7 +203,7 @@ export function ShareOptions({
                                     Sharing as a Guest.{' '}
                                     <Link
                                         to="/signin"
-                                        className="decoration-border-strong hover:decoration-foreground underline underline-offset-4"
+                                        className="underline decoration-border-strong underline-offset-4 hover:decoration-foreground"
                                     >
                                         Sign in
                                     </Link>{' '}

@@ -133,16 +133,16 @@ export function CodeBlock({
             {showNumbers && (
                 <div
                     aria-hidden
-                    className="border-border bg-sunken text-muted-foreground/70 shrink-0 select-none border-r px-3 py-4 text-right font-mono text-[12px]"
+                    className="shrink-0 border-r border-border bg-sunken px-3 py-4 text-right font-mono text-[12px] text-muted-foreground/70 select-none"
                 >
                     {lines.map((_, index) => (
                         <div key={index}>{index + 1}</div>
                     ))}
                 </div>
             )}
-            <div className="scrollbar-slim min-w-0 flex-1 overflow-x-auto">
+            <div className="min-w-0 flex-1 scrollbar-slim overflow-x-auto">
                 {html === null ? (
-                    <pre className="text-muted-foreground/60 px-4 py-4 font-mono">
+                    <pre className="px-4 py-4 font-mono text-muted-foreground/60">
                         <code>{code}</code>
                     </pre>
                 ) : html === '' ? (

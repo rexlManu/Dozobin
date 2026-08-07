@@ -158,7 +158,7 @@
     }
 
     :focus-visible {
-        @apply outline-ring outline-2 outline-offset-2;
+        @apply outline-2 outline-offset-2 outline-ring;
     }
 
     /*
@@ -176,12 +176,12 @@
     /* Names a region or a column. Never a field sitting next to its control:
        at this size the caps and tracking read heavier than the control itself. */
     .label-mono {
-        @apply text-muted-foreground font-mono text-[10.5px] font-normal uppercase tracking-[0.1em];
+        @apply font-mono text-[10.5px] font-normal tracking-[0.1em] text-muted-foreground uppercase;
     }
 
     /* Hairline rule that reads as structure rather than decoration. */
     .rule {
-        @apply bg-border h-px w-full;
+        @apply h-px w-full bg-border;
     }
 
     /*

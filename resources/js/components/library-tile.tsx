@@ -21,9 +21,9 @@ import {
 import { previewKind } from '@/lib/detect';
 import { fileExtension, shareUrl } from '@/lib/format';
 import { Link } from '@/lib/navigation';
+import { isShareExpired } from '@/lib/share-state';
 import type { Share } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isShareExpired } from '@/store/store';
 
 /**
  * What a tile can actually show. A seeded video only has a poster behind it, so
@@ -32,9 +32,9 @@ import { isShareExpired } from '@/store/store';
 function Face({ share, broken }: { share: Share; broken: boolean }) {
     if (broken) {
         return (
-            <div className="text-destructive flex h-full flex-col items-center justify-center gap-2">
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-destructive">
                 <CloudSlash weight="thin" className="size-8" />
-                <span className="font-mono text-[10.5px] uppercase tracking-[0.08em]">
+                <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase">
                     {isShareExpired(share) ? 'Expired' : 'Missing'}
                 </span>
             </div>
@@ -45,7 +45,7 @@ function Face({ share, broken }: { share: Share; broken: boolean }) {
     // whole thing, so the first lines are the truest preview available.
     if (share.kind === 'paste') {
         return (
-            <pre className="text-muted-foreground h-full overflow-hidden whitespace-pre-wrap px-3 py-2.5 font-mono text-[10px] leading-[1.6]">
+            <pre className="h-full overflow-hidden px-3 py-2.5 font-mono text-[10px] leading-[1.6] whitespace-pre-wrap text-muted-foreground">
                 {share.body.split('\n').slice(0, 10).join('\n') ||
                     'Empty paste'}
             </pre>
@@ -86,7 +86,7 @@ function Face({ share, broken }: { share: Share; broken: boolean }) {
                     />
                 )}
                 <span className="absolute inset-0 grid place-items-center">
-                    <span className="border-border-strong bg-background/85 flex size-9 items-center justify-center rounded-full border backdrop-blur-sm">
+                    <span className="flex size-9 items-center justify-center rounded-full border border-border-strong bg-background/85 backdrop-blur-sm">
                         <Play weight="fill" className="size-3.5" />
                     </span>
                 </span>
@@ -96,13 +96,13 @@ function Face({ share, broken }: { share: Share; broken: boolean }) {
 
     // Nothing renderable. State the format rather than dressing it as a picture.
     return (
-        <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2">
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <FileGlyph
                 mime={share.mime}
                 filename={share.filename}
                 className="size-7"
             />
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.08em]">
+            <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase">
                 {fileExtension(share.filename) ||
                     share.mime.split('/')[1] ||
                     'file'}
@@ -140,13 +140,13 @@ export function LibraryTile({
         >
             <Link
                 to={path}
-                className="bg-sunken block aspect-[4/3]"
+                className="block aspect-[4/3] bg-sunken"
                 aria-label={label}
             >
                 <Face share={share} broken={broken} />
             </Link>
 
-            <div className="border-border flex items-start gap-1.5 border-t px-2.5 py-2">
+            <div className="flex items-start gap-1.5 border-t border-border px-2.5 py-2">
                 <div className="min-w-0 flex-1">
                     <p
                         className={cn(
@@ -157,10 +157,10 @@ export function LibraryTile({
                     >
                         <span className="truncate">{label}</span>
                         {share.password && (
-                            <LockKey className="text-muted-foreground size-3 shrink-0" />
+                            <LockKey className="size-3 shrink-0 text-muted-foreground" />
                         )}
                     </p>
-                    <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[10.5px]">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[10.5px] text-muted-foreground">
                         <span className="truncate">{meta}</span>
                         <ExpiryLabel
                             expiresAt={share.expiresAt}
@@ -201,7 +201,7 @@ export function LibraryTile({
           keyboard-focused, or actually selected. */}
             <div
                 className={cn(
-                    'absolute left-2 top-2 transition-opacity',
+                    'absolute top-2 left-2 transition-opacity',
                     selected
                         ? 'opacity-100'
                         : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
@@ -217,7 +217,7 @@ export function LibraryTile({
 
             <div
                 className={cn(
-                    'absolute right-1.5 top-1.5 transition-opacity',
+                    'absolute top-1.5 right-1.5 transition-opacity',
                     'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
                 )}
             >

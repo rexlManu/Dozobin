@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,7 +12,10 @@ final class UpdateAdminUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        $target = $this->route('user');
+
+        return $target instanceof User
+            && ($this->user()?->can('update', $target) ?? false);
     }
 
     /** @return array<string, list<mixed>> */

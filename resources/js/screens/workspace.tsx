@@ -1,25 +1,19 @@
-import {
-    ArrowRight,
-    CheckCircle,
-    TextAlignLeft,
-    UploadSimple,
-} from '@phosphor-icons/react';
+import { router, usePage } from '@inertiajs/react';
+import { TextAlignLeft, UploadSimple } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { AppShell } from '@/components/app-shell';
 import { DropCanvas } from '@/components/dropzone';
 import { PasteComposer, PasteTruths } from '@/components/paste-composer';
-import { ShareLink } from '@/components/share-link';
 import { ShareOptions } from '@/components/share-options';
 import { Button } from '@/components/ui/button';
 import { UploadQueue } from '@/components/upload-queue';
-import { firstApiError } from '@/lib/api';
+import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { resolvePaste } from '@/lib/detect';
 import { formatBytes } from '@/lib/format';
 import { Link } from '@/lib/navigation';
-import type { ExpirationKey, PasteType, Share } from '@/lib/types';
+import type { Account, ExpirationKey, PasteType } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 type Mode = 'files' | 'paste';
 
@@ -46,7 +40,7 @@ function ModeSwitch({
         // third navigation destination next to Drop and Transfer.
         <div
             aria-label="What to share"
-            className="bg-muted inline-flex rounded-md p-0.5"
+            className="inline-flex rounded-md bg-muted p-0.5"
         >
             {options.map((option) => (
                 <button
@@ -69,22 +63,16 @@ function ModeSwitch({
     );
 }
 
-function StorageMeter() {
-    const account = useDozo((s) => s.account());
-
-    if (!account) {
-        return null;
-    }
-
+function StorageMeter({ account }: { account: Account }) {
     const ratio = Math.min(1, account.storageUsed / account.storageLimit);
     const tight = ratio > 0.9;
 
     return (
         <Link
             to="/settings/storage"
-            className="hover:bg-muted group flex items-center gap-2.5 rounded-md px-1 py-1 text-[12px] transition-colors"
+            className="group flex items-center gap-2.5 rounded-md px-1 py-1 text-[12px] transition-colors hover:bg-muted"
         >
-            <span className="bg-muted h-1.5 w-24 overflow-hidden rounded-full">
+            <span className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
                 <span
                     className={cn(
                         'block h-full rounded-full',
@@ -109,11 +97,11 @@ function StorageMeter() {
 function Blocked({ suspended }: { suspended: boolean }) {
     if (suspended) {
         return (
-            <div className="bg-sunken flex h-full flex-col items-center justify-center px-6 text-center">
+            <div className="flex h-full flex-col items-center justify-center bg-sunken px-6 text-center">
                 <h2 className="text-lg font-medium tracking-[-0.015em]">
                     This account is suspended
                 </h2>
-                <p className="text-muted-foreground mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed">
+                <p className="mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
                     The administrator of this installation has paused it, so
                     nothing new can be shared. Everything already shared keeps
                     resolving until it expires.
@@ -123,11 +111,11 @@ function Blocked({ suspended }: { suspended: boolean }) {
     }
 
     return (
-        <div className="bg-sunken flex h-full flex-col items-center justify-center px-6 text-center">
+        <div className="flex h-full flex-col items-center justify-center bg-sunken px-6 text-center">
             <h2 className="text-lg font-medium tracking-[-0.015em]">
                 This installation keeps sharing to Members
             </h2>
-            <p className="text-muted-foreground mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed">
+            <p className="mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
                 Guest sharing is switched off in the administrator settings.
                 Transfer Sessions still work without an account.
             </p>
@@ -182,17 +170,22 @@ export function WorkspaceRoute() {
     const [languageOverride, setLanguageOverride] = useState<string | null>(
         null,
     );
-    const [result, setResult] = useState<Share | null>(null);
     const [pasteHint, setPasteHint] = useState<string | null>(null);
-
-    const config = useDozo((s) => s.adminConfig);
-    const guestSharing = useDozo((s) => s.adminConfig.guestSharing);
-    const isGuest = useDozo((s) => s.currentAccountId === null);
-    const defaultExpiration = useDozo((s) => s.defaultExpiration());
-    const allowed = useDozo((s) => s.allowedExpirations());
-    const enqueue = useDozo((s) => s.enqueue);
-    const createPaste = useDozo((s) => s.createPaste);
-    const queued = useDozo((s) => s.queue.length);
+    const { auth, config } = usePage<SharedPageProps>().props;
+    const account = auth.user;
+    const isGuest = account === null;
+    const allowed = isGuest
+        ? config.guestExpirations
+        : config.memberExpirations;
+    const configuredDefault = isGuest
+        ? config.guestDefaultExpiration
+        : config.memberDefaultExpiration;
+    const defaultExpiration =
+        account && allowed.includes(account.defaultExpiration)
+            ? account.defaultExpiration
+            : configuredDefault;
+    const uploads = useUploadQueue();
+    const queued = uploads.queue.length;
 
     const [options, setOptions] = useState<{
         expiration: ExpirationKey;
@@ -237,7 +230,7 @@ export function WorkspaceRoute() {
                 .toISOString()
                 .replace(/[:.]/g, '-')
                 .slice(0, 19);
-            enqueue(
+            uploads.enqueue(
                 files.map(
                     (file, index) =>
                         new File(
@@ -257,21 +250,20 @@ export function WorkspaceRoute() {
         window.addEventListener('paste', onPaste);
 
         return () => window.removeEventListener('paste', onPaste);
-    }, [enqueue, mode]);
+    }, [mode, uploads]);
 
     const resolved = useMemo(
         () => resolvePaste(body, typeOverride, languageOverride),
         [body, typeOverride, languageOverride],
     );
 
-    const account = useDozo((s) => s.account());
     const suspended = account?.status === 'suspended';
-    const blocked = suspended || (isGuest && !guestSharing);
+    const blocked = suspended || (isGuest && !config.guestSharing);
 
     // A machine truth, so it belongs on the HUD next to the other ones. The Guest
     // note it used to sit beside now lives in the share settings, next to the
     // choice it qualifies.
-    const meter = isGuest ? null : <StorageMeter />;
+    const meter = account ? <StorageMeter account={account} /> : null;
 
     const uploadTruths = useMemo(() => {
         // An allow-list is worth stating up front, because it is restrictive and you
@@ -297,7 +289,6 @@ export function WorkspaceRoute() {
                         mode={mode}
                         onMode={(next) => {
                             setMode(next);
-                            setResult(null);
                         }}
                     />
                 )
@@ -307,20 +298,26 @@ export function WorkspaceRoute() {
                 <Blocked suspended={suspended} />
             ) : mode === 'files' ? (
                 <DropCanvas
-                    onFiles={(files) => enqueue(files)}
+                    onFiles={uploads.enqueue}
                     idle={queued === 0}
                     tray={
                         queued > 0 ? (
                             <UploadQueue
                                 expiration={resolvedOptions.expiration}
                                 password={resolvedOptions.password || null}
+                                queue={uploads.queue}
+                                shares={uploads.shares}
+                                onStart={uploads.startUpload}
+                                onRetry={uploads.retryUpload}
+                                onRemove={uploads.removeUpload}
+                                onClear={uploads.clearQueue}
                             />
                         ) : null
                     }
                     bar={
                         <Hud
                             truths={
-                                <span className="text-muted-foreground flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px]">
+                                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] text-muted-foreground">
                                     {uploadTruths.map((truth, index) => (
                                         <span
                                             key={truth}
@@ -363,49 +360,22 @@ export function WorkspaceRoute() {
                             <ShareOptions
                                 value={resolvedOptions}
                                 onChange={setOptions}
+                                allowed={allowed}
+                                canProtect={
+                                    !isGuest || config.guestPasswordProtection
+                                }
+                                isGuest={isGuest}
                             />
                         </Hud>
                     }
                 />
             ) : (
                 <div className="flex h-full flex-col">
-                    {result && (
-                        <section className="rail border-primary/40 bg-primary-soft/40 shrink-0 border-b py-3.5">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle
-                                    weight="fill"
-                                    className="text-primary size-4"
-                                />
-                                <h2 className="text-[13.5px] font-semibold">
-                                    Paste created
-                                </h2>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="ml-auto"
-                                    onClick={() => {
-                                        setResult(null);
-                                        setBody('');
-                                        setTypeOverride('auto');
-                                        setLanguageOverride(null);
-                                    }}
-                                >
-                                    Write another <ArrowRight />
-                                </Button>
-                            </div>
-                            <ShareLink share={result} className="mt-3" />
-                        </section>
-                    )}
-
                     <div className="min-h-0 flex-1">
                         <PasteComposer
                             body={body}
                             onBody={(value) => {
                                 setBody(value);
-
-                                if (result) {
-                                    setResult(null);
-                                }
                             }}
                             typeOverride={typeOverride}
                             onTypeOverride={setTypeOverride}
@@ -428,6 +398,12 @@ export function WorkspaceRoute() {
                                     <ShareOptions
                                         value={resolvedOptions}
                                         onChange={setOptions}
+                                        allowed={allowed}
+                                        canProtect={
+                                            !isGuest ||
+                                            config.guestPasswordProtection
+                                        }
+                                        isGuest={isGuest}
                                     />
                                     {/* Takes the rest of the row once the options wrap onto their
                       own line, so the act is never a small target on a phone. */}
@@ -435,23 +411,16 @@ export function WorkspaceRoute() {
                                         className="max-sm:flex-1"
                                         disabled={body.trim().length === 0}
                                         onClick={() => {
-                                            void createPaste({
+                                            router.post('/shares/pastes', {
                                                 body,
-                                                pasteType: resolved.pasteType,
+                                                paste_type: resolved.pasteType,
                                                 language: resolved.language,
                                                 expiration:
                                                     resolvedOptions.expiration,
                                                 password:
-                                                    resolvedOptions.password
-                                                        ? resolvedOptions.password
-                                                        : null,
-                                            })
-                                                .then(setResult)
-                                                .catch((error) =>
-                                                    toast.error(
-                                                        firstApiError(error),
-                                                    ),
-                                                );
+                                                    resolvedOptions.password ||
+                                                    null,
+                                            });
                                         }}
                                     >
                                         Create paste

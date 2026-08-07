@@ -1,12 +1,13 @@
+import { usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 /**
  * System mode follows the OS query live, so switching the OS theme moves the
  * app without a reload.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const appearance = useDozo((s) => s.appearance);
+    const appearance = usePage<SharedPageProps>().props.appearance;
 
     useEffect(() => {
         const root = document.documentElement;

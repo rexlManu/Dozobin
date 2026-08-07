@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
     CloudSlash,
@@ -44,7 +45,7 @@ import {
 import type { View } from '@/components/view-switch';
 import { ViewSwitch } from '@/components/view-switch';
 import { formatBytes, relativeTime } from '@/lib/format';
-import { Link, Navigate, useParams } from '@/lib/navigation';
+import { Link } from '@/lib/navigation';
 import {
     CATEGORY_LABEL,
     CATEGORY_ORDER,
@@ -55,9 +56,9 @@ import {
     typeChip,
 } from '@/lib/share-display';
 import type { Category } from '@/lib/share-display';
-import type { Share } from '@/lib/types';
+import { isShareExpired } from '@/lib/share-state';
+import type { Account, Share } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isShareExpired, useDozo } from '@/store/store';
 
 /** The condition of a share, which is a different question from its type. */
 type State = 'any' | 'live' | 'expired' | 'missing' | 'protected';
@@ -94,10 +95,22 @@ function matchesState(share: Share, state: State): boolean {
  * second table with the same columns: an administrator who learns the filters
  * here should not have to learn them again from the other direction.
  */
-function UploadsExplorer({ ownerId }: { ownerId?: string }) {
-    const shares = useDozo((s) => s.shares);
-    const accounts = useDozo((s) => s.accounts);
-    const deleteShares = useDozo((s) => s.deleteShares);
+function UploadsExplorer({
+    shares,
+    accountList,
+    ownerId,
+}: {
+    shares: Share[];
+    accountList: Account[];
+    ownerId?: string;
+}) {
+    const accounts = useMemo(
+        () =>
+            Object.fromEntries(
+                accountList.map((account) => [account.id, account]),
+            ),
+        [accountList],
+    );
     const { confirm, dialog } = useConfirm();
 
     const scoped = ownerId !== undefined;
@@ -190,13 +203,18 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                 return;
             }
 
-            deleteShares(ids);
-            setSelection({});
-            toast(
-                `${ids.length} ${ids.length === 1 ? 'share' : 'shares'} deleted`,
-            );
+            router.delete('/shares', {
+                data: { ids },
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelection({});
+                    toast(
+                        `${ids.length} ${ids.length === 1 ? 'share' : 'shares'} deleted`,
+                    );
+                },
+            });
         },
-        [confirm, deleteShares],
+        [confirm],
     );
 
     const columns = useMemo(() => {
@@ -269,7 +287,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                                 {shareLabel(share)}
                             </Link>
                             {share.password && (
-                                <LockKey className="text-muted-foreground size-3.5 shrink-0" />
+                                <LockKey className="size-3.5 shrink-0 text-muted-foreground" />
                             )}
                         </div>
                     );
@@ -290,7 +308,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
 
                                   if (!id) {
                                       return (
-                                          <span className="text-muted-foreground font-mono text-[11.5px]">
+                                          <span className="font-mono text-[11.5px] text-muted-foreground">
                                               Guest
                                           </span>
                                       );
@@ -300,7 +318,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
 
                                   if (!name) {
                                       return (
-                                          <span className="text-muted-foreground font-mono text-[11.5px]">
+                                          <span className="font-mono text-[11.5px] text-muted-foreground">
                                               Deleted
                                           </span>
                                       );
@@ -322,7 +340,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                 id: 'type',
                 header: 'Type',
                 cell: (c) => (
-                    <span className="text-muted-foreground font-mono text-[11px]">
+                    <span className="font-mono text-[11px] text-muted-foreground">
                         {c.getValue<string>()}
                     </span>
                 ),
@@ -349,7 +367,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
             col.accessor('createdAt', {
                 header: 'Added',
                 cell: (c) => (
-                    <span className="text-muted-foreground whitespace-nowrap font-mono text-[11.5px]">
+                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue())}
                     </span>
                 ),
@@ -509,10 +527,10 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                                         {shareLabel(share)}
                                     </Link>
                                     {share.password && (
-                                        <LockKey className="text-muted-foreground size-3.5 shrink-0" />
+                                        <LockKey className="size-3.5 shrink-0 text-muted-foreground" />
                                     )}
                                 </div>
-                                <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px]">
+                                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] text-muted-foreground">
                                     {!scoped && (
                                         <>
                                             {share.ownerId && owner ? (
@@ -589,7 +607,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <div className="relative min-w-0 flex-1">
-                                <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                                <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
@@ -606,7 +624,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                                         variant="ghost"
                                         size="icon-sm"
                                         aria-label="Clear search"
-                                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                                        className="absolute top-1/2 right-1 -translate-y-1/2"
                                         onClick={() => setQuery('')}
                                     >
                                         <X />
@@ -681,7 +699,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                                         className={cn(
                                             'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors',
                                             on
-                                                ? 'bg-foreground text-background border-transparent'
+                                                ? 'border-transparent bg-foreground text-background'
                                                 : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground',
                                         )}
                                     >
@@ -754,7 +772,7 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
                                 ? 'Nothing matches that'
                                 : 'Nothing has been shared yet'}
                         </p>
-                        <p className="text-muted-foreground mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed">
+                        <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed text-muted-foreground">
                             {narrowed
                                 ? 'Try a shorter search, or clear the filters.'
                                 : 'Uploads appear here the moment anyone on this installation shares something.'}
@@ -767,25 +785,32 @@ function UploadsExplorer({ ownerId }: { ownerId?: string }) {
     );
 }
 
-export function AdminUploadsRoute() {
-    return <UploadsExplorer />;
+export function AdminUploadsRoute({
+    accounts,
+    shares,
+}: {
+    accounts: Account[];
+    shares: Share[];
+}) {
+    return <UploadsExplorer shares={shares} accountList={accounts} />;
 }
 
 /** The same explorer, fixed to one account and reached from their detail page. */
-export function AdminUserUploadsRoute() {
-    const { accountId = '' } = useParams();
-    const account = useDozo((s) => s.accounts[accountId]);
-
-    if (!account) {
-        return <Navigate to="/admin/users" replace />;
-    }
-
+export function AdminUserUploadsRoute({
+    account,
+    accounts,
+    shares,
+}: {
+    account: Account;
+    accounts: Account[];
+    shares: Share[];
+}) {
     return (
         <div className="flex flex-col gap-5">
             <div>
                 <Link
-                    to={`/admin/users/${accountId}`}
-                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-[12.5px] transition-colors"
+                    to={`/admin/users/${account.id}`}
+                    className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="size-3.5" /> {account.name}
                 </Link>
@@ -805,7 +830,11 @@ export function AdminUserUploadsRoute() {
                     </h2>
                 </div>
             </div>
-            <UploadsExplorer ownerId={accountId} />
+            <UploadsExplorer
+                ownerId={account.id}
+                shares={shares}
+                accountList={accounts}
+            />
         </div>
     );
 }

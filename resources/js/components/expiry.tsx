@@ -24,7 +24,7 @@ export function ExpiryLabel({
         return (
             <span
                 className={cn(
-                    'text-muted-foreground inline-flex items-center gap-1.5',
+                    'inline-flex items-center gap-1.5 text-muted-foreground',
                     className,
                 )}
             >
@@ -38,7 +38,7 @@ export function ExpiryLabel({
         return (
             <span
                 className={cn(
-                    'text-destructive inline-flex items-center gap-1.5',
+                    'inline-flex items-center gap-1.5 text-destructive',
                     className,
                 )}
             >

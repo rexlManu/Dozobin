@@ -1,11 +1,11 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     CheckCircle,
     DownloadSimple,
-    Eye,
-    EyeSlash,
     Plus,
     WarningCircle,
 } from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/app-shell';
@@ -31,19 +31,19 @@ import {
     formatDateTime,
     relativeTime,
 } from '@/lib/format';
-import { NavLink, Navigate, Outlet } from '@/lib/navigation';
+import { NavLink } from '@/lib/navigation';
 import type { Appearance, ExpirationKey } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 const SECTIONS = [
-    { to: 'profile', label: 'Profile' },
-    { to: 'appearance', label: 'Appearance' },
-    { to: 'sharing', label: 'Sharing defaults' },
-    { to: 'storage', label: 'Storage' },
-    { to: 'security', label: 'Security' },
-    { to: 'tokens', label: 'API tokens' },
-    { to: 'sharex', label: 'ShareX' },
+    { to: '/settings/profile', label: 'Profile' },
+    { to: '/settings/appearance', label: 'Appearance' },
+    { to: '/settings/sharing', label: 'Sharing defaults' },
+    { to: '/settings/storage', label: 'Storage' },
+    { to: '/settings/security', label: 'Security' },
+    { to: '/settings/tokens', label: 'API tokens' },
+    { to: '/settings/sharex', label: 'ShareX' },
 ];
 
 function maskSecret(secret: string) {
@@ -64,7 +64,7 @@ function PageHead({
                 {title}
             </h2>
             {description && (
-                <p className="text-muted-foreground mt-1.5 max-w-[62ch] text-[13px] leading-relaxed">
+                <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
                     {description}
                 </p>
             )}
@@ -72,13 +72,7 @@ function PageHead({
     );
 }
 
-export function SettingsLayout() {
-    const account = useDozo((s) => s.account());
-
-    if (!account) {
-        return <Navigate to="/signin" replace />;
-    }
-
+export function SettingsLayout({ children }: { children: ReactNode }) {
     return (
         <AppShell>
             <div className="rail py-6 sm:py-8">
@@ -92,7 +86,7 @@ export function SettingsLayout() {
             hairline the active item sits against, ink rather than yuzu, because
             the accent belongs to acts and never to navigation.
           */}
-                    <nav className="border-border scrollbar-slim -mx-4 flex gap-1 overflow-x-auto border-b px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">
+                    <nav className="-mx-4 flex scrollbar-slim gap-1 overflow-x-auto border-b border-border px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">
                         {SECTIONS.map((section) => (
                             <NavLink
                                 key={section.to}
@@ -101,7 +95,7 @@ export function SettingsLayout() {
                                     cn(
                                         'relative shrink-0 px-2.5 py-2 text-[13px] transition-colors lg:py-1.5',
                                         isActive
-                                            ? 'text-foreground font-medium'
+                                            ? 'font-medium text-foreground'
                                             : 'text-muted-foreground hover:text-foreground',
                                     )
                                 }
@@ -111,7 +105,7 @@ export function SettingsLayout() {
                                         {isActive && (
                                             <span
                                                 aria-hidden
-                                                className="bg-foreground absolute inset-x-2 -bottom-px h-[1.5px] lg:inset-x-auto lg:inset-y-1 lg:-left-px lg:h-auto lg:w-[1.5px]"
+                                                className="absolute inset-x-2 -bottom-px h-[1.5px] bg-foreground lg:inset-x-auto lg:inset-y-1 lg:-left-px lg:h-auto lg:w-[1.5px]"
                                             />
                                         )}
                                         {section.label}
@@ -122,7 +116,7 @@ export function SettingsLayout() {
                     </nav>
 
                     <div className="flex min-w-0 flex-col gap-5">
-                        <Outlet />
+                        {children}
                     </div>
                 </div>
             </div>
@@ -131,9 +125,7 @@ export function SettingsLayout() {
 }
 
 export function ProfileSettings() {
-    const account = useDozo((s) => s.account());
-    const updateProfile = useDozo((s) => s.updateProfile);
-    const updateAvatar = useDozo((s) => s.updateAvatar);
+    const account = usePage<SharedPageProps>().props.auth.user;
     const avatarInput = useRef<HTMLInputElement>(null);
     const [name, setName] = useState(account?.name ?? '');
     const [email, setEmail] = useState(account?.email ?? '');
@@ -185,7 +177,14 @@ export function ProfileSettings() {
                                 const file = event.target.files?.[0];
 
                                 if (file !== undefined) {
-                                    updateAvatar(file);
+                                    router.post(
+                                        '/profile',
+                                        { _method: 'PATCH', avatar: file },
+                                        {
+                                            forceFormData: true,
+                                            preserveScroll: true,
+                                        },
+                                    );
                                 }
 
                                 event.target.value = '';
@@ -194,7 +193,13 @@ export function ProfileSettings() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => updateAvatar(null)}
+                            onClick={() =>
+                                router.patch(
+                                    '/profile',
+                                    { remove_avatar: true },
+                                    { preserveScroll: true },
+                                )
+                            }
                         >
                             Remove
                         </Button>
@@ -228,17 +233,23 @@ export function ProfileSettings() {
                             name === account.name && email === account.email
                         }
                         onClick={() => {
-                            updateProfile({ name, email });
-                            setSaved(true);
+                            router.patch(
+                                '/profile',
+                                { name, email },
+                                {
+                                    preserveScroll: true,
+                                    onSuccess: () => setSaved(true),
+                                },
+                            );
                         }}
                     >
                         Save profile
                     </Button>
                     {saved && (
-                        <span className="text-muted-foreground flex items-center gap-1.5 text-[12.5px]">
+                        <span className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
                             <CheckCircle
                                 weight="fill"
-                                className="text-primary size-3.5"
+                                className="size-3.5 text-primary"
                             />{' '}
                             Saved
                         </span>
@@ -250,8 +261,7 @@ export function ProfileSettings() {
 }
 
 export function AppearanceSettings() {
-    const appearance = useDozo((s) => s.appearance);
-    const setAppearance = useDozo((s) => s.setAppearance);
+    const appearance = usePage<SharedPageProps>().props.appearance;
 
     return (
         <>
@@ -264,7 +274,12 @@ export function AppearanceSettings() {
                 variant="outline"
                 value={appearance}
                 onValueChange={(value) =>
-                    value && setAppearance(value as Appearance)
+                    value &&
+                    router.patch(
+                        '/profile',
+                        { appearance: value as Appearance },
+                        { preserveScroll: true },
+                    )
                 }
             >
                 <ToggleGroupItem value="light">Light</ToggleGroupItem>
@@ -276,9 +291,8 @@ export function AppearanceSettings() {
 }
 
 export function SharingSettings() {
-    const account = useDozo((s) => s.account());
-    const updateProfile = useDozo((s) => s.updateProfile);
-    const memberExpirations = useDozo((s) => s.adminConfig.memberExpirations);
+    const { auth, config } = usePage<SharedPageProps>().props;
+    const account = auth.user;
 
     if (!account) {
         return null;
@@ -297,9 +311,13 @@ export function SharingSettings() {
                 <Select
                     value={account.defaultExpiration}
                     onValueChange={(value) =>
-                        updateProfile({
-                            defaultExpiration: value as ExpirationKey,
-                        })
+                        router.patch(
+                            '/profile',
+                            {
+                                default_expiration: value as ExpirationKey,
+                            },
+                            { preserveScroll: true },
+                        )
                     }
                 >
                     <SelectTrigger id="default-expiration">
@@ -307,7 +325,7 @@ export function SharingSettings() {
                     </SelectTrigger>
                     <SelectContent>
                         {EXPIRATION_ORDER.filter((key) =>
-                            memberExpirations.includes(key),
+                            config.memberExpirations.includes(key),
                         ).map((key) => (
                             <SelectItem key={key} value={key}>
                                 {EXPIRATION_LABEL[key]}
@@ -321,7 +339,7 @@ export function SharingSettings() {
 }
 
 export function StorageSettings() {
-    const account = useDozo((s) => s.account());
+    const account = usePage<SharedPageProps>().props.auth.user;
 
     if (!account) {
         return null;
@@ -336,7 +354,7 @@ export function StorageSettings() {
                 title="Storage"
                 description="The limit is assigned by whoever runs this installation. You cannot raise it from here."
             />
-            <div className="border-border bg-card rounded-xl border p-4">
+            <div className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <p className="font-mono text-[13px]">
                         {formatBytes(account.storageUsed)}{' '}
@@ -355,7 +373,7 @@ export function StorageSettings() {
                         {Math.round(ratio * 1000) / 10}% used
                     </p>
                 </div>
-                <div className="bg-muted mt-3 h-2 overflow-hidden rounded-full">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                     <div
                         className={cn(
                             'h-full rounded-full',
@@ -367,7 +385,7 @@ export function StorageSettings() {
                     />
                 </div>
                 {tight && (
-                    <p className="text-destructive mt-3 flex items-start gap-1.5 text-[12.5px]">
+                    <p className="mt-3 flex items-start gap-1.5 text-[12.5px] text-destructive">
                         <WarningCircle
                             weight="fill"
                             className="mt-px size-3.5 shrink-0"
@@ -382,9 +400,7 @@ export function StorageSettings() {
 }
 
 export function SecuritySettings() {
-    const account = useDozo((s) => s.account());
-    const endLoginSession = useDozo((s) => s.endLoginSession);
-    const deleteAccount = useDozo((s) => s.deleteAccount);
+    const account = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
 
     const [passwords, setPasswords] = useState({
@@ -423,9 +439,35 @@ export function SecuritySettings() {
                         }
 
                         setPasswordError(null);
-                        setPasswords({ current: '', next: '', confirm: '' });
-                        setPasswordSaved(true);
-                        window.setTimeout(() => setPasswordSaved(false), 2500);
+                        router.patch(
+                            '/profile/password',
+                            {
+                                current_password: passwords.current,
+                                password: passwords.next,
+                                password_confirmation: passwords.confirm,
+                            },
+                            {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    setPasswords({
+                                        current: '',
+                                        next: '',
+                                        confirm: '',
+                                    });
+                                    setPasswordSaved(true);
+                                    window.setTimeout(
+                                        () => setPasswordSaved(false),
+                                        2500,
+                                    );
+                                },
+                                onError: (errors) =>
+                                    setPasswordError(
+                                        errors.current_password ??
+                                            errors.password ??
+                                            'The password could not be updated.',
+                                    ),
+                            },
+                        );
                     }}
                 >
                     <p className="text-[13px] font-medium">Change password</p>
@@ -469,7 +511,7 @@ export function SecuritySettings() {
                         ))}
                     </div>
                     {passwordError && (
-                        <p className="text-destructive flex items-start gap-1.5 text-[12.5px]">
+                        <p className="flex items-start gap-1.5 text-[12.5px] text-destructive">
                             <WarningCircle
                                 weight="fill"
                                 className="mt-px size-3.5 shrink-0"
@@ -486,10 +528,10 @@ export function SecuritySettings() {
                             Update password
                         </Button>
                         {passwordSaved && (
-                            <span className="text-muted-foreground flex items-center gap-1.5 text-[12.5px]">
+                            <span className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
                                 <CheckCircle
                                     weight="fill"
-                                    className="text-primary size-3.5"
+                                    className="size-3.5 text-primary"
                                 />{' '}
                                 Updated
                             </span>
@@ -501,7 +543,7 @@ export function SecuritySettings() {
                     <p className="text-[13px] font-medium">
                         Active login sessions
                     </p>
-                    <ul className="divide-border border-border mt-2.5 divide-y overflow-hidden rounded-lg border">
+                    <ul className="mt-2.5 divide-y divide-border overflow-hidden rounded-lg border border-border">
                         {account.sessions.map((session) => (
                             <li
                                 key={session.id}
@@ -511,12 +553,12 @@ export function SecuritySettings() {
                                     <p className="text-[13px] font-medium">
                                         {session.device}
                                         {session.current && (
-                                            <span className="bg-primary-soft text-foreground ml-2 rounded-sm px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em]">
+                                            <span className="ml-2 rounded-sm bg-primary-soft px-1.5 py-0.5 font-mono text-[10px] tracking-[0.06em] text-foreground uppercase">
                                                 this device
                                             </span>
                                         )}
                                     </p>
-                                    <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+                                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                                         {session.browser} · {session.location} ·{' '}
                                         {session.current
                                             ? 'active now'
@@ -543,7 +585,10 @@ export function SecuritySettings() {
                                         });
 
                                         if (ok) {
-                                            endLoginSession(session.id);
+                                            router.delete(
+                                                `/profile/sessions/${session.id}`,
+                                                { preserveScroll: true },
+                                            );
                                         }
                                     }}
                                 >
@@ -554,11 +599,11 @@ export function SecuritySettings() {
                     </ul>
                 </div>
 
-                <div className="border-destructive/30 bg-destructive-soft/50 rounded-lg border px-4 py-3.5">
-                    <p className="text-destructive text-[13px] font-medium">
+                <div className="rounded-lg border border-destructive/30 bg-destructive-soft/50 px-4 py-3.5">
+                    <p className="text-[13px] font-medium text-destructive">
                         Delete this account
                     </p>
-                    <p className="text-muted-foreground mt-1 max-w-[58ch] text-[12.5px] leading-relaxed">
+                    <p className="mt-1 max-w-[58ch] text-[12.5px] leading-relaxed text-muted-foreground">
                         Every Share in the Library goes with it and every URL
                         stops resolving. Transfer Sessions are unaffected
                         because they never belonged to an account.
@@ -576,8 +621,9 @@ export function SecuritySettings() {
                             });
 
                             if (ok) {
-                                deleteAccount();
-                                toast('Account deleted');
+                                router.delete('/profile', {
+                                    onSuccess: () => toast('Account deleted'),
+                                });
                             }
                         }}
                     >
@@ -591,14 +637,13 @@ export function SecuritySettings() {
 }
 
 export function TokensSettings() {
-    const account = useDozo((s) => s.account());
-    const createToken = useDozo((s) => s.createToken);
-    const revokeToken = useDozo((s) => s.revokeToken);
-    const dismissTokenSecret = useDozo((s) => s.dismissTokenSecret);
+    const account = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
 
     const [tokenName, setTokenName] = useState('');
-    const [visibleSecret, setVisibleSecret] = useState<string | null>(null);
+    const [hiddenSecrets, setHiddenSecrets] = useState<Set<string>>(
+        () => new Set(),
+    );
 
     if (!account) {
         return null;
@@ -620,8 +665,14 @@ export function TokensSettings() {
                             return;
                         }
 
-                        createToken(tokenName.trim());
-                        setTokenName('');
+                        router.post(
+                            '/api-tokens',
+                            { name: tokenName.trim() },
+                            {
+                                preserveScroll: true,
+                                onSuccess: () => setTokenName(''),
+                            },
+                        );
                     }}
                 >
                     <div className="flex min-w-[14rem] flex-1 flex-col gap-2">
@@ -640,7 +691,7 @@ export function TokensSettings() {
                     </Button>
                 </form>
 
-                <ul className="divide-border border-border divide-y overflow-hidden rounded-lg border">
+                <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
                     {account.tokens.map((token) => (
                         <li key={token.id} className="px-3 py-3">
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -654,7 +705,7 @@ export function TokensSettings() {
                                     >
                                         {token.name}
                                     </p>
-                                    <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+                                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                                         created{' '}
                                         {formatDateTime(token.createdAt)} ·{' '}
                                         {token.revoked
@@ -665,35 +716,7 @@ export function TokensSettings() {
                                     </p>
                                 </div>
                                 {!token.revoked && (
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            aria-label={
-                                                visibleSecret === token.id
-                                                    ? 'Mask token'
-                                                    : 'Reveal token'
-                                            }
-                                            onClick={() =>
-                                                setVisibleSecret((id) =>
-                                                    id === token.id
-                                                        ? null
-                                                        : token.id,
-                                                )
-                                            }
-                                        >
-                                            {visibleSecret === token.id ? (
-                                                <EyeSlash />
-                                            ) : (
-                                                <Eye />
-                                            )}
-                                        </Button>
-                                        <CopyButton
-                                            value={token.secret}
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            label="Copy token"
-                                        />
+                                    <div className="flex items-center">
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -716,7 +739,12 @@ export function TokensSettings() {
                                                 });
 
                                                 if (ok) {
-                                                    revokeToken(token.id);
+                                                    router.delete(
+                                                        `/api-tokens/${token.id}`,
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    );
                                                 }
                                             }}
                                         >
@@ -726,37 +754,46 @@ export function TokensSettings() {
                                 )}
                             </div>
 
-                            <p className="border-border bg-sunken mt-2 break-all rounded-md border px-2.5 py-1.5 font-mono text-[11.5px]">
+                            <p className="mt-2 rounded-md border border-border bg-sunken px-2.5 py-1.5 font-mono text-[11.5px] break-all">
                                 {token.revoked
                                     ? 'revoked'
-                                    : token.justCreated ||
-                                        visibleSecret === token.id
-                                      ? token.secret
-                                      : maskSecret(token.secret)}
+                                    : token.justCreated
+                                      ? hiddenSecrets.has(token.id)
+                                          ? maskSecret(token.secret)
+                                          : token.secret
+                                      : token.secret}
                             </p>
 
-                            {token.justCreated && (
-                                <div className="border-primary/40 bg-primary-soft/40 mt-2 flex flex-wrap items-center gap-2 rounded-md border px-2.5 py-2">
-                                    <p className="text-foreground mr-auto text-[12px]">
-                                        Copy it now. Dōzobin will not show it
-                                        again.
-                                    </p>
-                                    <CopyButton
-                                        value={token.secret}
-                                        size="sm"
-                                        label="Copy"
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                            dismissTokenSecret(token.id)
-                                        }
-                                    >
-                                        Hide
-                                    </Button>
-                                </div>
-                            )}
+                            {token.justCreated &&
+                                !hiddenSecrets.has(token.id) && (
+                                    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary-soft/40 px-2.5 py-2">
+                                        <p className="mr-auto text-[12px] text-foreground">
+                                            Copy it now. Dōzobin will not show
+                                            it again.
+                                        </p>
+                                        <CopyButton
+                                            value={token.secret}
+                                            size="sm"
+                                            label="Copy"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                                setHiddenSecrets((current) => {
+                                                    const next = new Set(
+                                                        current,
+                                                    );
+                                                    next.add(token.id);
+
+                                                    return next;
+                                                })
+                                            }
+                                        >
+                                            Hide
+                                        </Button>
+                                    </div>
+                                )}
                         </li>
                     ))}
                 </ul>
@@ -767,7 +804,7 @@ export function TokensSettings() {
 }
 
 export function SharexSettings() {
-    const account = useDozo((s) => s.account());
+    const account = usePage<SharedPageProps>().props.auth.user;
 
     const sharexConfig = useMemo(() => {
         const token = account?.tokens.find((t) => !t.revoked);
@@ -803,9 +840,9 @@ export function SharexSettings() {
                 title="ShareX"
                 description="ShareX is not a separate kind of upload. It calls the API with a token and gets back a regular File Share, the same thing the Drop Workspace makes."
             />
-            <div className="border-border bg-card overflow-hidden rounded-xl border">
-                <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2.5">
-                    <p className="text-muted-foreground mr-auto font-mono text-[11.5px]">
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
+                <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
+                    <p className="mr-auto font-mono text-[11.5px] text-muted-foreground">
                         dozobin.sxcu
                     </p>
                     <CopyButton
@@ -826,7 +863,7 @@ export function SharexSettings() {
                 <pre className="scrollbar-slim overflow-x-auto px-4 py-3.5 font-mono text-[11.5px] leading-[1.7]">
                     {sharexConfig}
                 </pre>
-                <p className="border-border text-muted-foreground border-t px-4 py-2.5 text-[12px] leading-relaxed">
+                <p className="border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
                     The token is masked in this preview. Put a real one in the
                     Authorization header before importing. The token authorizes
                     uploads against this installation's API.

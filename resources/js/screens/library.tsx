@@ -1,3 +1,4 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     ArrowSquareOut,
     CloudSlash,
@@ -34,7 +35,7 @@ import {
 import type { View } from '@/components/view-switch';
 import { ViewSwitch } from '@/components/view-switch';
 import { formatBytes, relativeTime, shareUrl } from '@/lib/format';
-import { Link, Navigate } from '@/lib/navigation';
+import { Link } from '@/lib/navigation';
 import type { Category } from '@/lib/share-display';
 import {
     CATEGORY_LABEL,
@@ -44,9 +45,10 @@ import {
     shareSize,
     typeChip,
 } from '@/lib/share-display';
+import { isShareExpired } from '@/lib/share-state';
 import type { Share } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isShareExpired, useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 type Sort = 'created' | 'size' | 'expires';
 
@@ -71,7 +73,7 @@ function TypeFilter({
         cn(
             'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors',
             on
-                ? 'bg-foreground text-background border-transparent'
+                ? 'border-transparent bg-foreground text-background'
                 : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground',
             muted && 'opacity-40',
         );
@@ -184,10 +186,10 @@ function Row({
                         {shareLabel(share)}
                     </Link>
                     {share.password && (
-                        <LockKey className="text-muted-foreground size-3.5 shrink-0" />
+                        <LockKey className="size-3.5 shrink-0 text-muted-foreground" />
                     )}
                 </div>
-                <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] sm:hidden">
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground sm:hidden">
                     <span>{typeChip(share)}</span>
                     <span>{formatBytes(shareSize(share))}</span>
                     <ExpiryLabel
@@ -196,7 +198,7 @@ function Row({
                         prefix=""
                     />
                 </div>
-                <p className="text-muted-foreground mt-1 hidden font-mono text-[11px] sm:block">
+                <p className="mt-1 hidden font-mono text-[11px] text-muted-foreground sm:block">
                     {typeChip(share)} · added {relativeTime(share.createdAt)}
                     {share.state === 'unavailable' && (
                         <span className="text-destructive">
@@ -207,7 +209,7 @@ function Row({
                 </p>
             </div>
 
-            <div className="text-muted-foreground hidden font-mono text-[11.5px] sm:block">
+            <div className="hidden font-mono text-[11.5px] text-muted-foreground sm:block">
                 {formatBytes(shareSize(share))}
             </div>
             <div className="hidden text-[11.5px] sm:block">
@@ -255,10 +257,8 @@ function Row({
     );
 }
 
-export function LibraryRoute() {
-    const account = useDozo((s) => s.account());
-    const shares = useDozo((s) => s.shares);
-    const deleteShares = useDozo((s) => s.deleteShares);
+export function LibraryRoute({ shares }: { shares: Share[] }) {
+    const account = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
 
     const [query, setQuery] = useState('');
@@ -326,10 +326,6 @@ export function LibraryRoute() {
         });
     }, [searched, types, sort]);
 
-    if (!account) {
-        return <Navigate to="/signin" replace />;
-    }
-
     const allSelected =
         visible.length > 0 && visible.every((s) => selection.includes(s.id));
 
@@ -345,8 +341,11 @@ export function LibraryRoute() {
             return;
         }
 
-        deleteShares(selection);
-        setSelection([]);
+        router.delete('/shares', {
+            data: { ids: selection },
+            preserveScroll: true,
+            onSuccess: () => setSelection([]),
+        });
     };
 
     // One confirmation, whichever view the share was deleted from.
@@ -355,7 +354,7 @@ export function LibraryRoute() {
             title: 'Delete this share?',
             description: (
                 <>
-                    <span className="text-foreground font-mono">
+                    <span className="font-mono text-foreground">
                         {shareLabel(share)}
                     </span>{' '}
                     goes away and its URL stops working. There is no undo.
@@ -365,7 +364,10 @@ export function LibraryRoute() {
         });
 
         if (ok) {
-            deleteShares([share.id]);
+            router.delete('/shares', {
+                data: { ids: [share.id] },
+                preserveScroll: true,
+            });
         }
     };
 
@@ -381,7 +383,7 @@ export function LibraryRoute() {
                     ? 'Nothing in the Library yet'
                     : 'No shares match that'}
             </p>
-            <p className="text-muted-foreground mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed">
+            <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed text-muted-foreground">
                 {mine.length === 0
                     ? 'Files and Pastes you create while signed in land here. Guest shares and Transfer Items never do.'
                     : 'Try a shorter search, or switch the filter back to All.'}
@@ -412,14 +414,14 @@ export function LibraryRoute() {
                     <h1 className="text-xl font-medium tracking-[-0.02em]">
                         Library
                     </h1>
-                    <p className="text-muted-foreground font-mono text-[11.5px]">
+                    <p className="font-mono text-[11.5px] text-muted-foreground">
                         {mine.length} shares · flat, no folders
                     </p>
                 </div>
 
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="relative min-w-0 flex-1">
-                        <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                        <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
@@ -432,7 +434,7 @@ export function LibraryRoute() {
                                 variant="ghost"
                                 size="icon-sm"
                                 aria-label="Clear search"
-                                className="absolute right-1 top-1/2 -translate-y-1/2"
+                                className="absolute top-1/2 right-1 -translate-y-1/2"
                                 onClick={() => setQuery('')}
                             >
                                 <X />
@@ -486,8 +488,8 @@ export function LibraryRoute() {
                 </div>
 
                 {view === 'list' ? (
-                    <div className="border-border bg-card mt-4 overflow-hidden rounded-xl border">
-                        <div className="border-border grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b px-3 py-2.5 sm:grid-cols-[auto_minmax(0,1fr)_7rem_9rem_auto] sm:gap-x-4 sm:px-4">
+                    <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
+                        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-border px-3 py-2.5 sm:grid-cols-[auto_minmax(0,1fr)_7rem_9rem_auto] sm:gap-x-4 sm:px-4">
                             <Checkbox
                                 checked={allSelected}
                                 aria-label="Select everything shown"
@@ -525,7 +527,7 @@ export function LibraryRoute() {
                         {visible.length === 0 ? (
                             emptyState
                         ) : (
-                            <ul className="divide-border divide-y">
+                            <ul className="divide-y divide-border">
                                 {visible.map((share) => (
                                     <Row
                                         key={share.id}
@@ -544,7 +546,7 @@ export function LibraryRoute() {
                     // No outer card here: the tiles carry their own edges, and a card of
                     // cards is a box drawn around boxes.
                     <div className="mt-4">
-                        <div className="border-border flex items-center gap-3 border-b pb-2.5">
+                        <div className="flex items-center gap-3 border-b border-border pb-2.5">
                             <Checkbox
                                 checked={allSelected}
                                 aria-label="Select everything shown"

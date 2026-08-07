@@ -49,7 +49,7 @@ export function InlineSelect<T extends string>({
             className={cn(
                 'h-auto w-fit gap-1 rounded-sm border-transparent bg-transparent px-1.5 py-1 text-[13px] dark:bg-transparent',
                 'hover:bg-muted dark:hover:bg-muted',
-                'data-[state=open]:bg-muted data-[state=open]:border-border',
+                'data-[state=open]:border-border data-[state=open]:bg-muted',
                 'disabled:opacity-100 disabled:hover:bg-transparent dark:disabled:hover:bg-transparent',
                 // The caret is the only affordance that appears; everything else about
                 // the cell holds still, so nothing jumps as the pointer crosses the row.

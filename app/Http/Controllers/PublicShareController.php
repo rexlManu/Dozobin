@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\BuildAppStateAction;
 use App\Actions\Shares\UnlockShareAction;
 use App\Enums\ShareKind;
 use App\Enums\ShareState;
 use App\Http\Requests\UnlockShareRequest;
+use App\Http\Resources\ShareResource;
 use App\Models\Share;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,14 +17,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class PublicShareController extends Controller
 {
-    public function __construct(private BuildAppStateAction $state) {}
-
     public function showFile(Request $request, Share $share): Response
     {
         abort_unless($share->kind === ShareKind::File, 404);
         $this->recordView($request, $share);
 
-        return $this->page($request, $share, 'share');
+        return $this->page($request, $share, 'shares/show');
     }
 
     public function showPaste(Request $request, Share $share): Response
@@ -32,7 +30,7 @@ final class PublicShareController extends Controller
         abort_unless($share->kind === ShareKind::Paste, 404);
         $this->recordView($request, $share);
 
-        return $this->page($request, $share, 'paste');
+        return $this->page($request, $share, 'pastes/show');
     }
 
     public function unlock(UnlockShareRequest $request, Share $share, UnlockShareAction $unlock): JsonResponse
@@ -66,10 +64,9 @@ final class PublicShareController extends Controller
 
     private function page(Request $request, Share $share, string $screen): Response
     {
-        return Inertia::render('dozobin', [
-            'screen' => $screen,
-            'routeParams' => ['id' => $share->slug],
-            'state' => $this->state->handle($request, publicShare: $share),
+        return Inertia::render($screen, [
+            'share' => fn () => (new ShareResource($share))->resolve($request),
+            'unlocked' => $request->session()->has("share_unlocked_{$share->slug}"),
         ]);
     }
 

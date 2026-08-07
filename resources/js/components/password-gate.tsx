@@ -23,13 +23,13 @@ export function PasswordGate({
 
     return (
         <div className="mx-auto w-full max-w-[26rem] px-4 py-16 sm:py-24">
-            <div className="border-border bg-card flex size-11 items-center justify-center rounded-lg border">
-                <LockKey className="text-muted-foreground size-5" />
+            <div className="flex size-11 items-center justify-center rounded-lg border border-border bg-card">
+                <LockKey className="size-5 text-muted-foreground" />
             </div>
             <h1 className="mt-5 text-xl font-medium tracking-[-0.02em]">
                 This {noun} is protected
             </h1>
-            <p className="text-muted-foreground mt-2 text-[13.5px] leading-relaxed">
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
                 Whoever created it set a password. Nothing about the contents is
                 shown until the password matches, not the filename and not the
                 size.
@@ -68,7 +68,7 @@ export function PasswordGate({
                     {wrong && (
                         <p
                             id="share-password-error"
-                            className="text-destructive flex items-start gap-1.5 text-[12.5px]"
+                            className="flex items-start gap-1.5 text-[12.5px] text-destructive"
                         >
                             <WarningCircle
                                 weight="fill"
@@ -87,7 +87,7 @@ export function PasswordGate({
                 </Button>
             </form>
 
-            <div className="border-border mt-6 border-t pt-4 text-[12px]">
+            <div className="mt-6 border-t border-border pt-4 text-[12px]">
                 <ExpiryLabel expiresAt={expiresAt} />
             </div>
         </div>

@@ -20,8 +20,8 @@ export function ShareLink({
     return (
         <div className={cn('flex flex-col gap-2', className)}>
             <div className="flex items-stretch gap-2">
-                <div className="border-border bg-background flex min-w-0 flex-1 items-center rounded-md border px-3">
-                    <span className="text-foreground truncate font-mono text-[12.5px]">
+                <div className="flex min-w-0 flex-1 items-center rounded-md border border-border bg-background px-3">
+                    <span className="truncate font-mono text-[12.5px] text-foreground">
                         {url}
                     </span>
                 </div>
@@ -40,7 +40,7 @@ export function ShareLink({
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
                 <ExpiryLabel expiresAt={share.expiresAt} />
                 {share.password && (
-                    <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                         <Lock className="size-3.5" /> Password required
                     </span>
                 )}

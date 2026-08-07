@@ -28,9 +28,9 @@ it('uses a server-backed impersonation session and restores the administrator', 
     $this->actingAs($admin)->postJson("/admin/users/{$member->id}/impersonate")
         ->assertNoContent();
     $this->assertAuthenticatedAs($member);
-    expect(session('impersonator_id'))->toBe($admin->id);
+    expect(session('impersonated_by'))->toBe($admin->id);
 
     $this->deleteJson('/impersonation')->assertNoContent();
     $this->assertAuthenticatedAs($admin);
-    expect(session()->has('impersonator_id'))->toBeFalse();
+    expect(session()->has('impersonated_by'))->toBeFalse();
 });

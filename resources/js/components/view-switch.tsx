@@ -33,7 +33,7 @@ export function ViewSwitch({
     ];
 
     return (
-        <div className="bg-muted inline-flex rounded-md p-0.5">
+        <div className="inline-flex rounded-md bg-muted p-0.5">
             {options.map((option) => (
                 <Tooltip key={option.id}>
                     <TooltipTrigger asChild>

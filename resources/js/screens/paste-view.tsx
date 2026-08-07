@@ -1,5 +1,6 @@
+import { router } from '@inertiajs/react';
 import { DownloadSimple, LockKey } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { CodeBlock } from '@/components/code-block';
 import { CopyButton } from '@/components/copy-button';
@@ -14,13 +15,13 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Unavailable } from '@/components/unavailable';
+import { requestJson } from '@/lib/api';
 import { LANGUAGES } from '@/lib/detect';
 import { downloadText } from '@/lib/download';
 import { formatBytes, formatDateTime, shareUrl } from '@/lib/format';
-import { useParams } from '@/lib/navigation';
+import { isShareExpired } from '@/lib/share-state';
 import type { PasteShare } from '@/lib/types';
 import { MetaRow } from '@/screens/share-view';
-import { isShareExpired, useDozo } from '@/store/store';
 
 const EXTENSION: Record<string, string> = {
     typescript: 'ts',
@@ -39,33 +40,13 @@ const EXTENSION: Record<string, string> = {
     diff: 'diff',
 };
 
-export function PasteViewRoute() {
-    const { id = '' } = useParams();
-    const share = useDozo((s) => s.findShare(id));
-    const unlocked = useDozo((s) => s.unlocked.includes(id));
-    const unlock = useDozo((s) => s.unlock);
-    const registerView = useDozo((s) => s.registerView);
-
-    const visible = share?.kind === 'paste' && (!share.password || unlocked);
-
-    useEffect(() => {
-        if (visible) {
-            registerView(id);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id, visible]);
-
-    if (!share || share.kind !== 'paste') {
-        return (
-            <AppShell variant="public">
-                <Unavailable
-                    reason="missing"
-                    detail={shareUrl({ kind: 'paste', id })}
-                />
-            </AppShell>
-        );
-    }
-
+export function PasteViewRoute({
+    share,
+    unlocked,
+}: {
+    share: PasteShare;
+    unlocked: boolean;
+}) {
     if (isShareExpired(share)) {
         return (
             <AppShell variant="public">
@@ -80,7 +61,19 @@ export function PasteViewRoute() {
                 <PasswordGate
                     kind="paste"
                     expiresAt={share.expiresAt}
-                    onUnlock={(password) => unlock(id, password)}
+                    onUnlock={async (password) => {
+                        try {
+                            await requestJson(`/shares/${share.id}/unlock`, {
+                                method: 'POST',
+                                body: JSON.stringify({ password }),
+                            });
+                            router.reload({ only: ['share', 'unlocked'] });
+
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    }}
                 />
             </AppShell>
         );
@@ -126,8 +119,8 @@ function PasteBody({ share }: { share: PasteShare }) {
         <div className="rail py-6 sm:py-8">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
                 <div className="min-w-0">
-                    <div className="border-border bg-card flex flex-wrap items-center gap-x-3 gap-y-2 rounded-t-xl border border-b-0 px-3 py-2.5">
-                        <span className="text-muted-foreground font-mono text-[11px] uppercase tracking-[0.06em]">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-t-xl border border-b-0 border-border bg-card px-3 py-2.5">
+                        <span className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
                             {typeLabel}
                         </span>
 
@@ -183,7 +176,7 @@ function PasteBody({ share }: { share: PasteShare }) {
                         </div>
                     </div>
 
-                    <div className="border-border bg-card overflow-hidden rounded-b-xl border">
+                    <div className="overflow-hidden rounded-b-xl border border-border bg-card">
                         {showMarkdown ? (
                             <div className="px-4 py-5 sm:px-6 sm:py-6">
                                 <MarkdownView body={share.body} />
@@ -216,7 +209,7 @@ function PasteBody({ share }: { share: PasteShare }) {
                         </Button>
                     </div>
 
-                    <dl className="divide-border border-border mt-5 divide-y border-t">
+                    <dl className="mt-5 divide-y divide-border border-t border-border">
                         <MetaRow label="Content">{typeLabel}</MetaRow>
                         <MetaRow label="Length">
                             <span className="font-mono">
@@ -245,7 +238,7 @@ function PasteBody({ share }: { share: PasteShare }) {
                         )}
                     </dl>
 
-                    <p className="text-muted-foreground mt-4 text-[11.5px] leading-relaxed">
+                    <p className="mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
                         A Paste has no title on purpose. The download filename
                         comes from its URL.
                     </p>

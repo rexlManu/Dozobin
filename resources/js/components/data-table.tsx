@@ -71,7 +71,7 @@ export function DataTable<T>({
     have to live somewhere, so they get their own band.
   */
     const strip = (
-        <div className="border-border flex flex-wrap items-center gap-3 border-b px-3 py-2.5 sm:px-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
             <Checkbox
                 aria-label="Select everything on this page"
                 checked={table.getIsAllPageRowsSelected()}
@@ -107,7 +107,7 @@ export function DataTable<T>({
         <div className="flex flex-col gap-3">
             {toolbar}
 
-            <div className="border-border bg-card overflow-hidden rounded-xl border">
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
                 {grid ? (
                     <>
                         {strip}
@@ -126,7 +126,7 @@ export function DataTable<T>({
                         {card && (
                             <div className="md:hidden">
                                 {strip}
-                                <ul className="divide-border divide-y">
+                                <ul className="divide-y divide-border">
                                     {rows.map((row) => (
                                         <li
                                             key={row.id}
@@ -151,7 +151,7 @@ export function DataTable<T>({
                             <table className="w-full border-collapse text-left">
                                 <thead>
                                     {selected > 0 && selectionBar ? (
-                                        <tr className="border-border border-b">
+                                        <tr className="border-b border-border">
                                             <th
                                                 colSpan={
                                                     table.getAllLeafColumns()
@@ -182,7 +182,7 @@ export function DataTable<T>({
                                         table.getHeaderGroups().map((group) => (
                                             <tr
                                                 key={group.id}
-                                                className="border-border border-b"
+                                                className="border-b border-border"
                                             >
                                                 {group.headers.map((header) => {
                                                     const sortable =
@@ -195,7 +195,7 @@ export function DataTable<T>({
                                                             key={header.id}
                                                             scope="col"
                                                             className={cn(
-                                                                'label-mono whitespace-nowrap px-3 py-2.5 font-normal sm:px-4',
+                                                                'label-mono px-3 py-2.5 font-normal whitespace-nowrap sm:px-4',
                                                                 header.column
                                                                     .columnDef
                                                                     .meta
@@ -206,7 +206,7 @@ export function DataTable<T>({
                                                                 <button
                                                                     type="button"
                                                                     onClick={header.column.getToggleSortingHandler()}
-                                                                    className="label-mono hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                                                                    className="label-mono inline-flex items-center gap-1 transition-colors hover:text-foreground"
                                                                 >
                                                                     {flexRender(
                                                                         header
@@ -219,13 +219,13 @@ export function DataTable<T>({
                                                                     'asc' ? (
                                                                         <CaretUp
                                                                             weight="bold"
-                                                                            className="text-foreground size-3"
+                                                                            className="size-3 text-foreground"
                                                                         />
                                                                     ) : sorted ===
                                                                       'desc' ? (
                                                                         <CaretDown
                                                                             weight="bold"
-                                                                            className="text-foreground size-3"
+                                                                            className="size-3 text-foreground"
                                                                         />
                                                                     ) : (
                                                                         <CaretUpDown className="size-3 opacity-40" />
@@ -248,7 +248,7 @@ export function DataTable<T>({
                                     )}
                                 </thead>
 
-                                <tbody className="divide-border divide-y">
+                                <tbody className="divide-y divide-border">
                                     {rows.map((row) => (
                                         <tr
                                             key={row.id}
@@ -297,8 +297,8 @@ export function DataTable<T>({
 
                 {/* A pager for one page is furniture, so it only appears when it works. */}
                 {pages > 1 && (
-                    <div className="border-border flex items-center gap-3 border-t px-3 py-2.5 sm:px-4">
-                        <p className="text-muted-foreground font-mono text-[11px]">
+                    <div className="flex items-center gap-3 border-t border-border px-3 py-2.5 sm:px-4">
+                        <p className="font-mono text-[11px] text-muted-foreground">
                             Showing {firstOnPage}–{lastOnPage} of {total}
                         </p>
                         <div className="ml-auto flex items-center gap-1">
@@ -311,7 +311,7 @@ export function DataTable<T>({
                             >
                                 <CaretLeft />
                             </Button>
-                            <span className="text-muted-foreground font-mono text-[11px]">
+                            <span className="font-mono text-[11px] text-muted-foreground">
                                 {pageIndex + 1} / {pages}
                             </span>
                             <Button

@@ -1,3 +1,4 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     ArrowsLeftRight,
     Eye,
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Link, NavLink, useLocation, useNavigate } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
-import { useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 interface NavItem {
     to: string;
@@ -45,8 +46,7 @@ function navItems(role: 'guest' | 'member' | 'admin'): NavItem[] {
 }
 
 function AccountMenu() {
-    const account = useDozo((s) => s.account());
-    const signOut = useDozo((s) => s.signOut);
+    const account = usePage<SharedPageProps>().props.auth.user;
     const navigate = useNavigate();
 
     if (!account) {
@@ -56,7 +56,7 @@ function AccountMenu() {
             <div className="flex items-center gap-3.5">
                 <Link
                     to="/register"
-                    className="text-muted-foreground hover:text-foreground hidden text-[13px] font-medium transition-colors sm:block"
+                    className="hidden text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
                 >
                     Create account
                 </Link>
@@ -72,7 +72,7 @@ function AccountMenu() {
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
-                    className="hover:bg-muted flex items-center gap-2 rounded-md p-0.5 pr-2 transition-colors"
+                    className="flex items-center gap-2 rounded-md p-0.5 pr-2 transition-colors hover:bg-muted"
                 >
                     <Avatar className="size-7 rounded-md">
                         <AvatarImage
@@ -92,7 +92,7 @@ function AccountMenu() {
             <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuLabel className="flex flex-col gap-0.5">
                     <span>{account.name}</span>
-                    <span className="text-muted-foreground font-mono text-[11px] font-normal">
+                    <span className="font-mono text-[11px] font-normal text-muted-foreground">
                         {account.email}
                     </span>
                 </DropdownMenuLabel>
@@ -111,7 +111,7 @@ function AccountMenu() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                     onSelect={() => {
-                        signOut();
+                        router.post('/logout');
                     }}
                 >
                     <SignOut /> Sign out
@@ -127,29 +127,25 @@ function AccountMenu() {
  * one act a page is for.
  */
 function ImpersonationBanner() {
-    const impersonating = useDozo((s) => s.impersonating);
-    const accounts = useDozo((s) => s.accounts);
-    const viewing = useDozo((s) => s.account());
-    const stop = useDozo((s) => s.stopViewingAs);
+    const { user: viewing, impersonator } =
+        usePage<SharedPageProps>().props.auth;
 
-    if (!impersonating || !viewing) {
+    if (!impersonator || !viewing) {
         return null;
     }
 
-    const real = accounts[impersonating];
-
     return (
-        <div className="border-border bg-sunken shrink-0 border-b">
+        <div className="shrink-0 border-b border-border bg-sunken">
             <div className="rail flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2">
                 <Eye
                     weight="fill"
-                    className="text-muted-foreground size-4 shrink-0"
+                    className="size-4 shrink-0 text-muted-foreground"
                 />
                 <p className="text-[13px]">
                     Viewing as{' '}
                     <span className="font-medium">{viewing.name}</span>
                 </p>
-                <p className="text-muted-foreground font-mono text-[11px]">
+                <p className="font-mono text-[11px] text-muted-foreground">
                     actions are applied as this account
                 </p>
                 <Button
@@ -157,10 +153,10 @@ function ImpersonationBanner() {
                     size="sm"
                     className="ml-auto"
                     onClick={() => {
-                        stop();
+                        router.delete('/impersonation');
                     }}
                 >
-                    Return to {real?.name.split(' ')[0] ?? 'yourself'}
+                    Return to {impersonator.name.split(' ')[0]}
                 </Button>
             </div>
         </div>
@@ -183,7 +179,8 @@ export function AppShell({
     /** Route-level controls that belong in the header rather than on the canvas. */
     headerExtra?: React.ReactNode;
 }) {
-    const role = useDozo((s) => s.role());
+    const account = usePage<SharedPageProps>().props.auth.user;
+    const role = account?.role ?? 'guest';
     const { pathname } = useLocation();
     const items = navItems(role);
     const showNav = variant === 'app';
@@ -192,11 +189,11 @@ export function AppShell({
     return (
         <div
             className={cn(
-                'bg-background flex flex-col',
+                'flex flex-col bg-background',
                 canvas ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]',
             )}
         >
-            <header className="border-border bg-background/85 sticky top-0 z-30 border-b backdrop-blur-md">
+            <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
                 <div className="rail flex h-14 items-center gap-4">
                     <Link to="/" className="rounded-md focus-visible:outline-2">
                         <Wordmark />
@@ -206,7 +203,7 @@ export function AppShell({
                         <>
                             <span
                                 aria-hidden
-                                className="bg-border hidden h-5 w-px md:block"
+                                className="hidden h-5 w-px bg-border md:block"
                             />
 
                             {/*
@@ -226,7 +223,7 @@ export function AppShell({
                                                 'after:absolute after:inset-x-0 after:-bottom-px after:h-[1.5px] after:transition-colors',
                                                 isActive
                                                     ? 'text-foreground after:bg-foreground'
-                                                    : 'text-muted-foreground hover:text-foreground after:bg-transparent',
+                                                    : 'text-muted-foreground after:bg-transparent hover:text-foreground',
                                             )
                                         }
                                     >
@@ -241,7 +238,7 @@ export function AppShell({
                         <>
                             <span
                                 aria-hidden
-                                className="bg-border hidden h-5 w-px md:block"
+                                className="hidden h-5 w-px bg-border md:block"
                             />
                             {headerExtra}
                         </>
@@ -257,7 +254,7 @@ export function AppShell({
                             <>
                                 <span
                                     aria-hidden
-                                    className="bg-border h-5 w-px"
+                                    className="h-5 w-px bg-border"
                                 />
                                 <AccountMenu />
                             </>
@@ -277,7 +274,7 @@ export function AppShell({
             {showNav && (
                 <nav
                     className={cn(
-                        'pb-safe border-border bg-background/95 z-30 grid grid-flow-col border-t backdrop-blur-md md:hidden',
+                        'pb-safe z-30 grid grid-flow-col border-t border-border bg-background/95 backdrop-blur-md md:hidden',
                         // On a canvas the nav is a real row of the window, so nothing has to
                         // reserve padding for it and the canvas can measure its own height.
                         canvas ? 'shrink-0' : 'fixed inset-x-0 bottom-0',
@@ -304,7 +301,7 @@ export function AppShell({
                                 {active && (
                                     <span
                                         aria-hidden
-                                        className="bg-foreground absolute inset-x-4 -top-px h-[1.5px]"
+                                        className="absolute inset-x-4 -top-px h-[1.5px] bg-foreground"
                                     />
                                 )}
                                 <item.icon className="size-5" />

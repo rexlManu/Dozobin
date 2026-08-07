@@ -2,8 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Resources\InstallationSettingResource;
+use App\Http\Resources\UserResource;
+use App\Models\InstallationSetting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Lab404\Impersonate\Services\ImpersonateManager;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,17 +40,25 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $impersonation = app(ImpersonateManager::class);
+        $impersonator = $impersonation->isImpersonating()
+            ? $impersonation->getImpersonator()
+            : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user() === null ? null : [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
-                    'role' => $request->user()->role->value,
-                ],
+                'user' => fn () => $user === null
+                    ? null
+                    : (new UserResource($user->load('apiTokens')))->resolve($request),
+                'impersonator' => fn () => $impersonator instanceof User
+                    ? (new UserResource($impersonator->load('apiTokens')))->resolve($request)
+                    : null,
             ],
+            'config' => fn () => (new InstallationSettingResource(InstallationSetting::current()))->resolve($request),
+            'appearance' => $user?->appearance->value ?? 'system',
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
             ],

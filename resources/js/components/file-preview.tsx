@@ -14,7 +14,7 @@ function Frame({
 }) {
     return (
         <div
-            className={`border-border bg-sunken overflow-hidden rounded-xl border ${className}`}
+            className={`overflow-hidden rounded-xl border border-border bg-sunken ${className}`}
         >
             {children}
         </div>
@@ -24,7 +24,7 @@ function Frame({
 /** Shown when a seeded sample has no bytes behind it. */
 function NoBytesNote() {
     return (
-        <p className="border-border bg-card text-muted-foreground border-t px-4 py-2.5 text-[12px] leading-relaxed">
+        <p className="border-t border-border bg-card px-4 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
             This is a seeded sample, so there is no file behind it. Drop a real
             file into the workspace to see this preview with actual content.
         </p>
@@ -49,14 +49,14 @@ function TextPreview({ src }: { src: string }) {
 
     if (failed) {
         return (
-            <div className="text-muted-foreground px-4 py-6 text-[13px]">
+            <div className="px-4 py-6 text-[13px] text-muted-foreground">
                 Could not read the file.
             </div>
         );
     }
 
     return (
-        <pre className="scrollbar-slim max-h-[32rem] overflow-auto whitespace-pre-wrap px-4 py-4 font-mono text-[12.5px] leading-[1.65]">
+        <pre className="max-h-[32rem] scrollbar-slim overflow-auto px-4 py-4 font-mono text-[12.5px] leading-[1.65] whitespace-pre-wrap">
             {text ?? 'Reading…'}
         </pre>
     );
@@ -72,17 +72,17 @@ export function FilePreview({ share }: { share: FileShare }) {
             <Frame className="flex flex-col items-center justify-center px-6 py-16 text-center">
                 <FileDashed
                     weight="thin"
-                    className="text-muted-foreground/60 size-14"
+                    className="size-14 text-muted-foreground/60"
                 />
                 <p className="mt-4 text-[14px] font-medium">
                     No preview for this format
                 </p>
-                <p className="text-muted-foreground mt-1.5 max-w-[38ch] text-[13px] leading-relaxed">
+                <p className="mt-1.5 max-w-[38ch] text-[13px] leading-relaxed text-muted-foreground">
                     Browsers cannot render{' '}
                     {share.filename.split('.').pop()?.toUpperCase() ?? 'this'}{' '}
                     files, so downloading is the way in.
                 </p>
-                <p className="border-border bg-card text-muted-foreground mt-4 inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-[11.5px]">
+                <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-[11.5px] text-muted-foreground">
                     <FileGlyph
                         mime={share.mime}
                         filename={share.filename}
@@ -117,7 +117,7 @@ export function FilePreview({ share }: { share: FileShare }) {
                             className="aspect-video w-full object-cover opacity-70"
                         />
                         <div className="absolute inset-0 grid place-items-center">
-                            <span className="border-border-strong bg-background/85 flex size-14 items-center justify-center rounded-full border backdrop-blur-sm">
+                            <span className="flex size-14 items-center justify-center rounded-full border border-border-strong bg-background/85 backdrop-blur-sm">
                                 <Play weight="fill" className="size-5" />
                             </span>
                         </div>
@@ -141,7 +141,7 @@ export function FilePreview({ share }: { share: FileShare }) {
     if (kind === 'audio') {
         return (
             <Frame className="px-4 py-5 sm:px-6 sm:py-6">
-                <p className="text-muted-foreground mb-3 font-mono text-[11.5px]">
+                <p className="mb-3 font-mono text-[11.5px] text-muted-foreground">
                     {share.filename}
                 </p>
                 <audio src={src} controls className="w-full" />
@@ -155,7 +155,7 @@ export function FilePreview({ share }: { share: FileShare }) {
                 <iframe
                     src={src}
                     title={share.filename}
-                    className="bg-background h-[34rem] w-full"
+                    className="h-[34rem] w-full bg-background"
                 />
             </Frame>
         );

@@ -5,16 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Admin\UpdateInstallationSettingAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateInstallationSettingRequest;
-use App\Http\Resources\InstallationSettingResource;
 use App\Models\InstallationSetting;
+use Illuminate\Http\RedirectResponse;
 
 final class InstallationSettingController extends Controller
 {
-    public function update(UpdateInstallationSettingRequest $request, UpdateInstallationSettingAction $update): InstallationSettingResource
+    public function update(UpdateInstallationSettingRequest $request, UpdateInstallationSettingAction $update): RedirectResponse
     {
-        return InstallationSettingResource::make($update->handle(
+        $update->handle(
             InstallationSetting::current(),
             $request->validated(),
-        ));
+        );
+
+        return back()->with('status', 'Installation settings updated.');
     }
 }

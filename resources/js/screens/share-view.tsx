@@ -1,5 +1,5 @@
+import { router } from '@inertiajs/react';
 import { DownloadSimple, LockKey } from '@phosphor-icons/react';
-import { useEffect } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { CopyButton } from '@/components/copy-button';
 import { ExpiryLabel } from '@/components/expiry';
@@ -8,12 +8,12 @@ import { FilePreview } from '@/components/file-preview';
 import { PasswordGate } from '@/components/password-gate';
 import { Button } from '@/components/ui/button';
 import { Unavailable } from '@/components/unavailable';
+import { requestJson } from '@/lib/api';
 import { mimeLabel } from '@/lib/detect';
 import { downloadSource } from '@/lib/download';
 import { formatBytes, formatDateTime, shareUrl } from '@/lib/format';
-import { useParams } from '@/lib/navigation';
+import { isShareExpired } from '@/lib/share-state';
 import type { FileShare } from '@/lib/types';
-import { isShareExpired, useDozo } from '@/store/store';
 
 export function MetaRow({
     label,
@@ -25,41 +25,20 @@ export function MetaRow({
     return (
         <div className="flex items-baseline justify-between gap-4 py-2">
             <dt className="label-mono shrink-0">{label}</dt>
-            <dd className="min-w-0 break-words text-right text-[12.5px]">
+            <dd className="min-w-0 text-right text-[12.5px] break-words">
                 {children}
             </dd>
         </div>
     );
 }
 
-export function ShareViewRoute() {
-    const { id = '' } = useParams();
-    const share = useDozo((s) => s.findShare(id));
-    const unlocked = useDozo((s) => s.unlocked.includes(id));
-    const unlock = useDozo((s) => s.unlock);
-    const registerView = useDozo((s) => s.registerView);
-
-    const visible = share?.kind === 'file' && (!share.password || unlocked);
-
-    useEffect(() => {
-        if (visible) {
-            registerView(id);
-        }
-        // Counting once per mount is the point, so the dependency list stays narrow.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id, visible]);
-
-    if (!share || share.kind !== 'file') {
-        return (
-            <AppShell variant="public">
-                <Unavailable
-                    reason="missing"
-                    detail={shareUrl({ kind: 'file', id })}
-                />
-            </AppShell>
-        );
-    }
-
+export function ShareViewRoute({
+    share,
+    unlocked,
+}: {
+    share: FileShare;
+    unlocked: boolean;
+}) {
     if (isShareExpired(share)) {
         return (
             <AppShell variant="public">
@@ -74,7 +53,19 @@ export function ShareViewRoute() {
                 <PasswordGate
                     kind="file"
                     expiresAt={share.expiresAt}
-                    onUnlock={(password) => unlock(id, password)}
+                    onUnlock={async (password) => {
+                        try {
+                            await requestJson(`/shares/${share.id}/unlock`, {
+                                method: 'POST',
+                                body: JSON.stringify({ password }),
+                            });
+                            router.reload({ only: ['share', 'unlocked'] });
+
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    }}
                 />
             </AppShell>
         );
@@ -102,7 +93,7 @@ function FileShareBody({ share }: { share: FileShare }) {
     return (
         <div className="rail py-6 sm:py-8">
             <div className="flex flex-wrap items-start gap-3">
-                <div className="text-muted-foreground mt-1">
+                <div className="mt-1 text-muted-foreground">
                     <FileGlyph
                         mime={share.mime}
                         filename={share.filename}
@@ -110,14 +101,14 @@ function FileShareBody({ share }: { share: FileShare }) {
                     />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <h1 className="break-all text-lg font-medium tracking-[-0.015em] sm:text-xl">
+                    <h1 className="text-lg font-medium tracking-[-0.015em] break-all sm:text-xl">
                         {share.filename}
                     </h1>
-                    <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11.5px]">
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11.5px] text-muted-foreground">
                         <span>{mimeLabel(share.mime, share.filename)}</span>
                         <span>{formatBytes(share.size)}</span>
                         {share.password && (
-                            <span className="text-foreground inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 text-foreground">
                                 <LockKey className="size-3.5" /> unlocked here
                             </span>
                         )}
@@ -141,7 +132,7 @@ function FileShareBody({ share }: { share: FileShare }) {
                         <CopyButton value={url} size="lg" className="w-full" />
                     </div>
 
-                    <dl className="divide-border border-border mt-5 divide-y border-t">
+                    <dl className="mt-5 divide-y divide-border border-t border-border">
                         <MetaRow label="Type">
                             {mimeLabel(share.mime, share.filename)}
                         </MetaRow>
@@ -165,7 +156,7 @@ function FileShareBody({ share }: { share: FileShare }) {
                         </MetaRow>
                     </dl>
 
-                    <p className="text-muted-foreground mt-4 text-[11.5px] leading-relaxed">
+                    <p className="mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
                         Unlisted. Anyone holding this URL can open it, and
                         Dōzobin does not list or index it anywhere.
                     </p>

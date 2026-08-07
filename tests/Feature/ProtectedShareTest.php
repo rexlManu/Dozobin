@@ -16,9 +16,9 @@ it('hides protected paste contents until the session unlocks it', function (): v
     $this->get("/p/{$share->slug}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dozobin')
-            ->where('state.shares.0.body', '')
-            ->where('state.shares.0.password', 'protected'));
+            ->component('pastes/show')
+            ->where('share.body', '')
+            ->where('share.password', 'protected'));
 
     expect($share->fresh()->views)->toBe(0);
 
@@ -30,7 +30,7 @@ it('hides protected paste contents until the session unlocks it', function (): v
         ->assertOk();
 
     $this->get("/p/{$share->slug}")
-        ->assertInertia(fn (Assert $page) => $page->where('state.shares.0.body', 'The hidden body'));
+        ->assertInertia(fn (Assert $page) => $page->where('share.body', 'The hidden body'));
 
     expect($share->fresh()->views)->toBe(1);
 });
@@ -43,8 +43,9 @@ it('does not expose protected file metadata or content', function (): void {
 
     $this->get("/s/{$share->slug}")
         ->assertInertia(fn (Assert $page) => $page
-            ->where('state.shares.0.filename', '')
-            ->where('state.shares.0.size', 0));
+            ->component('shares/show')
+            ->where('share.filename', '')
+            ->where('share.size', 0));
 
     $this->get("/shares/{$share->slug}/content")->assertForbidden();
 });

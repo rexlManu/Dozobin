@@ -43,23 +43,23 @@ export function Unavailable({
 
     return (
         <div className="mx-auto w-full max-w-[30rem] px-4 py-16 sm:py-24">
-            <div className="border-border bg-card flex size-11 items-center justify-center rounded-lg border">
-                <Icon className="text-muted-foreground size-5" />
+            <div className="flex size-11 items-center justify-center rounded-lg border border-border bg-card">
+                <Icon className="size-5 text-muted-foreground" />
             </div>
             <h1 className="mt-5 text-xl font-medium tracking-[-0.02em]">
                 {title}
             </h1>
-            <p className="text-muted-foreground mt-2 text-[13.5px] leading-relaxed">
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
                 {body}
             </p>
 
             {detail && (
-                <p className="border-border bg-sunken text-muted-foreground mt-4 break-all rounded-md border px-3 py-2 font-mono text-[11.5px]">
+                <p className="mt-4 rounded-md border border-border bg-sunken px-3 py-2 font-mono text-[11.5px] break-all text-muted-foreground">
                     {detail}
                 </p>
             )}
             {expiredAt && (
-                <p className="text-muted-foreground mt-3 font-mono text-[11.5px]">
+                <p className="mt-3 font-mono text-[11.5px] text-muted-foreground">
                     Expired {formatDateTime(expiredAt)}
                 </p>
             )}

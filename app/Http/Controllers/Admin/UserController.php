@@ -9,22 +9,23 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateAdminUserRequest;
-use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 final class UserController extends Controller
 {
-    public function update(UpdateAdminUserRequest $request, User $user, UpdateUserAction $update): UserResource
+    public function update(UpdateAdminUserRequest $request, User $user, UpdateUserAction $update): RedirectResponse
     {
-        return UserResource::make($update->handle($request->user(), $user, $request->validated())->load('apiTokens'));
+        $update->handle($request->user(), $user, $request->validated());
+
+        return back()->with('status', 'User updated.');
     }
 
-    public function destroy(Request $request, User $user, DeleteSharesAction $deleteShares): JsonResponse
+    public function destroy(Request $request, User $user, DeleteSharesAction $deleteShares): RedirectResponse
     {
-        abort_unless($request->user()->isAdmin(), 403);
+        $this->authorize('delete', $user);
         if ($request->user()->is($user)) {
             throw ValidationException::withMessages(['user' => 'You cannot delete your own administrator account.']);
         }
@@ -35,13 +36,14 @@ final class UserController extends Controller
         $deleteShares->handle($request->user(), $user->shares()->get());
         $user->delete();
 
-        return response()->json(status: 204);
+        return to_route('admin.users.index')->with('status', 'User deleted.');
     }
 
-    public function destroySession(Request $request, User $user, string $session, EndLoginSessionAction $end): JsonResponse
+    public function destroySession(Request $request, User $user, string $session, EndLoginSessionAction $end): RedirectResponse
     {
+        $this->authorize('manageSessions', $user);
         $end->handle($request, $user, $session);
 
-        return response()->json(status: 204);
+        return back()->with('status', 'Session ended.');
     }
 }

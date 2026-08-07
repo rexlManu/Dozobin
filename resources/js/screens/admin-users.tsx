@@ -1,3 +1,4 @@
+import { router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -19,7 +20,7 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import type { SortingState } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table';
@@ -50,7 +51,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatBytes, formatDateTime, relativeTime } from '@/lib/format';
-import { Link, Navigate, useNavigate, useParams } from '@/lib/navigation';
+import { Link } from '@/lib/navigation';
 import {
     countSharesByOwner,
     shareLabel,
@@ -58,10 +59,12 @@ import {
     typeChip,
     usageFromShares,
 } from '@/lib/share-display';
+import { isShareExpired } from '@/lib/share-state';
 import type { Account, AccountStatus, Share } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import type { GuardReason } from '@/store/store';
-import { isShareExpired, useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
+
+type GuardReason = 'self' | 'last-admin' | 'missing';
 
 const GUARD_COPY: Record<GuardReason, string> = {
     self: 'You cannot do this to your own account.',
@@ -75,7 +78,7 @@ function RoleChip({ role }: { role: Account['role'] }) {
             className={cn(
                 'inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[11px] font-medium',
                 role === 'admin'
-                    ? 'bg-foreground text-background border-transparent'
+                    ? 'border-transparent bg-foreground text-background'
                     : 'border-border text-muted-foreground',
             )}
         >
@@ -87,7 +90,7 @@ function RoleChip({ role }: { role: Account['role'] }) {
 function StatusChip({ account }: { account: Account }) {
     if (account.status === 'active') {
         return (
-            <span className="text-muted-foreground text-[12.5px]">Active</span>
+            <span className="text-[12.5px] text-muted-foreground">Active</span>
         );
     }
 
@@ -98,7 +101,7 @@ function StatusChip({ account }: { account: Account }) {
                     ? `Suspended ${relativeTime(account.suspendedAt)}`
                     : undefined
             }
-            className="bg-destructive-soft text-destructive inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium"
+            className="inline-flex items-center rounded-sm bg-destructive-soft px-1.5 py-0.5 text-[11px] font-medium text-destructive"
         >
             Suspended
         </span>
@@ -114,14 +117,14 @@ function UsageBar({ account }: { account: Account }) {
 
     return (
         <div className="flex min-w-[8rem] flex-col gap-1">
-            <span className="whitespace-nowrap font-mono text-[11.5px]">
+            <span className="font-mono text-[11.5px] whitespace-nowrap">
                 {formatBytes(account.storageUsed)}
                 <span className="text-muted-foreground">
                     {' / '}
                     {unlimited ? 'no limit' : formatBytes(account.storageLimit)}
                 </span>
             </span>
-            <span className="bg-muted h-[3px] w-full overflow-hidden rounded-full">
+            <span className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
                 <span
                     className={cn(
                         'block h-full rounded-full',
@@ -225,36 +228,78 @@ function GuardedItem({
     );
 }
 
-function useUserActions() {
-    const navigate = useNavigate();
-    const guard = useDozo((s) => s.guardAccount);
-    const setRole = useDozo((s) => s.setAccountRole);
-    const setStatus = useDozo((s) => s.setAccountStatus);
-    const remove = useDozo((s) => s.deleteUser);
-    const viewAs = useDozo((s) => s.viewAs);
-    const shares = useDozo((s) => s.shares);
+function useUserActions(accounts: Account[], shares: Share[]) {
+    const current = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
+
+    const guard = (
+        targetId: string,
+        next: {
+            role?: Account['role'];
+            status?: AccountStatus;
+            deleted?: boolean;
+        },
+    ): GuardReason | null => {
+        const target = accounts.find((account) => account.id === targetId);
+
+        if (!target) {
+            return 'missing';
+        }
+
+        const locksOut =
+            next.deleted === true ||
+            next.role === 'member' ||
+            next.status === 'suspended';
+
+        if (current?.id === target.id && locksOut) {
+            return 'self';
+        }
+
+        const activeAdmins = accounts.filter(
+            (account) =>
+                account.role === 'admin' && account.status === 'active',
+        ).length;
+
+        return target.role === 'admin' &&
+            target.status === 'active' &&
+            locksOut &&
+            activeAdmins <= 1
+            ? 'last-admin'
+            : null;
+    };
 
     const toggleRole = (account: Account) => {
         const next = account.role === 'admin' ? 'member' : 'admin';
 
-        if (setRole(account.id, next)) {
-            toast(
-                `${account.name} is now ${next === 'admin' ? 'an administrator' : 'a member'}`,
-            );
-        }
+        router.patch(
+            `/admin/users/${account.id}`,
+            { role: next },
+            {
+                preserveScroll: true,
+                onSuccess: () =>
+                    toast(
+                        `${account.name} is now ${next === 'admin' ? 'an administrator' : 'a member'}`,
+                    ),
+            },
+        );
     };
 
     const toggleStatus = (account: Account) => {
         const next = account.status === 'active' ? 'suspended' : 'active';
 
-        if (setStatus(account.id, next)) {
-            toast(
-                next === 'suspended'
-                    ? `${account.name} is suspended`
-                    : `${account.name} is active again`,
-            );
-        }
+        router.patch(
+            `/admin/users/${account.id}`,
+            { status: next },
+            {
+                preserveScroll: true,
+                onSuccess: () =>
+                    toast(
+                        next === 'suspended'
+                            ? `${account.name} is suspended`
+                            : `${account.name} is active again`,
+                    ),
+            },
+        );
     };
 
     const deleteOne = async (account: Account) => {
@@ -278,15 +323,15 @@ function useUserActions() {
             confirmLabel: 'Delete account',
         });
 
-        if (ok && remove(account.id)) {
-            toast(`${account.name} deleted`);
-            navigate('/admin/users');
+        if (ok) {
+            router.delete(`/admin/users/${account.id}`, {
+                onSuccess: () => toast(`${account.name} deleted`),
+            });
         }
     };
 
     const impersonate = (account: Account) => {
-        viewAs(account.id);
-        navigate('/');
+        router.post(`/admin/users/${account.id}/impersonate`);
     };
 
     /** The refusal as a sentence, for controls that explain themselves in place. */
@@ -314,9 +359,13 @@ function useUserActions() {
     };
 }
 
-export function AdminUsersRoute() {
-    const accounts = useDozo((s) => s.accounts);
-    const shares = useDozo((s) => s.shares);
+export function AdminUsersRoute({
+    accounts,
+    shares,
+}: {
+    accounts: Account[];
+    shares: Share[];
+}) {
     const {
         guard,
         guardCopy,
@@ -325,9 +374,17 @@ export function AdminUsersRoute() {
         deleteOne,
         impersonate,
         dialog,
-    } = useUserActions();
+    } = useUserActions(accounts, shares);
 
-    const setQuota = useDozo((s) => s.setAccountQuota);
+    const setQuota = useCallback(
+        (accountId: string, storageLimit: number) =>
+            router.patch(
+                `/admin/users/${accountId}`,
+                { storage_limit: storageLimit },
+                { preserveScroll: true },
+            ),
+        [],
+    );
 
     const [query, setQuery] = useState('');
     const [roleOnly, setRoleOnly] = useState<RoleFilter>('any');
@@ -342,7 +399,7 @@ export function AdminUsersRoute() {
 
     const data = useMemo(
         () =>
-            Object.values(accounts).filter(
+            accounts.filter(
                 (a) =>
                     (roleOnly === 'any' || a.role === roleOnly) &&
                     (statusOnly === 'any' || a.status === statusOnly) &&
@@ -379,7 +436,7 @@ export function AdminUsersRoute() {
                 header: 'User',
                 cell: ({ row }) => (
                     <Link
-                        to={row.original.id}
+                        to={`/admin/users/${row.original.id}`}
                         className="group flex min-w-0 items-center gap-2.5"
                     >
                         <Avatar className="size-6 shrink-0 rounded-md">
@@ -396,7 +453,7 @@ export function AdminUsersRoute() {
                             <span className="block truncate text-[13px] font-medium group-hover:underline">
                                 {row.original.name}
                             </span>
-                            <span className="text-muted-foreground block truncate font-mono text-[11px]">
+                            <span className="block truncate font-mono text-[11px] text-muted-foreground">
                                 {row.original.email}
                             </span>
                         </span>
@@ -500,7 +557,7 @@ export function AdminUsersRoute() {
             col.accessor('createdAt', {
                 header: 'Joined',
                 cell: (c) => (
-                    <span className="text-muted-foreground whitespace-nowrap font-mono text-[11.5px]">
+                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue())}
                     </span>
                 ),
@@ -529,7 +586,9 @@ export function AdminUsersRoute() {
                                     className="w-52"
                                 >
                                     <DropdownMenuItem asChild>
-                                        <Link to={account.id}>Open user</Link>
+                                        <Link to={`/admin/users/${account.id}`}>
+                                            Open user
+                                        </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         onSelect={() => impersonate(account)}
@@ -648,7 +707,7 @@ export function AdminUsersRoute() {
                             />
                             <div className="min-w-0 flex-1">
                                 <Link
-                                    to={account.id}
+                                    to={`/admin/users/${account.id}`}
                                     className="flex min-w-0 items-center gap-2.5"
                                 >
                                     <Avatar className="size-8 shrink-0 rounded-md">
@@ -665,7 +724,7 @@ export function AdminUsersRoute() {
                                         <span className="block truncate text-[13.5px] font-medium">
                                             {account.name}
                                         </span>
-                                        <span className="text-muted-foreground block truncate font-mono text-[11px]">
+                                        <span className="block truncate font-mono text-[11px] text-muted-foreground">
                                             {account.email}
                                         </span>
                                     </span>
@@ -721,7 +780,7 @@ export function AdminUsersRoute() {
                                     >
                                         <StatusChip account={account} />
                                     </InlineSelect>
-                                    <span className="text-muted-foreground font-mono text-[11px]">
+                                    <span className="font-mono text-[11px] text-muted-foreground">
                                         {counts[account.id] ?? 0} shares
                                     </span>
                                 </div>
@@ -761,7 +820,9 @@ export function AdminUsersRoute() {
                                     className="w-52"
                                 >
                                     <DropdownMenuItem asChild>
-                                        <Link to={account.id}>Open user</Link>
+                                        <Link to={`/admin/users/${account.id}`}>
+                                            Open user
+                                        </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         onSelect={() => impersonate(account)}
@@ -786,7 +847,7 @@ export function AdminUsersRoute() {
                 toolbar={
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
                         <div className="relative min-w-0 flex-1">
-                            <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                            <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
@@ -799,7 +860,7 @@ export function AdminUsersRoute() {
                                     variant="ghost"
                                     size="icon-sm"
                                     aria-label="Clear search"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                                    className="absolute top-1/2 right-1 -translate-y-1/2"
                                     onClick={() => setQuery('')}
                                 >
                                     <X />
@@ -907,7 +968,7 @@ export function AdminUsersRoute() {
                         <p className="text-[14px] font-medium">
                             No accounts match that
                         </p>
-                        <p className="text-muted-foreground mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed">
+                        <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed text-muted-foreground">
                             Try a shorter search, or clear the filters.
                         </p>
                     </>
@@ -918,34 +979,31 @@ export function AdminUsersRoute() {
     );
 }
 
-export function AdminUserRoute() {
-    const { accountId = '' } = useParams();
-    const account = useDozo((s) => s.accounts[accountId]);
-    const shares = useDozo((s) => s.shares);
-    const setQuota = useDozo((s) => s.setAccountQuota);
-    const recalc = useDozo((s) => s.recalcUsage);
-    const endSession = useDozo((s) => s.endUserSession);
-    const revokeToken = useDozo((s) => s.revokeUserToken);
+export function AdminUserRoute({
+    account,
+    accounts,
+    shares,
+}: {
+    account: Account;
+    accounts: Account[];
+    shares: Share[];
+}) {
     const { guard, toggleRole, toggleStatus, deleteOne, impersonate, dialog } =
-        useUserActions();
+        useUserActions(accounts, shares);
     const [quotaGb, setQuotaGb] = useState('');
 
     const owned = useMemo(
-        () => shares.filter((s) => s.ownerId === accountId),
-        [shares, accountId],
+        () => shares.filter((share) => share.ownerId === account.id),
+        [shares, account.id],
     );
     const recent = useMemo(
         () => [...owned].sort((a, b) => b.createdAt - a.createdAt).slice(0, 4),
         [owned],
     );
     const onDisk = useMemo(
-        () => usageFromShares(shares, accountId),
-        [shares, accountId],
+        () => usageFromShares(shares, account.id),
+        [shares, account.id],
     );
-
-    if (!account) {
-        return <Navigate to="/admin/users" replace />;
-    }
 
     const drifted = Math.abs(account.storageUsed - onDisk) > 1024 * 1024;
 
@@ -955,7 +1013,7 @@ export function AdminUserRoute() {
                 <div>
                     <Link
                         to="/admin/users"
-                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-[12.5px] transition-colors"
+                        className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
                     >
                         <ArrowLeft className="size-3.5" /> All users
                     </Link>
@@ -977,7 +1035,7 @@ export function AdminUserRoute() {
                                 <RoleChip role={account.role} />
                                 <StatusChip account={account} />
                             </h2>
-                            <p className="text-muted-foreground mt-0.5 font-mono text-[11.5px]">
+                            <p className="mt-0.5 font-mono text-[11.5px] text-muted-foreground">
                                 {account.email} · joined{' '}
                                 {formatDateTime(account.createdAt)}
                             </p>
@@ -1050,18 +1108,18 @@ export function AdminUserRoute() {
                 </div>
 
                 {/* Storage */}
-                <section className="border-border bg-card rounded-xl border p-4">
+                <section className="rounded-xl border border-border bg-card p-4">
                     <p className="label-mono">Storage</p>
                     <div className="mt-3 max-w-sm">
                         <UsageBar account={account} />
                     </div>
                     {drifted && (
-                        <p className="text-muted-foreground mt-3 font-mono text-[11.5px]">
+                        <p className="mt-3 font-mono text-[11.5px] text-muted-foreground">
                             accounted {formatBytes(account.storageUsed)} ·
                             shares on disk {formatBytes(onDisk)}
                         </p>
                     )}
-                    <div className="border-border mt-4 flex flex-wrap items-end gap-2 border-t pt-4">
+                    <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-border pt-4">
                         <div className="flex flex-col gap-2">
                             <label
                                 htmlFor="quota"
@@ -1089,13 +1147,21 @@ export function AdminUserRoute() {
                                 Number.isNaN(Number(quotaGb))
                             }
                             onClick={() => {
-                                setQuota(
-                                    account.id,
-                                    Number(quotaGb) * 1024 ** 3,
-                                );
-                                setQuotaGb('');
-                                toast(
-                                    `Quota for ${account.name} set to ${quotaGb} GB`,
+                                router.patch(
+                                    `/admin/users/${account.id}`,
+                                    {
+                                        storage_limit:
+                                            Number(quotaGb) * 1024 ** 3,
+                                    },
+                                    {
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            setQuotaGb('');
+                                            toast(
+                                                `Quota for ${account.name} set to ${quotaGb} GB`,
+                                            );
+                                        },
+                                    },
                                 );
                             }}
                         >
@@ -1106,10 +1172,13 @@ export function AdminUserRoute() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    recalc(account.id);
-                                    toast(
-                                        'Storage recalculated from the shares on disk',
-                                    );
+                                    router.reload({
+                                        only: ['account', 'shares'],
+                                        onSuccess: () =>
+                                            toast(
+                                                'Storage recalculated from the shares on disk',
+                                            ),
+                                    });
                                 }}
                             >
                                 <ArrowsClockwise /> Recalculate
@@ -1129,8 +1198,8 @@ export function AdminUserRoute() {
                         <p className="label-mono">Uploads ({owned.length})</p>
                         {owned.length > 0 && (
                             <Link
-                                to="uploads"
-                                className="text-muted-foreground hover:text-foreground ml-auto inline-flex items-center gap-1 text-[12.5px] transition-colors"
+                                to={`/admin/users/${account.id}/uploads`}
+                                className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
                             >
                                 Open all uploads{' '}
                                 <ArrowRight className="size-3.5" />
@@ -1138,17 +1207,17 @@ export function AdminUserRoute() {
                         )}
                     </div>
                     {owned.length === 0 ? (
-                        <p className="border-border text-muted-foreground mt-2.5 border-t pt-3 text-[13px]">
+                        <p className="mt-2.5 border-t border-border pt-3 text-[13px] text-muted-foreground">
                             This account has never shared anything.
                         </p>
                     ) : (
-                        <ul className="divide-border border-border mt-2.5 divide-y overflow-hidden rounded-lg border">
+                        <ul className="mt-2.5 divide-y divide-border overflow-hidden rounded-lg border border-border">
                             {recent.map((share) => (
                                 <li
                                     key={share.id}
                                     className="flex items-center gap-3 px-3 py-2.5"
                                 >
-                                    <span className="text-muted-foreground shrink-0">
+                                    <span className="shrink-0 text-muted-foreground">
                                         <FileGlyph
                                             mime={
                                                 share.kind === 'file'
@@ -1168,7 +1237,7 @@ export function AdminUserRoute() {
                                     >
                                         {shareLabel(share)}
                                     </Link>
-                                    <span className="text-muted-foreground hidden font-mono text-[11px] sm:inline">
+                                    <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
                                         {typeChip(share)}
                                     </span>
                                     <ExpiryLabel
@@ -1181,8 +1250,8 @@ export function AdminUserRoute() {
                             {owned.length > recent.length && (
                                 <li className="px-3 py-2.5">
                                     <Link
-                                        to="uploads"
-                                        className="text-muted-foreground hover:text-foreground text-[12.5px]"
+                                        to={`/admin/users/${account.id}/uploads`}
+                                        className="text-[12.5px] text-muted-foreground hover:text-foreground"
                                     >
                                         {owned.length - recent.length} more
                                     </Link>
@@ -1198,11 +1267,11 @@ export function AdminUserRoute() {
                         Login sessions ({account.sessions.length})
                     </p>
                     {account.sessions.length === 0 ? (
-                        <p className="border-border text-muted-foreground mt-2.5 border-t pt-3 text-[13px]">
+                        <p className="mt-2.5 border-t border-border pt-3 text-[13px] text-muted-foreground">
                             Nobody is signed in on this account right now.
                         </p>
                     ) : (
-                        <ul className="divide-border border-border mt-2.5 divide-y overflow-hidden rounded-lg border">
+                        <ul className="mt-2.5 divide-y divide-border overflow-hidden rounded-lg border border-border">
                             {account.sessions.map((session) => (
                                 <li
                                     key={session.id}
@@ -1212,7 +1281,7 @@ export function AdminUserRoute() {
                                         <p className="text-[13px] font-medium">
                                             {session.device}
                                         </p>
-                                        <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+                                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                                             {session.browser} ·{' '}
                                             {session.location} ·{' '}
                                             {relativeTime(session.lastSeenAt)}
@@ -1222,9 +1291,15 @@ export function AdminUserRoute() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => {
-                                            endSession(account.id, session.id);
-                                            toast(
-                                                `Signed ${account.name} out of ${session.device}`,
+                                            router.delete(
+                                                `/admin/users/${account.id}/sessions/${session.id}`,
+                                                {
+                                                    preserveScroll: true,
+                                                    onSuccess: () =>
+                                                        toast(
+                                                            `Signed ${account.name} out of ${session.device}`,
+                                                        ),
+                                                },
                                             );
                                         }}
                                     >
@@ -1242,11 +1317,11 @@ export function AdminUserRoute() {
                         API tokens ({account.tokens.length})
                     </p>
                     {account.tokens.length === 0 ? (
-                        <p className="border-border text-muted-foreground mt-2.5 border-t pt-3 text-[13px]">
+                        <p className="mt-2.5 border-t border-border pt-3 text-[13px] text-muted-foreground">
                             This account has never created a token.
                         </p>
                     ) : (
-                        <ul className="divide-border border-border mt-2.5 divide-y overflow-hidden rounded-lg border">
+                        <ul className="mt-2.5 divide-y divide-border overflow-hidden rounded-lg border border-border">
                             {account.tokens.map((token) => (
                                 <li
                                     key={token.id}
@@ -1262,7 +1337,7 @@ export function AdminUserRoute() {
                                         >
                                             {token.name}
                                         </p>
-                                        <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+                                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                                             created{' '}
                                             {formatDateTime(token.createdAt)} ·{' '}
                                             {token.revoked
@@ -1277,11 +1352,16 @@ export function AdminUserRoute() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => {
-                                                revokeToken(
-                                                    account.id,
-                                                    token.id,
+                                                router.delete(
+                                                    `/api-tokens/${token.id}`,
+                                                    {
+                                                        preserveScroll: true,
+                                                        onSuccess: () =>
+                                                            toast(
+                                                                `Revoked ${token.name}`,
+                                                            ),
+                                                    },
                                                 );
-                                                toast(`Revoked ${token.name}`);
                                             }}
                                         >
                                             Revoke

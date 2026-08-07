@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Link } from '@/lib/navigation';
-import { useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 function Panel({
     title,
@@ -25,7 +25,7 @@ function Panel({
     footer: React.ReactNode;
 }) {
     return (
-        <div className="bg-background flex min-h-[100dvh] flex-col">
+        <div className="flex min-h-[100dvh] flex-col bg-background">
             <div className="mx-auto flex w-full max-w-[24.5rem] flex-1 flex-col justify-center px-4 py-12 sm:py-16">
                 <Link
                     to="/"
@@ -37,11 +37,11 @@ function Panel({
                 <h1 className="text-xl font-medium tracking-[-0.02em]">
                     {title}
                 </h1>
-                <p className="text-muted-foreground mt-2 text-[13.5px] leading-relaxed">
+                <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
                     {intro}
                 </p>
                 <div className="mt-7">{children}</div>
-                <div className="border-border text-muted-foreground mt-6 border-t pt-4 text-[13px]">
+                <div className="mt-6 border-t border-border pt-4 text-[13px] text-muted-foreground">
                     {footer}
                 </div>
             </div>
@@ -65,14 +65,14 @@ export function SignInRoute() {
                 <>
                     <span>No account yet? </span>
                     <Link
-                        className="decoration-border-strong underline underline-offset-4"
+                        className="underline decoration-border-strong underline-offset-4"
                         to="/register"
                     >
                         Register
                     </Link>
                     <span> · </span>
                     <Link
-                        className="decoration-border-strong underline underline-offset-4"
+                        className="underline decoration-border-strong underline-offset-4"
                         to="/reset"
                     >
                         Forgot password
@@ -125,7 +125,7 @@ export function SignInRoute() {
                 </FieldGroup>
             </form>
             {development && (
-                <div className="border-border bg-sunken text-muted-foreground mt-5 rounded-md border px-3 py-2.5 font-mono text-[11px] leading-relaxed">
+                <div className="mt-5 rounded-md border border-border bg-sunken px-3 py-2.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
                     <p className="text-foreground">Local seeded accounts</p>
                     <p>member@dozobin.test · member</p>
                     <p>admin@dozobin.test · administrator</p>
@@ -137,7 +137,7 @@ export function SignInRoute() {
 }
 
 export function RegisterRoute() {
-    const registration = useDozo((state) => state.adminConfig.registration);
+    const registration = usePage<SharedPageProps>().props.config.registration;
     const form = useForm({
         name: '',
         email: '',
@@ -153,7 +153,7 @@ export function RegisterRoute() {
                 intro="The administrator of this installation is not taking new accounts. Guest sharing and Transfer Sessions still work."
                 footer={
                     <Link
-                        className="decoration-border-strong underline underline-offset-4"
+                        className="underline decoration-border-strong underline-offset-4"
                         to="/"
                     >
                         Back to the workspace
@@ -179,7 +179,7 @@ export function RegisterRoute() {
                 <>
                     <span>Already have one? </span>
                     <Link
-                        className="decoration-border-strong underline underline-offset-4"
+                        className="underline decoration-border-strong underline-offset-4"
                         to="/signin"
                     >
                         Sign in
@@ -296,7 +296,7 @@ export function ResetRoute() {
             intro="This installation sends the reset link through its configured mail service."
             footer={
                 <Link
-                    className="decoration-border-strong underline underline-offset-4"
+                    className="underline decoration-border-strong underline-offset-4"
                     to="/signin"
                 >
                     Back to sign in
@@ -304,15 +304,15 @@ export function ResetRoute() {
             }
         >
             {status ? (
-                <div className="border-border bg-card rounded-lg border px-4 py-4">
+                <div className="rounded-lg border border-border bg-card px-4 py-4">
                     <p className="flex items-center gap-2 text-[13.5px] font-medium">
                         <CheckCircle
                             weight="fill"
-                            className="text-primary size-4"
+                            className="size-4 text-primary"
                         />
                         Reset link requested
                     </p>
-                    <p className="text-muted-foreground mt-1.5 text-[13px] leading-relaxed">
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                         {status}
                     </p>
                 </div>

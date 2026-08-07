@@ -45,11 +45,11 @@ export function PasteComposer({
 
     return (
         // The window is the editor: no border, no radius, no page behind it.
-        <div className="bg-card flex h-full flex-col">
+        <div className="flex h-full flex-col bg-card">
             {/* The rule spans the window; only its contents sit on the rail. */}
-            <div className="border-border shrink-0 border-b">
+            <div className="shrink-0 border-b border-border">
                 <div className="rail flex h-11 flex-wrap items-center gap-x-3 gap-y-2">
-                    <div className="bg-muted flex items-center gap-1 rounded-md p-0.5">
+                    <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
                         {(['write', 'preview'] as const).map((option) => (
                             <button
                                 key={option}
@@ -154,7 +154,7 @@ export function PasteComposer({
                     </div>
                 </div>
             ) : (
-                <div className="scrollbar-slim min-h-0 flex-1 overflow-auto">
+                <div className="min-h-0 flex-1 scrollbar-slim overflow-auto">
                     <div className="rail py-5">
                         {resolved.pasteType === 'markdown' ? (
                             <MarkdownView body={body} />
@@ -190,7 +190,7 @@ export function PasteTruths({
     const lines = body === '' ? 0 : body.split('\n').length;
 
     return (
-        <span className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px]">
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
             <span>
                 {lines} {lines === 1 ? 'line' : 'lines'} · {body.length} chars
             </span>

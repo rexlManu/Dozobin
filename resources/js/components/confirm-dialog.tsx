@@ -49,7 +49,7 @@ export function useConfirm() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>{options?.title}</AlertDialogTitle>
                     <AlertDialogDescription asChild>
-                        <div className="text-muted-foreground text-sm leading-relaxed">
+                        <div className="text-sm leading-relaxed text-muted-foreground">
                             {options?.description}
                         </div>
                     </AlertDialogDescription>

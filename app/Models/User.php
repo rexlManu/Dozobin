@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Lab404\Impersonate\Models\Impersonate;
 
 /**
  * @property int $id
@@ -36,7 +37,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Impersonate, Notifiable;
 
     /** @var list<string> */
     protected $fillable = [
@@ -59,6 +60,16 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;
+    }
+
+    public function canImpersonate(): bool
+    {
+        return $this->isAdmin() && $this->status === UserStatus::Active;
+    }
+
+    public function canBeImpersonated(): bool
+    {
+        return $this->status === UserStatus::Active;
     }
 
     /**

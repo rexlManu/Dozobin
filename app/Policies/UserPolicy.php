@@ -6,18 +6,25 @@ use App\Models\User;
 
 final class UserPolicy
 {
-    public function before(User $user): ?bool
-    {
-        return $user->isAdmin() ? true : null;
-    }
-
     public function update(User $user, User $target): bool
     {
-        return $user->is($target);
+        return $user->isAdmin() || $user->is($target);
     }
 
     public function delete(User $user, User $target): bool
     {
-        return $user->is($target);
+        return $user->isAdmin() || $user->is($target);
+    }
+
+    public function manageSessions(User $user, User $target): bool
+    {
+        return $user->isAdmin() || $user->is($target);
+    }
+
+    public function impersonate(User $user, User $target): bool
+    {
+        return $user->canImpersonate()
+            && $target->canBeImpersonated()
+            && ! $user->is($target);
     }
 }

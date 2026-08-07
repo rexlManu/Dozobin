@@ -44,9 +44,9 @@ it('provides transfer items to the page as a plain array', function (): void {
     $this->get("/transfer/{$session->access_code}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dozobin')
-            ->has('state.transfer.items', 1)
-            ->where('state.transfer.items.0.id', (string) $item->id));
+            ->component('transfers/show')
+            ->has('transfer.items', 1)
+            ->where('transfer.items.0.id', (string) $item->id));
 });
 
 it('purges expired transfer items and rejects the join', function (): void {
@@ -67,4 +67,22 @@ it('purges expired transfer items and rejects the join', function (): void {
     $this->assertDatabaseMissing('transfer_items', ['id' => $item->id]);
     Storage::disk('local')->assertMissing((string) $item->storage_path);
     expect($session->fresh()->expired_at)->not->toBeNull();
+});
+
+it('renders the expired transfer page while purging its payload', function (): void {
+    $session = TransferSession::factory()->create([
+        'expires_at' => now()->subMinute(),
+    ]);
+    $item = TransferItem::factory()->create([
+        'transfer_session_id' => $session->id,
+    ]);
+
+    $this->get("/transfer/{$session->access_code}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('transfers/show')
+            ->where('transfer.expired', true)
+            ->has('transfer.items', 0));
+
+    $this->assertDatabaseMissing('transfer_items', ['id' => $item->id]);
 });

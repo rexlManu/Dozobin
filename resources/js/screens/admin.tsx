@@ -1,5 +1,7 @@
+import { router, usePage } from '@inertiajs/react';
 import { CheckCircle, Plus, WarningCircle, X } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/app-shell';
 import { useConfirm } from '@/components/confirm-dialog';
@@ -20,16 +22,16 @@ import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useNow } from '@/hooks/use-now';
 import { EXPIRATION_LABEL, EXPIRATION_ORDER } from '@/lib/format';
-import {
-    Link,
-    NavLink,
-    Navigate,
-    Outlet,
-    useOutletContext,
-} from '@/lib/navigation';
-import type { AdminConfig, ExpirationKey } from '@/lib/types';
+import { Link, NavLink } from '@/lib/navigation';
+import { isTransferExpired, transferExpiresAt } from '@/lib/transfer-state';
+import type {
+    AdminConfig,
+    ExpirationKey,
+    Share,
+    TransferSession,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { isTransferExpired, transferExpiresAt, useDozo } from '@/store/store';
+import type { SharedPageProps } from '@/types';
 
 type Errors = Partial<Record<keyof AdminConfig, string>>;
 
@@ -110,13 +112,13 @@ function Field({
         <div className="flex flex-col gap-2">
             <Label className="text-[13px]">{label}</Label>
             {hint && (
-                <p className="text-muted-foreground -mt-1 text-[12px] leading-relaxed">
+                <p className="-mt-1 text-[12px] leading-relaxed text-muted-foreground">
                     {hint}
                 </p>
             )}
             {children}
             {error && (
-                <p className="text-destructive flex items-start gap-1.5 text-[12.5px]">
+                <p className="flex items-start gap-1.5 text-[12.5px] text-destructive">
                     <WarningCircle
                         weight="fill"
                         className="mt-px size-3.5 shrink-0"
@@ -140,7 +142,7 @@ function PageHead({
             <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
                 {title}
             </h2>
-            <p className="text-muted-foreground mt-1.5 max-w-[62ch] text-[13px] leading-relaxed">
+            <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
                 {description}
             </p>
         </header>
@@ -185,21 +187,21 @@ function ExpirationChoices({
 }
 
 const NAV = [
-    { to: 'users', label: 'Users' },
-    { to: 'uploads', label: 'Uploads' },
+    { to: '/admin/users', label: 'Users' },
+    { to: '/admin/uploads', label: 'Uploads' },
     // "Sessions" rather than "Transfer sessions", because Site settings already
     // has an item by that name and two identical labels in one sidebar is a
     // coin toss. The page's own heading says the full thing.
-    { to: 'sessions', label: 'Sessions' },
+    { to: '/admin/sessions', label: 'Sessions' },
 ];
 
 const SETTINGS_NAV = [
-    { to: 'settings/access', label: 'Access' },
-    { to: 'settings/expiration', label: 'Expiration' },
-    { to: 'settings/limits', label: 'Limits' },
-    { to: 'settings/file-types', label: 'File types' },
-    { to: 'settings/transfer', label: 'Transfer sessions' },
-    { to: 'settings/housekeeping', label: 'Housekeeping' },
+    { to: '/admin/settings/access', label: 'Access' },
+    { to: '/admin/settings/expiration', label: 'Expiration' },
+    { to: '/admin/settings/limits', label: 'Limits' },
+    { to: '/admin/settings/file-types', label: 'File types' },
+    { to: '/admin/settings/transfer', label: 'Transfer sessions' },
+    { to: '/admin/settings/housekeeping', label: 'Housekeeping' },
 ];
 
 function NavItem({ to, label }: { to: string; label: string }) {
@@ -210,7 +212,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
                 cn(
                     'relative shrink-0 px-2.5 py-2 text-[13px] transition-colors lg:py-1.5',
                     isActive
-                        ? 'text-foreground font-medium'
+                        ? 'font-medium text-foreground'
                         : 'text-muted-foreground hover:text-foreground',
                 )
             }
@@ -220,7 +222,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
                     {isActive && (
                         <span
                             aria-hidden
-                            className="bg-foreground absolute inset-x-2 -bottom-px h-[1.5px] lg:inset-x-auto lg:inset-y-1 lg:-left-px lg:h-auto lg:w-[1.5px]"
+                            className="absolute inset-x-2 -bottom-px h-[1.5px] bg-foreground lg:inset-x-auto lg:inset-y-1 lg:-left-px lg:h-auto lg:w-[1.5px]"
                         />
                     )}
                     {label}
@@ -230,17 +232,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
     );
 }
 
-export function AdminLayout() {
-    // Judged on the impersonated role, not the real one, so the route agrees with
-    // the nav: while viewing as a member you lose Admin from both. The banner's
-    // Return is the way back. Guardrails still judge the real identity, so you
-    // cannot delete yourself from inside an impersonation session.
-    const role = useDozo((s) => s.role());
-
-    if (role !== 'admin') {
-        return <Navigate to="/" replace />;
-    }
-
+export function AdminLayout({ children }: { children: ReactNode }) {
     return (
         <AppShell>
             <div className="rail py-6 sm:py-8">
@@ -248,13 +240,13 @@ export function AdminLayout() {
                     <h1 className="text-xl font-medium tracking-[-0.02em]">
                         Administration
                     </h1>
-                    <p className="text-muted-foreground font-mono text-[11.5px]">
+                    <p className="font-mono text-[11.5px] text-muted-foreground">
                         applies to everyone on this server
                     </p>
                 </div>
 
                 <div className="mt-6 grid gap-7 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
-                    <nav className="border-border scrollbar-slim -mx-4 flex gap-1 overflow-x-auto border-b px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">
+                    <nav className="-mx-4 flex scrollbar-slim gap-1 overflow-x-auto border-b border-border px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">
                         {NAV.map((item) => (
                             <NavItem key={item.to} {...item} />
                         ))}
@@ -268,7 +260,7 @@ export function AdminLayout() {
                     </nav>
 
                     <div className="flex min-w-0 flex-col gap-5">
-                        <Outlet />
+                        {children}
                     </div>
                 </div>
             </div>
@@ -282,8 +274,16 @@ interface SettingsContext {
     shown: (key: keyof AdminConfig) => string | undefined;
 }
 
+const AdminSettingsContext = createContext<SettingsContext | null>(null);
+
 export function useAdminSettings() {
-    return useOutletContext<SettingsContext>();
+    const context = useContext(AdminSettingsContext);
+
+    if (context === null) {
+        throw new Error('Admin settings must be rendered inside its layout.');
+    }
+
+    return context;
 }
 
 /**
@@ -291,12 +291,11 @@ export function useAdminSettings() {
  * When something is invalid it names the page that owns the field, because a
  * bare "fix 1 field" is useless when the field is two clicks away.
  */
-export function AdminSettingsLayout() {
-    const draft = useDozo((s) => s.adminDraft);
-    const config = useDozo((s) => s.adminConfig);
-    const setDraft = useDozo((s) => s.setAdminDraft);
-    const save = useDozo((s) => s.saveAdmin);
-    const reset = useDozo((s) => s.resetAdmin);
+export function AdminSettingsLayout({ children }: { children: ReactNode }) {
+    const config = usePage<SharedPageProps>().props.config;
+    const [draft, replaceDraft] = useState<AdminConfig>(() => ({ ...config }));
+    const setDraft = (patch: Partial<AdminConfig>) =>
+        replaceDraft((current) => ({ ...current, ...patch }));
 
     const [saved, setSaved] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
@@ -322,18 +321,20 @@ export function AdminSettingsLayout() {
 
     return (
         <>
-            <Outlet
-                context={{ draft, setDraft, shown } satisfies SettingsContext}
-            />
+            <AdminSettingsContext.Provider
+                value={{ draft, setDraft, shown } satisfies SettingsContext}
+            >
+                {children}
+            </AdminSettingsContext.Provider>
 
-            <div className="border-border bg-background/85 sticky bottom-0 -mx-4 mt-2 border-t px-4 py-3 backdrop-blur-md sm:-mx-0 sm:px-0">
+            <div className="sticky bottom-0 -mx-4 mt-2 border-t border-border bg-background/85 px-4 py-3 backdrop-blur-md sm:-mx-0 sm:px-0">
                 <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-muted-foreground text-[12.5px]">
+                    <p className="text-[12.5px] text-muted-foreground">
                         {saved ? (
-                            <span className="text-foreground flex items-center gap-1.5">
+                            <span className="flex items-center gap-1.5 text-foreground">
                                 <CheckCircle
                                     weight="fill"
-                                    className="text-primary size-3.5"
+                                    className="size-3.5 text-primary"
                                 />{' '}
                                 Saved. The workspace picks it up immediately.
                             </span>
@@ -361,7 +362,7 @@ export function AdminSettingsLayout() {
                             variant="ghost"
                             size="sm"
                             disabled={!dirty}
-                            onClick={() => reset()}
+                            onClick={() => replaceDraft({ ...config })}
                         >
                             Discard
                         </Button>
@@ -375,9 +376,18 @@ export function AdminSettingsLayout() {
                                     return;
                                 }
 
-                                save();
-                                setShowErrors(false);
-                                setSaved(true);
+                                router.patch(
+                                    '/admin/settings',
+                                    { ...draft },
+                                    {
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            setShowErrors(false);
+                                            setSaved(true);
+                                        },
+                                        onError: () => setShowErrors(true),
+                                    },
+                                );
                             }}
                         >
                             Save changes
@@ -410,7 +420,7 @@ export function AccessSettings() {
                     <Label htmlFor="guest-sharing" className="text-[13px]">
                         Guests may create shares
                     </Label>
-                    <p className="text-muted-foreground mt-1 text-[12px] leading-relaxed">
+                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
                         With this off, the Drop Workspace asks signed-out
                         visitors to sign in. Transfer Sessions keep working
                         either way.
@@ -453,7 +463,7 @@ export function AccessSettings() {
                                 <span className="block text-[13px]">
                                     {label}
                                 </span>
-                                <span className="text-muted-foreground block text-[12px]">
+                                <span className="block text-[12px] text-muted-foreground">
                                     {hint}
                                 </span>
                             </span>
@@ -556,7 +566,7 @@ export function ExpirationSettings() {
                 </div>
             </div>
 
-            <div className="border-border flex items-start gap-3 border-t pt-4">
+            <div className="flex items-start gap-3 border-t border-border pt-4">
                 <Switch
                     id="guest-password"
                     checked={draft.guestPasswordProtection}
@@ -568,7 +578,7 @@ export function ExpirationSettings() {
                     <Label htmlFor="guest-password" className="text-[13px]">
                         Guests may password protect a share
                     </Label>
-                    <p className="text-muted-foreground mt-1 text-[12px] leading-relaxed">
+                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
                         Members always can.
                     </p>
                 </div>
@@ -605,7 +615,7 @@ export function LimitsSettings() {
                             }
                             className="w-[9rem] font-mono"
                         />
-                        <span className="text-muted-foreground font-mono text-[12px]">
+                        <span className="font-mono text-[12px] text-muted-foreground">
                             MB
                         </span>
                     </div>
@@ -625,13 +635,13 @@ export function LimitsSettings() {
                             }
                             className="w-[9rem] font-mono"
                         />
-                        <span className="text-muted-foreground font-mono text-[12px]">
+                        <span className="font-mono text-[12px] text-muted-foreground">
                             MB per file
                         </span>
                     </div>
                 </Field>
             </div>
-            <p className="text-muted-foreground text-[12.5px] leading-relaxed">
+            <p className="text-[12.5px] leading-relaxed text-muted-foreground">
                 An individual quota is set on the person, under{' '}
                 <Link
                     to="/admin/users"
@@ -675,7 +685,7 @@ export function FileTypesSettings() {
 
             <div className="flex flex-wrap gap-1.5">
                 {draft.fileTypeList.length === 0 && (
-                    <p className="text-muted-foreground text-[12.5px]">
+                    <p className="text-[12.5px] text-muted-foreground">
                         {draft.fileTypeMode === 'block'
                             ? 'Nothing blocked. Every extension is accepted.'
                             : 'Nothing allowed yet, so every upload will be refused.'}
@@ -684,13 +694,13 @@ export function FileTypesSettings() {
                 {draft.fileTypeList.map((ext) => (
                     <span
                         key={ext}
-                        className="border-border bg-sunken inline-flex items-center gap-1 rounded-sm border py-1 pl-2 pr-1 font-mono text-[11.5px]"
+                        className="inline-flex items-center gap-1 rounded-sm border border-border bg-sunken py-1 pr-1 pl-2 font-mono text-[11.5px]"
                     >
                         .{ext}
                         <button
                             type="button"
                             aria-label={`Remove .${ext}`}
-                            className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-sm p-0.5 transition-colors"
+                            className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             onClick={() =>
                                 setDraft({
                                     fileTypeList: draft.fileTypeList.filter(
@@ -742,10 +752,13 @@ export function FileTypesSettings() {
     );
 }
 
-export function TransferSettings() {
+export function TransferSettings({
+    transfer,
+}: {
+    transfer: TransferSession | null;
+}) {
     const { draft, setDraft, shown } = useAdminSettings();
-    const transfer = useDozo((s) => s.transfer);
-    const windowMs = useDozo((s) => s.transferWindowMs());
+    const windowMs = draft.transferWindowHours * 60 * 60 * 1000;
     const live = transfer && !isTransferExpired(transfer, windowMs);
 
     return (
@@ -773,13 +786,13 @@ export function TransferSettings() {
                         }
                         className="w-[9rem] font-mono"
                     />
-                    <span className="text-muted-foreground font-mono text-[12px]">
+                    <span className="font-mono text-[12px] text-muted-foreground">
                         hours
                     </span>
                 </div>
             </Field>
 
-            <p className="border-border text-muted-foreground border-t pt-4 font-mono text-[11.5px]">
+            <p className="border-t border-border pt-4 font-mono text-[11.5px] text-muted-foreground">
                 {live ? (
                     <>
                         One live session · {transfer.code} · clears in{' '}
@@ -795,9 +808,7 @@ export function TransferSettings() {
     );
 }
 
-export function HousekeepingSettings() {
-    const shares = useDozo((s) => s.shares);
-    const deleteShares = useDozo((s) => s.deleteShares);
+export function HousekeepingSettings({ shares }: { shares: Share[] }) {
     const { confirm, dialog } = useConfirm();
     const now = useNow(30_000);
     const guestShares = useMemo(
@@ -820,8 +831,14 @@ export function HousekeepingSettings() {
             return;
         }
 
-        deleteShares(ids);
-        toast(`Deleted ${ids.length} ${ids.length === 1 ? 'share' : 'shares'}`);
+        router.delete('/shares', {
+            data: { ids },
+            preserveScroll: true,
+            onSuccess: () =>
+                toast(
+                    `Deleted ${ids.length} ${ids.length === 1 ? 'share' : 'shares'}`,
+                ),
+        });
     };
 
     return (
@@ -831,12 +848,12 @@ export function HousekeepingSettings() {
                 description="Two sweeps that nobody else on this installation can run: Guest shares belong to no account, and expired ones are already unreachable."
             />
 
-            <div className="border-border bg-card flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div className="mr-auto">
                     <p className="text-[13px] font-medium">
                         Delete every Guest share
                     </p>
-                    <p className="text-muted-foreground mt-0.5 text-[12px]">
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
                         {guestShares.length} on this installation right now.
                     </p>
                 </div>
@@ -856,12 +873,12 @@ export function HousekeepingSettings() {
                 </Button>
             </div>
 
-            <div className="border-border bg-card flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div className="mr-auto">
                     <p className="text-[13px] font-medium">
                         Purge expired shares
                     </p>
-                    <p className="text-muted-foreground mt-0.5 text-[12px]">
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
                         {expired.length} have run out their window and already
                         refuse to open.
                     </p>
