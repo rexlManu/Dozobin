@@ -23,6 +23,15 @@ web_extra_daemons:
     - name: vite
       command: bash -c 'pnpm install --frozen-lockfile && pnpm run dev'
       directory: /var/www/html
+    - name: queue-default
+      command: php artisan queue:work --queue=default --sleep=1 --tries=3 --timeout=300
+      directory: /var/www/html
+    - name: queue-scans
+      command: php artisan queue:work --queue=scans --sleep=1 --tries=4 --timeout=300
+      directory: /var/www/html
+    - name: scheduler
+      command: php artisan schedule:work
+      directory: /var/www/html
 
 # Key features of DDEV's config.yaml:
 

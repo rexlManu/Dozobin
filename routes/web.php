@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\ExpiredSharePayloadController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\InstallationSettingController;
+use App\Http\Controllers\Admin\MalwareScanController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\TransferSessionController as AdminTransferSessionController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -83,6 +85,8 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('/settings/transfer', [AdminPageController::class, 'transferSettings'])->name('settings.transfer');
     Route::get('/settings/housekeeping', [AdminPageController::class, 'housekeeping'])->name('settings.housekeeping');
     Route::patch('/settings', [InstallationSettingController::class, 'update'])->name('settings.update');
+    Route::post('/housekeeping/expired-share-payloads', [ExpiredSharePayloadController::class, 'store'])->name('housekeeping.expired-share-payloads.store');
+    Route::post('/uploads/{share}/malware-scan', [MalwareScanController::class, 'store'])->name('uploads.malware-scan.store');
     Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     Route::delete('/users/{user}/sessions/{session}', [AdminUserController::class, 'destroySession'])->name('users.sessions.destroy');

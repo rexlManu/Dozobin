@@ -1,9 +1,14 @@
-import { CloudSlash, Hourglass, Question } from '@phosphor-icons/react';
+import {
+    CloudSlash,
+    Hourglass,
+    ShieldWarning,
+    Question,
+} from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 
-export type UnavailableReason = 'missing' | 'expired' | 'gone';
+export type UnavailableReason = 'missing' | 'expired' | 'gone' | 'blocked';
 
 const COPY: Record<
     UnavailableReason,
@@ -27,6 +32,11 @@ const COPY: Record<
         icon: CloudSlash,
         title: 'The stored object is missing',
         body: 'The record still exists but the file behind it cannot be read. On a self-hosted installation this usually means the storage volume moved or a cleanup ran too far.',
+    },
+    blocked: {
+        icon: ShieldWarning,
+        title: 'Removed after a security scan',
+        body: 'A security scan identified this file as malicious, so Dōzobin removed its contents. Ask whoever sent it for a different file.',
     },
 };
 

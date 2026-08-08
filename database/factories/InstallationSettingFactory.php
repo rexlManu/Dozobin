@@ -30,6 +30,8 @@ class InstallationSettingFactory extends Factory
             'file_type_mode' => 'block',
             'file_type_list' => ['exe', 'msi', 'bat', 'cmd'],
             'transfer_window_hours' => 12,
+            'payload_cleanup_grace_hours' => 24,
+            'malware_scanning_enabled' => false,
         ];
     }
 }

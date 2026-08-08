@@ -32,4 +32,9 @@ final class SharePolicy
     {
         return $share->user_id === $user->id;
     }
+
+    public function scanMalware(User $user, Share $share): bool
+    {
+        return $user->isAdmin();
+    }
 }

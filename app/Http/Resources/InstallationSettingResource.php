@@ -25,6 +25,8 @@ final class InstallationSettingResource extends JsonResource
             'fileTypeMode' => $this->file_type_mode,
             'fileTypeList' => $this->file_type_list,
             'transferWindowHours' => $this->transfer_window_hours,
+            'payloadCleanupGraceHours' => $this->payload_cleanup_grace_hours,
+            'malwareScanningEnabled' => $this->malware_scanning_enabled,
         ];
     }
 }

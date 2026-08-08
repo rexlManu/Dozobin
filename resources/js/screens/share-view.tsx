@@ -39,6 +39,17 @@ export function ShareViewRoute({
     share: FileShare;
     unlocked: boolean;
 }) {
+    if (share.state === 'blocked') {
+        return (
+            <AppShell variant="public">
+                <Unavailable
+                    reason="blocked"
+                    detail={share.malwareScan?.detectionName ?? undefined}
+                />
+            </AppShell>
+        );
+    }
+
     if (isShareExpired(share)) {
         return (
             <AppShell variant="public">

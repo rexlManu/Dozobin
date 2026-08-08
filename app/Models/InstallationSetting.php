@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $file_type_mode
  * @property list<string> $file_type_list
  * @property int $transfer_window_hours
+ * @property int $payload_cleanup_grace_hours
+ * @property bool $malware_scanning_enabled
  */
 class InstallationSetting extends Model
 {
@@ -32,7 +34,7 @@ class InstallationSetting extends Model
         'guest_sharing', 'registration', 'guest_expirations', 'member_expirations',
         'guest_default_expiration', 'member_default_expiration', 'guest_password_protection',
         'default_quota_mb', 'max_upload_mb', 'file_type_mode', 'file_type_list',
-        'transfer_window_hours',
+        'transfer_window_hours', 'payload_cleanup_grace_hours', 'malware_scanning_enabled',
     ];
 
     public static function current(): self
@@ -50,6 +52,8 @@ class InstallationSetting extends Model
             'file_type_mode' => 'block',
             'file_type_list' => ['exe', 'msi', 'bat', 'cmd'],
             'transfer_window_hours' => 12,
+            'payload_cleanup_grace_hours' => 24,
+            'malware_scanning_enabled' => false,
         ]);
     }
 
@@ -82,6 +86,8 @@ class InstallationSetting extends Model
             'max_upload_mb' => 'integer',
             'file_type_list' => 'array',
             'transfer_window_hours' => 'integer',
+            'payload_cleanup_grace_hours' => 'integer',
+            'malware_scanning_enabled' => 'boolean',
         ];
     }
 }

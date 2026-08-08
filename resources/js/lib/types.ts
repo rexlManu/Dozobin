@@ -16,6 +16,19 @@ export interface BaseShare {
     expiresAt: number | null;
     password: string | null;
     views: number;
+    payloadDeletedAt?: number | null;
+    hasPayload?: boolean | null;
+    malwareScan?: MalwareScan | null;
+}
+
+export type MalwareScanStatus =
+    'pending' | 'clean' | 'detected' | 'failed' | 'skipped';
+
+export interface MalwareScan {
+    status: MalwareScanStatus | null;
+    detectionName: string | null;
+    error: string | null;
+    scannedAt: number | null;
 }
 
 export interface FileShare extends BaseShare {
@@ -28,7 +41,7 @@ export interface FileShare extends BaseShare {
     /** Seeded stand-in image for demo rows. */
     demoSrc?: string;
     /** "unavailable" models a share whose stored object went missing. */
-    state: 'ready' | 'unavailable';
+    state: 'ready' | 'blocked' | 'unavailable';
 }
 
 export interface PasteShare extends BaseShare {
@@ -36,7 +49,7 @@ export interface PasteShare extends BaseShare {
     body: string;
     pasteType: PasteType;
     language?: string;
-    state: 'ready' | 'unavailable';
+    state: 'ready' | 'blocked' | 'unavailable';
 }
 
 export type Share = FileShare | PasteShare;
@@ -158,6 +171,9 @@ export interface AdminConfig {
     fileTypeList: string[];
     /** How long a Transfer Session survives without activity. */
     transferWindowHours: number;
+    /** Hours after Share expiry before its payload is removed. */
+    payloadCleanupGraceHours: number;
+    malwareScanningEnabled: boolean;
 }
 
 export type Role = 'guest' | 'member' | 'admin';

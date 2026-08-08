@@ -142,7 +142,7 @@ export function AdminTransfersRoute({
         [confirm],
     );
 
-    const forgetSelected = useCallback(
+    const deleteSelected = useCallback(
         async (codes: string[]) => {
             const live = codes.filter((code) =>
                 sessions.some(
@@ -150,12 +150,12 @@ export function AdminTransfersRoute({
                 ),
             );
             const ok = await confirm({
-                title: `Forget ${codes.length} ${codes.length === 1 ? 'session' : 'sessions'}?`,
+                title: `Delete ${codes.length} ${codes.length === 1 ? 'session' : 'sessions'}?`,
                 description:
                     live.length > 0
-                        ? `${live.length} of these ${live.length === 1 ? 'is' : 'are'} still running and will be ended first. The records go with them, so the activity log is gone too.`
-                        : 'Only the records go — these sessions already dropped their items when they ended.',
-                confirmLabel: 'Forget',
+                        ? `${live.length} of these ${live.length === 1 ? 'is' : 'are'} still running. Their items, devices, and activity will be deleted too.`
+                        : 'Expired sessions normally disappear on the next one-minute cleanup run. This removes them now.',
+                confirmLabel: 'Delete',
             });
 
             if (!ok) {
@@ -164,7 +164,7 @@ export function AdminTransfersRoute({
 
             await Promise.all(
                 codes.map((code) =>
-                    requestJson(`/admin/sessions/${code}?forget=1`, {
+                    requestJson(`/admin/sessions/${code}`, {
                         method: 'DELETE',
                     }),
                 ),
@@ -174,7 +174,7 @@ export function AdminTransfersRoute({
                 onSuccess: () => {
                     setSelection({});
                     toast(
-                        `${codes.length} ${codes.length === 1 ? 'record' : 'records'} removed`,
+                        `${codes.length} ${codes.length === 1 ? 'session' : 'sessions'} deleted`,
                     );
                 },
             });
@@ -372,10 +372,10 @@ export function AdminTransfersRoute({
                                     <DropdownMenuItem
                                         variant="destructive"
                                         onSelect={() =>
-                                            void forgetSelected([session.code])
+                                            void deleteSelected([session.code])
                                         }
                                     >
-                                        <Trash /> Forget record
+                                        <Trash /> Delete session
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -385,7 +385,7 @@ export function AdminTransfersRoute({
                 meta: { className: 'w-10' },
             }),
         ];
-    }, [windowMs, liveCode, endOne, forgetSelected]);
+    }, [windowMs, liveCode, endOne, deleteSelected]);
 
     // React Compiler intentionally leaves TanStack Table's mutable adapter alone.
     // eslint-disable-next-line react-hooks/incompatible-library
@@ -574,12 +574,12 @@ export function AdminTransfersRoute({
                                         <DropdownMenuItem
                                             variant="destructive"
                                             onSelect={() =>
-                                                void forgetSelected([
+                                                void deleteSelected([
                                                     session.code,
                                                 ])
                                             }
                                         >
-                                            <Trash /> Forget record
+                                            <Trash /> Delete session
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -635,9 +635,9 @@ export function AdminTransfersRoute({
                         <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => void forgetSelected(selectedCodes)}
+                            onClick={() => void deleteSelected(selectedCodes)}
                         >
-                            <Trash /> Forget records
+                            <Trash /> Delete selected
                         </Button>
                     }
                     empty={

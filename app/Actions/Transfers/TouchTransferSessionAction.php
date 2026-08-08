@@ -5,15 +5,16 @@ namespace App\Actions\Transfers;
 use App\Models\InstallationSetting;
 use App\Models\TransferParticipant;
 use App\Models\TransferSession;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 final class TouchTransferSessionAction
 {
+    public function __construct(private DeleteTransferSessionAction $delete) {}
+
     public function handle(TransferSession $session, ?TransferParticipant $participant = null, ?string $description = null): void
     {
         if ($session->hasExpired()) {
-            $this->expire($session);
+            $this->delete->handle($session);
             throw ValidationException::withMessages(['code' => 'This Transfer Session has expired.']);
         }
 
@@ -27,16 +28,5 @@ final class TouchTransferSessionAction
                 'description' => $description,
             ]);
         }
-    }
-
-    public function expire(TransferSession $session): void
-    {
-        foreach ($session->items as $item) {
-            if ($item->storage_path !== null) {
-                Storage::delete($item->storage_path);
-            }
-        }
-        $session->items()->delete();
-        $session->update(['expired_at' => $session->expired_at ?? now()]);
     }
 }

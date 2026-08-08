@@ -55,7 +55,7 @@ final class PublicShareController extends Controller
 
     public function download(Request $request, Share $share): StreamedResponse
     {
-        abort_unless($share->kind === ShareKind::File && ! $share->hasExpired(), 404);
+        abort_unless($share->kind === ShareKind::File && $share->state === ShareState::Ready && ! $share->hasExpired(), 404);
         abort_unless($this->canRead($request, $share), 403);
         abort_if($share->storage_path === null || ! Storage::exists($share->storage_path), 404);
 
@@ -81,6 +81,7 @@ final class PublicShareController extends Controller
     private function recordView(Request $request, Share $share): void
     {
         if ($this->canRead($request, $share)
+            && $share->state === ShareState::Ready
             && ! $share->hasExpired()
             && ! $request->session()->has("share_viewed_{$share->slug}")) {
             $share->increment('views');

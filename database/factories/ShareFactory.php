@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\MalwareScanStatus;
 use App\Enums\PasteType;
 use App\Enums\ShareKind;
 use App\Enums\ShareState;
@@ -55,5 +56,14 @@ class ShareFactory extends Factory
     public function expired(): static
     {
         return $this->state(fn (): array => ['expires_at' => now()->subHour()]);
+    }
+
+    public function scanFailed(): static
+    {
+        return $this->file()->state(fn (): array => [
+            'malware_scan_status' => MalwareScanStatus::Failed,
+            'malware_scan_error' => 'Scanner unavailable.',
+            'malware_scanned_at' => now(),
+        ]);
     }
 }

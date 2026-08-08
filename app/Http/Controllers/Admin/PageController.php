@@ -55,6 +55,7 @@ final class PageController extends Controller
                     ->allowedFilters(
                         AllowedFilter::exact('kind'),
                         AllowedFilter::exact('state'),
+                        AllowedFilter::exact('malware_scan_status'),
                         AllowedFilter::exact('user_id'),
                     )
                     ->allowedSorts('created_at', 'expires_at', 'size_bytes', 'views')

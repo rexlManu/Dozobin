@@ -65,8 +65,8 @@ it('purges expired transfer items and rejects the join', function (): void {
         ->assertJsonValidationErrors('code');
 
     $this->assertDatabaseMissing('transfer_items', ['id' => $item->id]);
+    $this->assertDatabaseMissing('transfer_sessions', ['id' => $session->id]);
     Storage::disk('local')->assertMissing((string) $item->storage_path);
-    expect($session->fresh()->expired_at)->not->toBeNull();
 });
 
 it('renders the expired transfer page while purging its payload', function (): void {
@@ -85,4 +85,5 @@ it('renders the expired transfer page while purging its payload', function (): v
             ->has('transfer.items', 0));
 
     $this->assertDatabaseMissing('transfer_items', ['id' => $item->id]);
+    $this->assertDatabaseMissing('transfer_sessions', ['id' => $session->id]);
 });

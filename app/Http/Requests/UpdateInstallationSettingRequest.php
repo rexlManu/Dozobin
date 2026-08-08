@@ -34,7 +34,9 @@ final class UpdateInstallationSettingRequest extends FormRequest
             'fileTypeMode' => ['required', Rule::in(['allow', 'block'])],
             'fileTypeList' => ['required', 'array', 'max:100'],
             'fileTypeList.*' => ['required', 'string', 'regex:/^[a-z0-9]+$/', 'distinct'],
-            'transferWindowHours' => ['required', 'integer', 'min:1', 'max:72'],
+            'transferWindowHours' => ['required', 'integer', 'min:1', 'max:168'],
+            'payloadCleanupGraceHours' => ['required', 'integer', 'min:0', 'max:8760'],
+            'malwareScanningEnabled' => ['required', 'boolean'],
         ];
     }
 

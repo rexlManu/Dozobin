@@ -11,6 +11,7 @@ final class JoinTransferSessionAction
     public function __construct(
         private ResolveTransferParticipantAction $resolveParticipant,
         private TouchTransferSessionAction $touch,
+        private DeleteTransferSessionAction $delete,
     ) {}
 
     public function handle(Request $request, string $code): TransferSession
@@ -20,7 +21,7 @@ final class JoinTransferSessionAction
             throw ValidationException::withMessages(['code' => 'No live session uses that Access Code.']);
         }
         if ($session->hasExpired()) {
-            $this->touch->expire($session);
+            $this->delete->handle($session);
             throw ValidationException::withMessages(['code' => 'That Transfer Session has expired.']);
         }
 

@@ -1,10 +1,11 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     CloudSlash,
     DotsThree,
     LockKey,
     MagnifyingGlass,
+    ShieldCheck,
     Trash,
     X,
 } from '@phosphor-icons/react';
@@ -25,6 +26,7 @@ import { ExpiryLabel } from '@/components/expiry';
 import { FileGlyph } from '@/components/file-glyph';
 import { LibraryTile } from '@/components/library-tile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -57,16 +59,18 @@ import {
 } from '@/lib/share-display';
 import type { Category } from '@/lib/share-display';
 import { isShareExpired } from '@/lib/share-state';
-import type { Account, Share } from '@/lib/types';
+import type { Account, MalwareScanStatus, Share } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import type { SharedPageProps } from '@/types';
 
 /** The condition of a share, which is a different question from its type. */
-type State = 'any' | 'live' | 'expired' | 'missing' | 'protected';
+type State = 'any' | 'live' | 'expired' | 'blocked' | 'missing' | 'protected';
 
 const STATES: [State, string][] = [
     ['any', 'Any state'],
     ['live', 'Live'],
     ['expired', 'Expired'],
+    ['blocked', 'Security blocked'],
     ['missing', 'Missing object'],
     ['protected', 'Password'],
 ];
@@ -76,16 +80,53 @@ const GUEST = '__guest';
 function matchesState(share: Share, state: State): boolean {
     switch (state) {
         case 'live':
-            return share.state !== 'unavailable' && !isShareExpired(share);
+            return share.state === 'ready' && !isShareExpired(share);
         case 'expired':
             return isShareExpired(share);
         case 'missing':
             return share.state === 'unavailable';
+        case 'blocked':
+            return share.state === 'blocked';
         case 'protected':
             return share.password !== null;
         default:
             return true;
     }
+}
+
+const SCAN_LABEL: Record<MalwareScanStatus, string> = {
+    pending: 'Pending',
+    clean: 'Clean',
+    detected: 'Detected',
+    failed: 'Failed',
+    skipped: 'Skipped',
+};
+
+function ScanStatusBadge({ share }: { share: Share }) {
+    if (share.kind !== 'file') {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    const status = share.malwareScan?.status;
+    const detail =
+        share.malwareScan?.detectionName ??
+        share.malwareScan?.error ??
+        'This file has not been queued for scanning.';
+
+    return (
+        <Badge
+            variant={
+                status === 'detected' || status === 'failed'
+                    ? 'destructive'
+                    : status === 'pending'
+                      ? 'secondary'
+                      : 'outline'
+            }
+            title={detail}
+        >
+            {status ? SCAN_LABEL[status] : 'Not scanned'}
+        </Badge>
+    );
 }
 
 /**
@@ -111,6 +152,8 @@ function UploadsExplorer({
             ),
         [accountList],
     );
+    const malwareScanningEnabled =
+        usePage<SharedPageProps>().props.config.malwareScanningEnabled;
     const { confirm, dialog } = useConfirm();
 
     const scoped = ownerId !== undefined;
@@ -217,6 +260,34 @@ function UploadsExplorer({
         [confirm],
     );
 
+    const queueScan = useCallback((share: Share) => {
+        router.post(
+            `/admin/uploads/${share.id}/malware-scan`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => toast(`Scan queued for ${shareLabel(share)}`),
+                onError: (errors) =>
+                    toast(
+                        Object.values(errors)[0] ??
+                            'The scan could not be queued.',
+                    ),
+            },
+        );
+    }, []);
+
+    const canQueueScan = useCallback(
+        (share: Share) =>
+            malwareScanningEnabled &&
+            share.kind === 'file' &&
+            share.state === 'ready' &&
+            !isShareExpired(share) &&
+            (share.malwareScan?.status === null ||
+                share.malwareScan?.status === undefined ||
+                share.malwareScan.status === 'failed'),
+        [malwareScanningEnabled],
+    );
+
     const columns = useMemo(() => {
         const col = createColumnHelper<Share>();
 
@@ -247,7 +318,7 @@ function UploadsExplorer({
                 cell: ({ row }) => {
                     const share = row.original;
                     const broken =
-                        share.state === 'unavailable' || isShareExpired(share);
+                        share.state !== 'ready' || isShareExpired(share);
 
                     return (
                         <div className="flex min-w-0 items-center gap-2">
@@ -346,6 +417,12 @@ function UploadsExplorer({
                 ),
                 meta: { className: 'hidden md:table-cell' },
             }),
+            col.display({
+                id: 'scan',
+                header: 'Scan',
+                cell: ({ row }) => <ScanStatusBadge share={row.original} />,
+                meta: { className: 'hidden lg:table-cell' },
+            }),
             col.accessor((s) => shareSize(s), {
                 id: 'size',
                 header: 'Size',
@@ -407,6 +484,17 @@ function UploadsExplorer({
                                         Open share
                                     </Link>
                                 </DropdownMenuItem>
+                                {canQueueScan(row.original) && (
+                                    <DropdownMenuItem
+                                        onSelect={() => queueScan(row.original)}
+                                    >
+                                        <ShieldCheck />
+                                        {row.original.malwareScan?.status ===
+                                        'failed'
+                                            ? 'Retry scan'
+                                            : 'Scan now'}
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     variant="destructive"
@@ -423,7 +511,7 @@ function UploadsExplorer({
                 meta: { className: 'w-10' },
             }),
         ];
-    }, [accounts, ownerName, removeSelected, scoped]);
+    }, [accounts, canQueueScan, ownerName, queueScan, removeSelected, scoped]);
 
     // React Compiler intentionally leaves TanStack Table's mutable adapter alone.
     // eslint-disable-next-line react-hooks/incompatible-library
@@ -476,7 +564,7 @@ function UploadsExplorer({
                 card={(row) => {
                     const share = row.original;
                     const broken =
-                        share.state === 'unavailable' || isShareExpired(share);
+                        share.state !== 'ready' || isShareExpired(share);
                     const owner = ownerName(share.ownerId);
 
                     return (
@@ -570,6 +658,24 @@ function UploadsExplorer({
                                         className="text-[11px]"
                                         prefix=""
                                     />
+                                    {share.kind === 'file' && (
+                                        <>
+                                            <span
+                                                aria-hidden
+                                                className="text-border-strong"
+                                            >
+                                                ·
+                                            </span>
+                                            <span>
+                                                {share.malwareScan?.status
+                                                    ? SCAN_LABEL[
+                                                          share.malwareScan
+                                                              .status
+                                                      ]
+                                                    : 'Not scanned'}
+                                            </span>
+                                        </>
+                                    )}
                                 </p>
                             </div>
                             <DropdownMenu>
@@ -589,6 +695,17 @@ function UploadsExplorer({
                                             Open share
                                         </Link>
                                     </DropdownMenuItem>
+                                    {canQueueScan(share) && (
+                                        <DropdownMenuItem
+                                            onSelect={() => queueScan(share)}
+                                        >
+                                            <ShieldCheck />
+                                            {share.malwareScan?.status ===
+                                            'failed'
+                                                ? 'Retry scan'
+                                                : 'Scan now'}
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         variant="destructive"

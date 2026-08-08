@@ -51,6 +51,8 @@ const FIELD_SECTION: Partial<
     fileTypeMode: { to: 'file-types', label: 'File types' },
     fileTypeList: { to: 'file-types', label: 'File types' },
     transferWindowHours: { to: 'transfer', label: 'Transfer sessions' },
+    payloadCleanupGraceHours: { to: 'housekeeping', label: 'Housekeeping' },
+    malwareScanningEnabled: { to: 'housekeeping', label: 'Housekeeping' },
 };
 
 function validate(draft: AdminConfig): Errors {
@@ -92,6 +94,15 @@ function validate(draft: AdminConfig): Errors {
     ) {
         errors.transferWindowHours =
             'Give a whole number of hours between 1 and 168.';
+    }
+
+    if (
+        !Number.isInteger(draft.payloadCleanupGraceHours) ||
+        draft.payloadCleanupGraceHours < 0 ||
+        draft.payloadCleanupGraceHours > 8760
+    ) {
+        errors.payloadCleanupGraceHours =
+            'Give a whole number of hours between 0 and 8760.';
     }
 
     return errors;
@@ -294,13 +305,25 @@ export function useAdminSettings() {
 export function AdminSettingsLayout({ children }: { children: ReactNode }) {
     const config = usePage<SharedPageProps>().props.config;
     const [draft, replaceDraft] = useState<AdminConfig>(() => ({ ...config }));
-    const setDraft = (patch: Partial<AdminConfig>) =>
+    const [serverErrors, setServerErrors] = useState<Errors>({});
+    const setDraft = (patch: Partial<AdminConfig>) => {
         replaceDraft((current) => ({ ...current, ...patch }));
+        setServerErrors(
+            (current) =>
+                Object.fromEntries(
+                    Object.entries(current).filter(([key]) => !(key in patch)),
+                ) as Errors,
+        );
+    };
 
     const [saved, setSaved] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
 
-    const errors = useMemo(() => validate(draft), [draft]);
+    const clientErrors = useMemo(() => validate(draft), [draft]);
+    const errors = useMemo(
+        () => ({ ...clientErrors, ...serverErrors }),
+        [clientErrors, serverErrors],
+    );
     const dirty = JSON.stringify(draft) !== JSON.stringify(config);
     const invalid = Object.keys(errors).length > 0;
 
@@ -362,7 +385,10 @@ export function AdminSettingsLayout({ children }: { children: ReactNode }) {
                             variant="ghost"
                             size="sm"
                             disabled={!dirty}
-                            onClick={() => replaceDraft({ ...config })}
+                            onClick={() => {
+                                replaceDraft({ ...config });
+                                setServerErrors({});
+                            }}
                         >
                             Discard
                         </Button>
@@ -383,9 +409,15 @@ export function AdminSettingsLayout({ children }: { children: ReactNode }) {
                                         preserveScroll: true,
                                         onSuccess: () => {
                                             setShowErrors(false);
+                                            setServerErrors({});
                                             setSaved(true);
                                         },
-                                        onError: () => setShowErrors(true),
+                                        onError: (responseErrors) => {
+                                            setServerErrors(
+                                                responseErrors as Errors,
+                                            );
+                                            setShowErrors(true);
+                                        },
                                     },
                                 );
                             }}
@@ -809,15 +841,24 @@ export function TransferSettings({
 }
 
 export function HousekeepingSettings({ shares }: { shares: Share[] }) {
+    const { draft, setDraft, shown } = useAdminSettings();
     const { confirm, dialog } = useConfirm();
     const now = useNow(30_000);
     const guestShares = useMemo(
         () => shares.filter((s) => s.ownerId === null),
         [shares],
     );
-    const expired = useMemo(
-        () => shares.filter((s) => s.expiresAt !== null && s.expiresAt <= now),
-        [now, shares],
+    const cleanupCutoff = now - draft.payloadCleanupGraceHours * 60 * 60 * 1000;
+    const expiredWithPayload = useMemo(
+        () =>
+            shares.filter(
+                (share) =>
+                    share.expiresAt !== null &&
+                    share.expiresAt <= cleanupCutoff &&
+                    !share.payloadDeletedAt &&
+                    share.hasPayload !== false,
+            ),
+        [cleanupCutoff, shares],
     );
 
     const sweep = async (ids: string[], title: string, description: string) => {
@@ -841,12 +882,93 @@ export function HousekeepingSettings({ shares }: { shares: Share[] }) {
         });
     };
 
+    const cleanExpiredPayloads = async () => {
+        const ok = await confirm({
+            title: `Clean ${expiredWithPayload.length} expired payloads?`,
+            description:
+                'The Share records and URLs stay in place. Only their stored files or paste bodies are removed.',
+            confirmLabel: 'Queue cleanup',
+        });
+
+        if (!ok) {
+            return;
+        }
+
+        router.post(
+            '/admin/housekeeping/expired-share-payloads',
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => toast('Expired payload cleanup queued'),
+            },
+        );
+    };
+
     return (
         <>
             <PageHead
                 title="Housekeeping"
-                description="Two sweeps that nobody else on this installation can run: Guest shares belong to no account, and expired ones are already unreachable."
+                description="Control how expired payloads leave storage and whether File Shares are checked by ClamAV. Share records remain after automatic cleanup."
             />
+
+            <div className="grid gap-5 sm:grid-cols-2">
+                <Field
+                    label="Expired payload grace period"
+                    hint="0 means the next hourly cleanup run."
+                    error={shown('payloadCleanupGraceHours')}
+                >
+                    <div className="flex items-center gap-2">
+                        <Input
+                            type="number"
+                            min={0}
+                            max={8760}
+                            value={draft.payloadCleanupGraceHours}
+                            aria-invalid={Boolean(
+                                shown('payloadCleanupGraceHours'),
+                            )}
+                            onChange={(event) =>
+                                setDraft({
+                                    payloadCleanupGraceHours: Number(
+                                        event.target.value,
+                                    ),
+                                })
+                            }
+                            className="w-[9rem] font-mono"
+                        />
+                        <span className="font-mono text-[12px] text-muted-foreground">
+                            hours
+                        </span>
+                    </div>
+                </Field>
+
+                <div className="flex items-start gap-3">
+                    <Switch
+                        id="malware-scanning"
+                        checked={draft.malwareScanningEnabled}
+                        aria-invalid={Boolean(shown('malwareScanningEnabled'))}
+                        onCheckedChange={(checked) =>
+                            setDraft({ malwareScanningEnabled: checked })
+                        }
+                    />
+                    <div>
+                        <Label
+                            htmlFor="malware-scanning"
+                            className="text-[13px]"
+                        >
+                            Scan new File Shares for malware
+                        </Label>
+                        <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                            Requires a reachable clamd service. Files stay
+                            downloadable while scans are pending or fail.
+                        </p>
+                        {shown('malwareScanningEnabled') && (
+                            <p className="mt-1 text-[12px] text-destructive">
+                                {shown('malwareScanningEnabled')}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div className="mr-auto">
@@ -876,26 +998,20 @@ export function HousekeepingSettings({ shares }: { shares: Share[] }) {
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <div className="mr-auto">
                     <p className="text-[13px] font-medium">
-                        Purge expired shares
+                        Clean expired payloads now
                     </p>
                     <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {expired.length} have run out their window and already
-                        refuse to open.
+                        {expiredWithPayload.length} are past expiry and the
+                        configured grace period.
                     </p>
                 </div>
                 <Button
                     variant="danger"
                     size="sm"
-                    disabled={expired.length === 0}
-                    onClick={() =>
-                        void sweep(
-                            expired.map((s) => s.id),
-                            `Purge ${expired.length} expired shares?`,
-                            'These already return the expired page. Removing them frees the storage back to whoever owned them.',
-                        )
-                    }
+                    disabled={expiredWithPayload.length === 0}
+                    onClick={() => void cleanExpiredPayloads()}
                 >
-                    Purge
+                    Queue cleanup
                 </Button>
             </div>
             {dialog}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Transfers\CreateTransferSessionAction;
+use App\Actions\Transfers\DeleteTransferSessionAction;
 use App\Actions\Transfers\FindCurrentTransferSessionAction;
 use App\Actions\Transfers\JoinTransferSessionAction;
 use App\Actions\Transfers\ResolveTransferParticipantAction;
@@ -52,18 +53,25 @@ final class TransferController extends Controller
         Request $request,
         TransferSession $transferSession,
         JoinTransferSessionAction $join,
-        TouchTransferSessionAction $touch,
+        DeleteTransferSessionAction $delete,
     ): Response {
         if ($transferSession->hasExpired()) {
-            $touch->expire($transferSession);
-            $session = $transferSession->refresh()->load([
-                'items.participant',
-                'participants',
-                'activities',
-            ]);
-        } else {
-            $session = $join->handle($request, $transferSession->access_code);
+            $expired = [
+                'code' => $transferSession->access_code,
+                'createdAt' => $transferSession->created_at?->getTimestampMs(),
+                'lastActivityAt' => $transferSession->last_activity_at->getTimestampMs(),
+                'items' => [],
+                'participants' => [],
+                'activity' => [],
+                'expired' => true,
+                'leftLocally' => false,
+            ];
+            $delete->handle($transferSession);
+
+            return Inertia::render('transfers/show', ['transfer' => $expired]);
         }
+
+        $session = $join->handle($request, $transferSession->access_code);
 
         return Inertia::render('transfers/show', [
             'transfer' => fn () => (new TransferSessionResource($session))->resolve($request),

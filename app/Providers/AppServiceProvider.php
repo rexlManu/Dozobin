@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\MalwareScanner;
 use App\Models\User;
+use App\Services\ClamDScanner;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(MalwareScanner::class, ClamDScanner::class);
     }
 
     /**
