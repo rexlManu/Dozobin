@@ -1,7 +1,12 @@
 .ddev
+.agents
+.ai
+.codex
 .env
 .git
 .github
+AGENTS.md
+boost.json
 node_modules
 public/build
 public/hot

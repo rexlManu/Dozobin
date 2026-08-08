@@ -95,3 +95,5 @@ Laravel Boost generates the root `AGENTS.md`. Do not make durable project-specif
 ```sh
 ddev exec php artisan boost:install
 ```
+
+The Codex MCP server must also run inside DDEV. Keep `.codex/config.toml` configured with command `ddev` and arguments `exec`, `php`, `artisan`, and `boost:mcp`. After regenerating MCP configuration with Boost, verify that it did not revert to host PHP.
