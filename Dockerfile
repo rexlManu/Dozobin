@@ -47,6 +47,7 @@ FROM node:24-bookworm-slim AS node-runtime
 FROM php-base AS frontend
 
 COPY --from=node-runtime /usr/local /usr/local
+COPY --from=node-runtime /opt /opt
 
 WORKDIR /app
 COPY . .
