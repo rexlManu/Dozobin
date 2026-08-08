@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureInstallationIsComplete;
+use App\Http\Middleware\EnsureInstallationIsPending;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'dozo.token' => AuthenticateApiToken::class,
+            'install.pending' => EnsureInstallationIsPending::class,
+        ]);
+        $middleware->web(prepend: [
+            EnsureInstallationIsComplete::class,
+        ]);
+        $middleware->api(prepend: [
+            EnsureInstallationIsComplete::class,
         ]);
         $middleware->web(append: [
             HandleInertiaRequests::class,

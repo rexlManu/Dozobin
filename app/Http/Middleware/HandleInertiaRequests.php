@@ -6,6 +6,7 @@ use App\Http\Resources\InstallationSettingResource;
 use App\Http\Resources\UserResource;
 use App\Models\InstallationSetting;
 use App\Models\User;
+use App\Services\InstallationState;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Lab404\Impersonate\Services\ImpersonateManager;
@@ -20,6 +21,8 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    public function __construct(private readonly InstallationState $installation) {}
 
     /**
      * Determines the current asset version.
@@ -57,7 +60,17 @@ class HandleInertiaRequests extends Middleware
                     ? (new UserResource($impersonator->load('apiTokens')))->resolve($request)
                     : null,
             ],
-            'config' => fn () => (new InstallationSettingResource(InstallationSetting::current()))->resolve($request),
+            // During the wizard there may be no settings row, and there may be
+            // no database to look for one in, so hand out the defaults instead.
+            'config' => fn () => (new InstallationSettingResource(
+                $this->installation->isComplete()
+                    ? InstallationSetting::current()
+                    : new InstallationSetting(InstallationSetting::defaults()),
+            ))->resolve($request),
+            'installation' => fn (): array => [
+                'complete' => $this->installation->isComplete(),
+                'step' => $this->installation->step()->value,
+            ],
             'appearance' => $user?->appearance->value ?? 'system',
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),

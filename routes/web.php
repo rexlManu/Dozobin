@@ -9,6 +9,10 @@ use App\Http\Controllers\Admin\TransferSessionController as AdminTransferSession
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Install\AdministratorController;
+use App\Http\Controllers\Install\DatabaseController as InstallDatabaseController;
+use App\Http\Controllers\Install\InstallationController;
+use App\Http\Controllers\Install\InstallPageController;
 use App\Http\Controllers\Page\AuthPageController;
 use App\Http\Controllers\Page\HomeController;
 use App\Http\Controllers\Page\LibraryController;
@@ -20,6 +24,20 @@ use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\TransferItemController;
 use Illuminate\Support\Facades\Route;
+
+/*
+ * First run. Every other route redirects here until the wizard finishes, and
+ * this group closes the moment it does.
+ */
+Route::prefix('install')->name('install.')->group(function (): void {
+    Route::redirect('/', '/install/database')->middleware('install.pending');
+    Route::get('/database', [InstallPageController::class, 'database'])->middleware('install.pending:database')->name('database');
+    Route::post('/database', [InstallDatabaseController::class, 'store'])->middleware(['install.pending:database', 'throttle:10,1'])->name('database.store');
+    Route::get('/account', [InstallPageController::class, 'account'])->middleware('install.pending:account')->name('account');
+    Route::post('/account', [AdministratorController::class, 'store'])->middleware(['install.pending:account', 'throttle:10,1'])->name('account.store');
+    Route::get('/settings', [InstallPageController::class, 'settings'])->middleware('install.pending:settings')->name('settings');
+    Route::post('/settings', [InstallationController::class, 'store'])->middleware('install.pending:settings')->name('settings.store');
+});
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/s/{share}', [PublicShareController::class, 'showFile'])->name('shares.show');

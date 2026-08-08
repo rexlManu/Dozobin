@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\MalwareScanner;
 use App\Models\User;
 use App\Services\ClamDScanner;
+use App\Services\InstallationState;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(MalwareScanner::class, ClamDScanner::class);
+        $this->app->singleton(InstallationState::class);
     }
 
     /**
@@ -28,7 +30,33 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->surviveAnUnreachableDatabase();
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
+    }
+
+    /**
+     * Sessions, the cache and the queue all live in the database by default,
+     * so a first run against a database that is not up yet would fail before
+     * the wizard could say so. While the installation is unfinished and the
+     * connection is down, move those onto the filesystem.
+     */
+    protected function surviveAnUnreachableDatabase(): void
+    {
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
+        $installation = $this->app->make(InstallationState::class);
+
+        if ($installation->isComplete() || $installation->database()->connected) {
+            return;
+        }
+
+        config([
+            'session.driver' => 'file',
+            'cache.default' => 'file',
+            'queue.default' => 'sync',
+        ]);
     }
 
     /**

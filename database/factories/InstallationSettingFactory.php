@@ -32,6 +32,13 @@ class InstallationSettingFactory extends Factory
             'transfer_window_hours' => 12,
             'payload_cleanup_grace_hours' => 24,
             'malware_scanning_enabled' => false,
+            'installed_at' => now(),
         ];
+    }
+
+    /** A settings row as the installation wizard leaves it before finishing. */
+    public function pending(): self
+    {
+        return $this->state(fn (): array => ['installed_at' => null]);
     }
 }

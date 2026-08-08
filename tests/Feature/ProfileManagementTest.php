@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\InstallationSetting;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+
+beforeEach(fn () => InstallationSetting::factory()->create());
 
 it('stores and removes a profile avatar', function (): void {
     Storage::fake('public');

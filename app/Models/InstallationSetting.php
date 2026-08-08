@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Expiration;
 use App\Enums\RegistrationMode;
+use Carbon\CarbonImmutable;
 use Database\Factories\InstallationSettingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $transfer_window_hours
  * @property int $payload_cleanup_grace_hours
  * @property bool $malware_scanning_enabled
+ * @property CarbonImmutable|null $installed_at
  */
 class InstallationSetting extends Model
 {
@@ -39,7 +41,18 @@ class InstallationSetting extends Model
 
     public static function current(): self
     {
-        return self::query()->firstOrCreate([], [
+        return self::query()->firstOrCreate([], self::defaults());
+    }
+
+    /**
+     * What a brand new installation starts from. Also what the installation
+     * wizard shows before there is a row to read.
+     *
+     * @return array<string, mixed>
+     */
+    public static function defaults(): array
+    {
+        return [
             'guest_sharing' => true,
             'registration' => RegistrationMode::Open,
             'guest_expirations' => ['1h', '1d', '7d'],
@@ -54,7 +67,16 @@ class InstallationSetting extends Model
             'transfer_window_hours' => 12,
             'payload_cleanup_grace_hours' => 24,
             'malware_scanning_enabled' => false,
-        ]);
+        ];
+    }
+
+    /**
+     * Records that the wizard finished. Deliberately outside $fillable so the
+     * settings form can never flip it.
+     */
+    public function markInstalled(): void
+    {
+        $this->forceFill(['installed_at' => now()])->save();
     }
 
     /** @return list<string> */
@@ -88,6 +110,7 @@ class InstallationSetting extends Model
             'transfer_window_hours' => 'integer',
             'payload_cleanup_grace_hours' => 'integer',
             'malware_scanning_enabled' => 'boolean',
+            'installed_at' => 'immutable_datetime',
         ];
     }
 }

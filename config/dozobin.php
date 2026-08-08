@@ -3,6 +3,12 @@
 return [
     'invite_code' => env('DOZOBIN_INVITE_CODE'),
 
+    'installation' => [
+        // Escape hatch for provisioned deployments that set everything up from
+        // configuration and never want the wizard to appear.
+        'bypass' => filter_var(env('DOZOBIN_SKIP_INSTALLER', false), FILTER_VALIDATE_BOOL),
+    ],
+
     'malware_scanning' => [
         'queue' => env('MALWARE_SCAN_QUEUE', 'scans'),
         'clamd' => [

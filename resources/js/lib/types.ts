@@ -176,4 +176,26 @@ export interface AdminConfig {
     malwareScanningEnabled: boolean;
 }
 
+export type InstallStepKey = 'database' | 'account' | 'settings' | 'done';
+
+export interface InstallRequirement {
+    label: string;
+    satisfied: boolean;
+    detail: string;
+}
+
+export interface InstallDatabaseStatus {
+    connected: boolean;
+    /** The connection name from config/database.php, e.g. "mariadb". */
+    connection: string;
+    driver: string;
+    database: string;
+    host: string | null;
+    port: number | null;
+    /** The driver's own message, with the configured password redacted. */
+    error: string | null;
+    migrated: boolean;
+    pendingMigrations: string[];
+}
+
 export type Role = 'guest' | 'member' | 'admin';
