@@ -1,7 +1,7 @@
+import { AdminLayout } from '@/components/admin-layout';
+import { AdminUploadsExplorer } from '@/components/admin-uploads-explorer';
 import { AppProviders } from '@/components/app-providers';
 import type { Account, Share } from '@/lib/types';
-import { AdminLayout } from '@/screens/admin';
-import { AdminUploadsRoute } from '@/screens/admin-uploads';
 
 export default function AdminUploadsPage({
     accounts,
@@ -13,7 +13,7 @@ export default function AdminUploadsPage({
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminUploadsRoute accounts={accounts} shares={shares} />
+                <AdminUploadsExplorer shares={shares} accountList={accounts} />
             </AdminLayout>
         </AppProviders>
     );

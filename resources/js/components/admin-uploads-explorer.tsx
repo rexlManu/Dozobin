@@ -1,6 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
 import {
-    ArrowLeft,
     CloudSlash,
     DotsThree,
     LockKey,
@@ -25,7 +24,6 @@ import { DataTable } from '@/components/data-table';
 import { ExpiryLabel } from '@/components/expiry';
 import { FileGlyph } from '@/components/file-glyph';
 import { LibraryTile } from '@/components/library-tile';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -136,7 +134,7 @@ function ScanStatusBadge({ share }: { share: Share }) {
  * second table with the same columns: an administrator who learns the filters
  * here should not have to learn them again from the other direction.
  */
-function UploadsExplorer({
+export function AdminUploadsExplorer({
     shares,
     accountList,
     ownerId,
@@ -899,59 +897,5 @@ function UploadsExplorer({
             />
             {dialog}
         </>
-    );
-}
-
-export function AdminUploadsRoute({
-    accounts,
-    shares,
-}: {
-    accounts: Account[];
-    shares: Share[];
-}) {
-    return <UploadsExplorer shares={shares} accountList={accounts} />;
-}
-
-/** The same explorer, fixed to one account and reached from their detail page. */
-export function AdminUserUploadsRoute({
-    account,
-    accounts,
-    shares,
-}: {
-    account: Account;
-    accounts: Account[];
-    shares: Share[];
-}) {
-    return (
-        <div className="flex flex-col gap-5">
-            <div>
-                <Link
-                    to={`/admin/users/${account.id}`}
-                    className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
-                >
-                    <ArrowLeft className="size-3.5" /> {account.name}
-                </Link>
-                <div className="mt-3 flex items-center gap-2.5">
-                    <Avatar className="size-7 rounded-md">
-                        <AvatarImage
-                            src={account.avatarSrc}
-                            alt=""
-                            className="rounded-md"
-                        />
-                        <AvatarFallback className="rounded-md text-[11px]">
-                            {account.name.slice(0, 2)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
-                        Uploads by {account.name}
-                    </h2>
-                </div>
-            </div>
-            <UploadsExplorer
-                ownerId={account.id}
-                shares={shares}
-                accountList={accounts}
-            />
-        </div>
     );
 }
