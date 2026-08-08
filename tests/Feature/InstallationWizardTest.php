@@ -50,6 +50,7 @@ it('reports the database connection and the environment on the first step', func
             ->where('database.connected', true)
             ->where('database.migrated', false)
             ->has('requirements')
+            ->where('requirements.0.label', 'PHP 8.4.1 or newer')
             ->where('installation.complete', false)
             ->where('installation.step', 'database'));
 });

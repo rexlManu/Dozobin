@@ -99,9 +99,9 @@ function Blocked({ suspended }: { suspended: boolean }) {
     if (suspended) {
         return (
             <div className="flex h-full flex-col items-center justify-center bg-sunken px-6 text-center">
-                <h2 className="text-lg font-medium tracking-[-0.015em]">
+                <h1 className="text-lg font-medium tracking-[-0.015em]">
                     This account is suspended
-                </h2>
+                </h1>
                 <p className="mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
                     The administrator of this installation has paused it, so
                     nothing new can be shared. Everything already shared keeps
@@ -113,9 +113,9 @@ function Blocked({ suspended }: { suspended: boolean }) {
 
     return (
         <div className="flex h-full flex-col items-center justify-center bg-sunken px-6 text-center">
-            <h2 className="text-lg font-medium tracking-[-0.015em]">
+            <h1 className="text-lg font-medium tracking-[-0.015em]">
                 This installation keeps sharing to Members
-            </h2>
+            </h1>
             <p className="mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
                 Guest sharing is switched off in the administrator settings.
                 Transfer Sessions still work without an account.

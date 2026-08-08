@@ -19,6 +19,12 @@ export interface SharedPageProps extends PageProps {
         step: InstallStepKey;
     };
     appearance: Appearance;
+    seo: {
+        description: string;
+        robots: string;
+        canonical: string | null;
+        image: string | null;
+    };
     flash: {
         status: string | null;
     };
