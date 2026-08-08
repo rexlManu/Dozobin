@@ -17,6 +17,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Unavailable } from '@/components/unavailable';
+import { useNow } from '@/hooks/use-now';
 import { requestJson } from '@/lib/api';
 import { LANGUAGES } from '@/lib/detect';
 import { downloadText } from '@/lib/download';
@@ -48,7 +49,9 @@ function PasteViewRoute({
     share: PasteShare;
     unlocked: boolean;
 }) {
-    if (isShareExpired(share)) {
+    const now = useNow(30_000);
+
+    if (isShareExpired(share, now)) {
         return (
             <AppShell variant="public">
                 <Unavailable reason="expired" expiredAt={share.expiresAt} />

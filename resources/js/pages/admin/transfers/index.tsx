@@ -44,6 +44,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useNow } from '@/hooks/use-now';
 import { requestJson } from '@/lib/api';
 import { formatBytes, relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
@@ -89,6 +90,7 @@ function AdminTransfersRoute({
     transfer: TransferSession | null;
     transferHistory: TransferSession[];
 }) {
+    const now = useNow(30_000);
     const sessions = useMemo(
         () => mergeTransfers(live, history),
         [live, history],
@@ -110,15 +112,15 @@ function AdminTransfersRoute({
 
     const data = useMemo(() => {
         if (only === 'running') {
-            return sessions.filter((s) => !isTransferExpired(s, windowMs));
+            return sessions.filter((s) => !isTransferExpired(s, windowMs, now));
         }
 
         if (only === 'past') {
-            return sessions.filter((s) => isTransferExpired(s, windowMs));
+            return sessions.filter((s) => isTransferExpired(s, windowMs, now));
         }
 
         return sessions;
-    }, [sessions, only, windowMs]);
+    }, [sessions, only, windowMs, now]);
 
     const endOne = useCallback(
         async (session: TransferSession) => {
@@ -148,7 +150,8 @@ function AdminTransfersRoute({
         async (codes: string[]) => {
             const live = codes.filter((code) =>
                 sessions.some(
-                    (s) => s.code === code && !isTransferExpired(s, windowMs),
+                    (s) =>
+                        s.code === code && !isTransferExpired(s, windowMs, now),
                 ),
             );
             const ok = await confirm({
@@ -181,7 +184,7 @@ function AdminTransfersRoute({
                 },
             });
         },
-        [confirm, sessions, windowMs],
+        [confirm, sessions, windowMs, now],
     );
 
     const columns = useMemo(() => {
@@ -212,7 +215,7 @@ function AdminTransfersRoute({
                 header: 'Code',
                 cell: ({ row }) => {
                     const session = row.original;
-                    const live = !isTransferExpired(session, windowMs);
+                    const live = !isTransferExpired(session, windowMs, now);
 
                     // Only the session this browser is actually in has a page to open.
                     return live && session.code === liveCode ? (
@@ -229,12 +232,12 @@ function AdminTransfersRoute({
                     );
                 },
             }),
-            col.accessor((s) => (isTransferExpired(s, windowMs) ? 0 : 1), {
+            col.accessor((s) => (isTransferExpired(s, windowMs, now) ? 0 : 1), {
                 id: 'state',
                 header: 'State',
                 cell: ({ row }) => (
                     <StateChip
-                        live={!isTransferExpired(row.original, windowMs)}
+                        live={!isTransferExpired(row.original, windowMs, now)}
                         mine={row.original.code === liveCode}
                     />
                 ),
@@ -264,7 +267,7 @@ function AdminTransfersRoute({
 
                     // An ended session dropped its payload, so a 0 here would read as
                     // "nothing was ever shared" when the truth is "nothing is left".
-                    if (isTransferExpired(session, windowMs)) {
+                    if (isTransferExpired(session, windowMs, now)) {
                         return (
                             <span className="font-mono text-[11.5px] text-muted-foreground">
                                 —
@@ -287,7 +290,7 @@ function AdminTransfersRoute({
                 header: 'Started',
                 cell: (c) => (
                     <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
-                        {relativeTime(c.getValue())}
+                        {relativeTime(c.getValue(), now)}
                     </span>
                 ),
                 meta: { className: 'hidden lg:table-cell' },
@@ -296,13 +299,13 @@ function AdminTransfersRoute({
                 header: 'Last activity',
                 cell: (c) => (
                     <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
-                        {relativeTime(c.getValue())}
+                        {relativeTime(c.getValue(), now)}
                     </span>
                 ),
             }),
             col.accessor(
                 (s) =>
-                    isTransferExpired(s, windowMs)
+                    isTransferExpired(s, windowMs, now)
                         ? 0
                         : transferExpiresAt(s, windowMs),
                 {
@@ -311,7 +314,7 @@ function AdminTransfersRoute({
                     cell: ({ row }) => {
                         const session = row.original;
 
-                        if (isTransferExpired(session, windowMs)) {
+                        if (isTransferExpired(session, windowMs, now)) {
                             return (
                                 <span className="font-mono text-[11.5px] text-muted-foreground">
                                     —
@@ -334,7 +337,7 @@ function AdminTransfersRoute({
                 header: '',
                 cell: ({ row }) => {
                     const session = row.original;
-                    const live = !isTransferExpired(session, windowMs);
+                    const live = !isTransferExpired(session, windowMs, now);
 
                     return (
                         <div className="flex justify-end">
@@ -387,7 +390,7 @@ function AdminTransfersRoute({
                 meta: { className: 'w-10' },
             }),
         ];
-    }, [windowMs, liveCode, endOne, deleteSelected]);
+    }, [windowMs, liveCode, endOne, deleteSelected, now]);
 
     // React Compiler intentionally leaves TanStack Table's mutable adapter alone.
     // eslint-disable-next-line react-hooks/incompatible-library
@@ -420,7 +423,7 @@ function AdminTransfersRoute({
         (code) => selection[code],
     );
     const running = sessions.filter(
-        (s) => !isTransferExpired(s, windowMs),
+        (s) => !isTransferExpired(s, windowMs, now),
     ).length;
 
     return (
@@ -468,7 +471,11 @@ function AdminTransfersRoute({
                     unit="session"
                     card={(row) => {
                         const session = row.original;
-                        const running = !isTransferExpired(session, windowMs);
+                        const running = !isTransferExpired(
+                            session,
+                            windowMs,
+                            now,
+                        );
 
                         return (
                             <div className="flex items-start gap-3">
@@ -533,6 +540,7 @@ function AdminTransfersRoute({
                                                 ended{' '}
                                                 {relativeTime(
                                                     session.lastActivityAt,
+                                                    now,
                                                 )}
                                             </span>
                                         )}

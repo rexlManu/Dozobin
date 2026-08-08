@@ -8,6 +8,7 @@ import type {
 
 export interface SharedPageProps extends PageProps {
     name: string;
+    serverNow: number;
     auth: {
         user: Account | null;
         impersonator: Account | null;

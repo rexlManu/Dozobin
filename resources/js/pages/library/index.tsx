@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select';
 import type { View } from '@/components/view-switch';
 import { ViewSwitch } from '@/components/view-switch';
+import { useNow } from '@/hooks/use-now';
 import { formatBytes, relativeTime, shareUrl } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import type { Category } from '@/lib/share-display';
@@ -125,17 +126,19 @@ function TypeFilter({
 
 function Row({
     share,
+    now,
     selected,
     onSelect,
     onDelete,
 }: {
     share: Share;
+    now: number;
     selected: boolean;
     onSelect: (value: boolean) => void;
     onDelete: () => void;
 }) {
     const path = `${share.kind === 'file' ? '/s/' : '/p/'}${share.id}`;
-    const broken = share.state === 'unavailable' || isShareExpired(share);
+    const broken = share.state === 'unavailable' || isShareExpired(share, now);
 
     return (
         <li
@@ -200,7 +203,8 @@ function Row({
                     />
                 </div>
                 <p className="mt-1 hidden font-mono text-[11px] text-muted-foreground sm:block">
-                    {typeChip(share)} · added {relativeTime(share.createdAt)}
+                    {typeChip(share)} · added{' '}
+                    {relativeTime(share.createdAt, now)}
                     {share.state === 'unavailable' && (
                         <span className="text-destructive">
                             {' '}
@@ -259,6 +263,7 @@ function Row({
 }
 
 function LibraryRoute({ shares }: { shares: Share[] }) {
+    const now = useNow(30_000);
     const account = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
 
@@ -533,6 +538,7 @@ function LibraryRoute({ shares }: { shares: Share[] }) {
                                     <Row
                                         key={share.id}
                                         share={share}
+                                        now={now}
                                         selected={selection.includes(share.id)}
                                         onSelect={(value) =>
                                             toggleOne(share.id, value)
@@ -582,6 +588,7 @@ function LibraryRoute({ shares }: { shares: Share[] }) {
                                     <LibraryTile
                                         key={share.id}
                                         share={share}
+                                        now={now}
                                         label={shareLabel(share)}
                                         meta={`${typeChip(share)} · ${formatBytes(shareSize(share))}`}
                                         selected={selection.includes(share.id)}

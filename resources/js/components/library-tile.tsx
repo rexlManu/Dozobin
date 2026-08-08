@@ -29,13 +29,21 @@ import { cn } from '@/lib/utils';
  * What a tile can actually show. A seeded video only has a poster behind it, so
  * it renders as a still; a real dropped one renders its own first frame.
  */
-function Face({ share, broken }: { share: Share; broken: boolean }) {
+function Face({
+    share,
+    broken,
+    now,
+}: {
+    share: Share;
+    broken: boolean;
+    now: number;
+}) {
     if (broken) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-destructive">
                 <CloudSlash weight="thin" className="size-8" />
                 <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase">
-                    {isShareExpired(share) ? 'Expired' : 'Missing'}
+                    {isShareExpired(share, now) ? 'Expired' : 'Missing'}
                 </span>
             </div>
         );
@@ -113,6 +121,7 @@ function Face({ share, broken }: { share: Share; broken: boolean }) {
 
 export function LibraryTile({
     share,
+    now,
     label,
     meta,
     selected,
@@ -120,6 +129,7 @@ export function LibraryTile({
     onDelete,
 }: {
     share: Share;
+    now: number;
     label: string;
     meta: string;
     selected: boolean;
@@ -127,7 +137,7 @@ export function LibraryTile({
     onDelete: () => void;
 }) {
     const path = `${share.kind === 'file' ? '/s/' : '/p/'}${share.id}`;
-    const broken = share.state === 'unavailable' || isShareExpired(share);
+    const broken = share.state === 'unavailable' || isShareExpired(share, now);
 
     return (
         <li
@@ -143,7 +153,7 @@ export function LibraryTile({
                 className="block aspect-[4/3] bg-sunken"
                 aria-label={label}
             >
-                <Face share={share} broken={broken} />
+                <Face share={share} broken={broken} now={now} />
             </Link>
 
             <div className="flex items-start gap-1.5 border-t border-border px-2.5 py-2">

@@ -17,8 +17,8 @@ export function ExpiryLabel({
     className?: string;
     prefix?: string;
 }) {
-    const soon = expiresAt !== null && isExpiringSoon(expiresAt);
-    const now = useNow(soon ? 1000 : 30_000);
+    const now = useNow(1000);
+    const soon = isExpiringSoon(expiresAt, now);
 
     if (expiresAt === null) {
         return (
@@ -30,22 +30,6 @@ export function ExpiryLabel({
             >
                 <InfinityIcon className="size-3.5" />
                 <span>No expiry</span>
-            </span>
-        );
-    }
-
-    if (now === null) {
-        return (
-            <span
-                className={cn(
-                    'inline-flex items-center gap-1.5 text-muted-foreground',
-                    className,
-                )}
-            >
-                <Hourglass className="size-3.5" />
-                <span>
-                    {prefix} <span className="font-mono">…</span>
-                </span>
             </span>
         );
     }
@@ -97,7 +81,7 @@ export function Countdown({
     className?: string;
 }) {
     const now = useNow(1000);
-    const left = now === null ? Number.POSITIVE_INFINITY : target - now;
+    const left = target - now;
     const urgent = left < 60 * 60 * 1000;
 
     return (
@@ -108,7 +92,7 @@ export function Countdown({
                 className,
             )}
         >
-            {now === null ? '--:--:--' : countdown(target, now)}
+            {countdown(target, now)}
         </span>
     );
 }

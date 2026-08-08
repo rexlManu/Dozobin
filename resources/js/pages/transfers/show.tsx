@@ -34,6 +34,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { useNow } from '@/hooks/use-now';
 import { requestJson } from '@/lib/api';
 import { downloadSource, downloadText } from '@/lib/download';
 import { formatBytes, relativeTime } from '@/lib/format';
@@ -162,12 +163,14 @@ function ItemPreview({
 
 function ItemRow({
     item,
+    now,
     actorLabel,
     onPreview,
     onDelete,
     onTouch,
 }: {
     item: TransferItem;
+    now: number;
     actorLabel: string;
     onPreview: () => void;
     onDelete: () => void;
@@ -232,7 +235,7 @@ function ItemRow({
                 </p>
                 <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     {formatBytes(item.size)} · {actorLabel} ·{' '}
-                    {relativeTime(item.addedAt)}
+                    {relativeTime(item.addedAt, now)}
                 </p>
             </div>
 
@@ -283,6 +286,7 @@ function ItemRow({
 }
 
 function TransferSessionRoute({ transfer }: { transfer: TransferSession }) {
+    const now = useNow(30_000);
     const windowMs =
         usePage<SharedPageProps>().props.config.transferWindowHours *
         60 *
@@ -360,7 +364,7 @@ function TransferSessionRoute({ transfer }: { transfer: TransferSession }) {
         return () => window.removeEventListener('paste', onPaste);
     }, [addFiles]);
 
-    if (isTransferExpired(transfer, windowMs)) {
+    if (isTransferExpired(transfer, windowMs, now)) {
         return (
             <AppShell>
                 <DeadSession code={transfer.code} reason="expired" />
@@ -651,6 +655,7 @@ function TransferSessionRoute({ transfer }: { transfer: TransferSession }) {
                                     <ItemRow
                                         key={item.id}
                                         item={item}
+                                        now={now}
                                         actorLabel={actorLabel(item.addedBy)}
                                         onPreview={() => setPreview(item)}
                                         onTouch={touchTransfer}
@@ -701,7 +706,7 @@ function TransferSessionRoute({ transfer }: { transfer: TransferSession }) {
                                     {entry.text}
                                     <span className="font-mono text-[10.5px]">
                                         {' '}
-                                        · {relativeTime(entry.at)}
+                                        · {relativeTime(entry.at, now)}
                                     </span>
                                 </li>
                             ))}

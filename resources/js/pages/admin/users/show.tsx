@@ -31,6 +31,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useNow } from '@/hooks/use-now';
 import { formatBytes, formatDateTime, relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import {
@@ -51,6 +52,7 @@ function AdminUserContent({
     accounts: Account[];
     shares: Share[];
 }) {
+    const now = useNow(30_000);
     const { guard, toggleRole, toggleStatus, deleteOne, impersonate, dialog } =
         useUserActions(accounts, shares);
     const [quotaGb, setQuotaGb] = useState('');
@@ -96,7 +98,7 @@ function AdminUserContent({
                             <h2 className="flex flex-wrap items-center gap-2 text-[16px] font-medium tracking-[-0.01em]">
                                 {account.name}
                                 <RoleChip role={account.role} />
-                                <StatusChip account={account} />
+                                <StatusChip account={account} now={now} />
                             </h2>
                             <p className="mt-0.5 font-mono text-[11.5px] text-muted-foreground">
                                 {account.email} · joined{' '}
@@ -347,7 +349,10 @@ function AdminUserContent({
                                         <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                                             {session.browser} ·{' '}
                                             {session.location} ·{' '}
-                                            {relativeTime(session.lastSeenAt)}
+                                            {relativeTime(
+                                                session.lastSeenAt,
+                                                now,
+                                            )}
                                         </p>
                                     </div>
                                     <Button
@@ -406,7 +411,7 @@ function AdminUserContent({
                                             {token.revoked
                                                 ? 'revoked'
                                                 : token.lastUsedAt
-                                                  ? `last used ${relativeTime(token.lastUsedAt)}`
+                                                  ? `last used ${relativeTime(token.lastUsedAt, now)}`
                                                   : 'never used'}
                                         </p>
                                     </div>

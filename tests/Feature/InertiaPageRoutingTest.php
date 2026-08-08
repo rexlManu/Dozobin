@@ -3,9 +3,23 @@
 use App\Models\ApiToken;
 use App\Models\InstallationSetting;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(fn () => InstallationSetting::factory()->create());
+
+it('shares one server clock snapshot with every Inertia page', function (): void {
+    Carbon::setTestNow('2026-08-08 13:45:12.345');
+
+    try {
+        $this->get('/signin')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('serverNow', now()->getTimestampMs()));
+    } finally {
+        Carbon::setTestNow();
+    }
+});
 
 it('renders public pages as dedicated Inertia components', function (string $uri, string $component): void {
     $this->get($uri)

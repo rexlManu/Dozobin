@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useNow } from '@/hooks/use-now';
 import { Link } from '@/lib/navigation';
 import { isTransferExpired, transferExpiresAt } from '@/lib/transfer-state';
 import type { TransferSession } from '@/lib/types';
@@ -149,6 +150,7 @@ function TransferLobbyRoute({
 }: {
     transfer: TransferSession | null;
 }) {
+    const now = useNow(30_000);
     const windowMs =
         usePage<SharedPageProps>().props.config.transferWindowHours *
         60 *
@@ -177,7 +179,7 @@ function TransferLobbyRoute({
 
     const live =
         transfer &&
-        !isTransferExpired(transfer, windowMs) &&
+        !isTransferExpired(transfer, windowMs, now) &&
         !transfer.leftLocally;
 
     return (
