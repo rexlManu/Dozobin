@@ -213,4 +213,16 @@ export interface InstallDatabaseStatus {
     pendingMigrations: string[];
 }
 
+export interface UpdateStatus {
+    currentVersion: string;
+    currentCommit: string | null;
+    builtAt: string | null;
+    latestVersion: string | null;
+    releaseUrl: string | null;
+    checkedAt: number | null;
+    checksEnabled: boolean;
+    updateAvailable: boolean;
+    dismissed: boolean;
+}
+
 export type Role = 'guest' | 'member' | 'admin';

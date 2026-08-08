@@ -89,6 +89,7 @@ it('renders administration pages through Laravel authorization and dedicated com
     'file types' => ['/admin/settings/file-types', 'admin/settings/file-types'],
     'transfer settings' => ['/admin/settings/transfer', 'admin/settings/transfer'],
     'housekeeping' => ['/admin/settings/housekeeping', 'admin/settings/housekeeping'],
+    'system' => ['/admin/settings/system', 'admin/settings/system'],
 ]);
 
 it('renders administrator user detail routes with server-owned records', function (): void {

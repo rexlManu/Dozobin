@@ -7,6 +7,7 @@ use App\Http\Resources\UserResource;
 use App\Models\InstallationSetting;
 use App\Models\User;
 use App\Services\InstallationState;
+use App\Services\UpdateChecker;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Lab404\Impersonate\Services\ImpersonateManager;
@@ -22,7 +23,10 @@ class HandleInertiaRequests extends Middleware
      */
     protected $rootView = 'app';
 
-    public function __construct(private readonly InstallationState $installation) {}
+    public function __construct(
+        private readonly InstallationState $installation,
+        private readonly UpdateChecker $updates,
+    ) {}
 
     /**
      * Determines the current asset version.
@@ -72,6 +76,9 @@ class HandleInertiaRequests extends Middleware
                 'complete' => $this->installation->isComplete(),
                 'step' => $this->installation->step()->value,
             ],
+            'update' => fn (): ?array => $user?->isAdmin() && $request->routeIs('admin.*')
+                ? $this->updates->status($user)->toArray()
+                : null,
             'appearance' => $user?->appearance->value ?? 'system',
             'seo' => fn (): array => $this->seo($request),
             'flash' => [

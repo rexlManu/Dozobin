@@ -4,6 +4,7 @@ use App\Enums\UserRole;
 use App\Models\InstallationSetting;
 use App\Models\User;
 use App\Services\InstallationState;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /** The settings payload the wizard posts, matching the administration form. */
@@ -39,6 +40,7 @@ it('answers API requests with a service-unavailable status while pending', funct
 });
 
 it('reports the database connection and the environment on the first step', function (): void {
+    Storage::fake('local');
     // A migrated test database means the wizard has already moved past its
     // first step, so ask for the page it would otherwise redirect away from.
     DB::table('migrations')->where('migration', 'like', '%create_users_table')->delete();
@@ -51,8 +53,22 @@ it('reports the database connection and the environment on the first step', func
             ->where('database.migrated', false)
             ->has('requirements')
             ->where('requirements.0.label', 'PHP 8.4.1 or newer')
+            ->where('requirements.4.label', 'File Store')
+            ->where('requirements.4.satisfied', true)
             ->where('installation.complete', false)
             ->where('installation.step', 'database'));
+});
+
+it('reports database and File Store readiness separately', function (): void {
+    Storage::fake('local');
+
+    $this->getJson('/ready')
+        ->assertOk()
+        ->assertJson([
+            'ready' => true,
+            'database' => 'ready',
+            'fileStore' => 'ready',
+        ]);
 });
 
 it('keeps a visitor on the step that is actually outstanding', function (): void {

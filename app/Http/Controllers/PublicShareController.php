@@ -8,12 +8,13 @@ use App\Enums\ShareState;
 use App\Http\Requests\UnlockShareRequest;
 use App\Http\Resources\ShareResource;
 use App\Models\Share;
+use App\Services\FileResponseFactory;
+use App\Services\FileStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class PublicShareController extends Controller
 {
@@ -40,26 +41,30 @@ final class PublicShareController extends Controller
         return response()->json(['unlocked' => true]);
     }
 
-    public function content(Request $request, Share $share): StreamedResponse
+    public function content(Request $request, Share $share, FileStore $files, FileResponseFactory $responses): HttpResponse
     {
         abort_unless($share->kind === ShareKind::File && $share->state === ShareState::Ready && ! $share->hasExpired(), 404);
         abort_unless($this->canRead($request, $share), 403);
-        abort_if($share->storage_path === null || ! Storage::exists($share->storage_path), 404);
+        abort_if($share->storage_path === null || ! $files->exists($share->storage_path), 404);
 
-        return Storage::response(
+        return $responses->inline(
             $share->storage_path,
-            $share->filename,
-            ['Content-Type' => $share->mime_type, 'Content-Disposition' => 'inline'],
+            (string) $share->filename,
+            (string) $share->mime_type,
         );
     }
 
-    public function download(Request $request, Share $share): StreamedResponse
+    public function download(Request $request, Share $share, FileStore $files, FileResponseFactory $responses): HttpResponse
     {
         abort_unless($share->kind === ShareKind::File && $share->state === ShareState::Ready && ! $share->hasExpired(), 404);
         abort_unless($this->canRead($request, $share), 403);
-        abort_if($share->storage_path === null || ! Storage::exists($share->storage_path), 404);
+        abort_if($share->storage_path === null || ! $files->exists($share->storage_path), 404);
 
-        return Storage::download($share->storage_path, $share->filename);
+        return $responses->download(
+            $share->storage_path,
+            (string) $share->filename,
+            (string) $share->mime_type,
+        );
     }
 
     private function page(Request $request, Share $share, string $screen): Response

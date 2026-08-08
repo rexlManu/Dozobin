@@ -4,6 +4,7 @@ import type {
     AdminConfig,
     Appearance,
     InstallStepKey,
+    UpdateStatus,
 } from '@/lib/types';
 
 export interface SharedPageProps extends PageProps {
@@ -18,6 +19,7 @@ export interface SharedPageProps extends PageProps {
         complete: boolean;
         step: InstallStepKey;
     };
+    update: UpdateStatus | null;
     appearance: Appearance;
     seo: {
         description: string;

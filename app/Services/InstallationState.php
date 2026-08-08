@@ -33,7 +33,12 @@ final class InstallationState
 
     private ?bool $storesReady = null;
 
-    public function __construct(private readonly Migrator $migrator) {}
+    private ?RequirementCheck $fileStore = null;
+
+    public function __construct(
+        private readonly Migrator $migrator,
+        private readonly FileStoreProbe $fileStoreProbe,
+    ) {}
 
     /**
      * A finished installation is recorded on the settings row rather than on
@@ -50,7 +55,7 @@ final class InstallationState
             return InstallStep::Done;
         }
 
-        if (! $this->database()->ready()) {
+        if (! $this->database()->ready() || ! $this->fileStore()->satisfied) {
             return InstallStep::Database;
         }
 
@@ -79,6 +84,11 @@ final class InstallationState
         } catch (Throwable) {
             return false;
         }
+    }
+
+    public function fileStore(): RequirementCheck
+    {
+        return $this->fileStore ??= $this->fileStoreProbe->run();
     }
 
     /** @return list<RequirementCheck> */
@@ -125,6 +135,7 @@ final class InstallationState
                     ? 'APP_KEY is set'
                     : 'Set APP_KEY, or run php artisan key:generate',
             ),
+            $this->fileStore(),
         ];
     }
 
@@ -134,6 +145,7 @@ final class InstallationState
         $this->complete = null;
         $this->database = null;
         $this->storesReady = null;
+        $this->fileStore = null;
     }
 
     private function resolveStoresReady(): bool

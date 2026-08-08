@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\FileStoreUnavailableException;
 use App\Http\Middleware\AddResponseHeaders;
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureInstallationIsComplete;
@@ -41,4 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+        $exceptions->render(function (FileStoreUnavailableException $exception, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['message' => $exception->getMessage()], 503);
+            }
+
+            return response($exception->getMessage(), 503);
+        });
     })->create();

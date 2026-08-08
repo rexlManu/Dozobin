@@ -36,6 +36,10 @@ _Avoid_: User, account holder, registered Guest
 A Member's persistent collection of File Shares and Pastes.
 _Avoid_: Dashboard, file manager, local history
 
+**Update Notice**:
+An administrator-visible message that a newer stable Dōzobin release exists. It points to release and update instructions but never downloads an image, installs a release, or restarts the installation.
+_Avoid_: Automatic update, upgrade
+
 **Share Expiration**:
 The chosen time after which access to a Regular Share ends. The installation controls available choices and defaults; Transfer Session inactivity follows a different rule.
 _Avoid_: Session timeout, inactivity window, deletion time
@@ -47,6 +51,10 @@ _Avoid_: Deleted Share
 **Payload**:
 The stored file contents or Paste body belonging to a Regular Share. Expired Share cleanup removes either form after the same installation-wide grace period.
 _Avoid_: Share, link, metadata
+
+**File Store**:
+The installation-wide home for all user-generated files, including File Share payloads, file and image Transfer Items, and Member avatars. One installation uses one File Store.
+_Avoid_: Payload Store, upload storage
 
 **Unlisted Share**:
 A Regular Share that is accessible to anyone holding its unguessable Share URL but is absent from public feeds and search indexes.

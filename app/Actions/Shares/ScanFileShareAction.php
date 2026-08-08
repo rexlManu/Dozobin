@@ -7,15 +7,15 @@ use App\Enums\MalwareScanStatus;
 use App\Enums\MalwareScanVerdict;
 use App\Enums\ShareKind;
 use App\Enums\ShareState;
-use App\Exceptions\MalwareScannerException;
 use App\Models\Share;
-use Illuminate\Support\Facades\Storage;
+use App\Services\FileStore;
 
 final class ScanFileShareAction
 {
     public function __construct(
         private MalwareScanner $scanner,
         private RemoveSharePayloadAction $removePayload,
+        private FileStore $files,
     ) {}
 
     public function handle(int $shareId): void
@@ -47,10 +47,7 @@ final class ScanFileShareAction
             return;
         }
 
-        $stream = Storage::readStream($share->storage_path);
-        if (! is_resource($stream)) {
-            throw new MalwareScannerException('The File Share payload could not be opened for scanning.');
-        }
+        $stream = $this->files->readStream($share->storage_path);
 
         try {
             $result = $this->scanner->scan($stream);

@@ -4,11 +4,12 @@ namespace App\Actions\Shares;
 
 use App\Enums\ShareKind;
 use App\Models\Share;
-use Illuminate\Support\Facades\Storage;
-use RuntimeException;
+use App\Services\FileStore;
 
 final class RemoveSharePayloadAction
 {
+    public function __construct(private readonly FileStore $files) {}
+
     public function handle(Share $share): void
     {
         if ($share->payload_deleted_at !== null) {
@@ -17,8 +18,8 @@ final class RemoveSharePayloadAction
 
         if ($share->kind === ShareKind::File && $share->storage_path !== null) {
             $path = $share->storage_path;
-            if (Storage::exists($path) && ! Storage::delete($path)) {
-                throw new RuntimeException("The Share payload at {$path} could not be deleted.");
+            if ($this->files->exists($path)) {
+                $this->files->delete($path);
             }
         }
 

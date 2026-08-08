@@ -9,10 +9,11 @@ use App\Http\Requests\StoreTransferItemRequest;
 use App\Http\Resources\TransferItemResource;
 use App\Models\TransferItem;
 use App\Models\TransferSession;
+use App\Services\FileResponseFactory;
+use App\Services\FileStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 final class TransferItemController extends Controller
 {
@@ -45,18 +46,22 @@ final class TransferItemController extends Controller
         return response()->json(status: 204);
     }
 
-    public function content(Request $request, TransferItem $transferItem): StreamedResponse
-    {
+    public function content(
+        Request $request,
+        TransferItem $transferItem,
+        FileStore $files,
+        FileResponseFactory $responses,
+    ): Response {
         $session = $transferItem->transferSession;
         abort_if($session->hasExpired(), 404);
         $browserId = $request->session()->get('transfer_browser_id');
         abort_unless(is_string($browserId) && $session->participants()->where('browser_id', $browserId)->whereNull('left_at')->exists(), 403);
-        abort_if($transferItem->storage_path === null || ! Storage::exists($transferItem->storage_path), 404);
+        abort_if($transferItem->storage_path === null || ! $files->exists($transferItem->storage_path), 404);
 
-        return Storage::response(
+        return $responses->inline(
             $transferItem->storage_path,
             $transferItem->name,
-            ['Content-Type' => $transferItem->mime_type, 'Content-Disposition' => 'inline'],
+            $transferItem->mime_type,
         );
     }
 }

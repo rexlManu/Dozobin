@@ -129,6 +129,11 @@ final class PageController extends Controller
         ]);
     }
 
+    public function system(): Response
+    {
+        return Inertia::render('admin/settings/system');
+    }
+
     /** @return array<string, mixed>|null */
     private function transfer(Request $request, ?TransferSession $session): ?array
     {

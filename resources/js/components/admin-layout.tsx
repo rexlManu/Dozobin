@@ -1,7 +1,12 @@
+import { router, usePage } from '@inertiajs/react';
+import { ArrowUpRight, X } from '@phosphor-icons/react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
 import { NavLink } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import type { SharedPageProps } from '@/types';
 
 const NAV = [
     { to: '/admin/users', label: 'Users' },
@@ -20,6 +25,7 @@ const SETTINGS_NAV = [
     { to: '/admin/settings/file-types', label: 'File types' },
     { to: '/admin/settings/transfer', label: 'Transfer sessions' },
     { to: '/admin/settings/housekeeping', label: 'Housekeeping' },
+    { to: '/admin/settings/system', label: 'System' },
 ];
 
 function NavItem({ to, label }: { to: string; label: string }) {
@@ -50,6 +56,67 @@ function NavItem({ to, label }: { to: string; label: string }) {
     );
 }
 
+function UpdateNotice() {
+    const update = usePage<SharedPageProps>().props.update;
+    const [dismissing, setDismissing] = useState(false);
+
+    if (
+        update === null ||
+        !update.updateAvailable ||
+        update.dismissed ||
+        update.latestVersion === null ||
+        update.releaseUrl === null
+    ) {
+        return null;
+    }
+
+    return (
+        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-border py-2.5">
+            <ArrowUpRight
+                aria-hidden
+                className="size-4 shrink-0 text-primary"
+            />
+            <p className="min-w-0 text-[13px]">
+                <span className="font-medium">
+                    Dōzobin {update.latestVersion} is available.
+                </span>{' '}
+                <span className="text-muted-foreground">
+                    This server runs {update.currentVersion}.
+                </span>
+            </p>
+            <a
+                href={update.releaseUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[12.5px] font-medium underline underline-offset-4 hover:text-foreground"
+            >
+                View release
+            </a>
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={dismissing}
+                className="ml-auto"
+                aria-label={`Dismiss the ${update.latestVersion} update notice`}
+                onClick={() => {
+                    setDismissing(true);
+                    router.post(
+                        '/admin/update-notice/dismiss',
+                        { version: update.latestVersion },
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setDismissing(false),
+                        },
+                    );
+                }}
+            >
+                <X aria-hidden />
+            </Button>
+        </div>
+    );
+}
+
 export function AdminLayout({ children }: { children: ReactNode }) {
     return (
         <AppShell>
@@ -62,6 +129,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                         applies to everyone on this server
                     </p>
                 </div>
+
+                <UpdateNotice />
 
                 <div className="mt-6 grid gap-7 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
                     <nav className="-mx-4 flex scrollbar-slim gap-1 overflow-x-auto border-b border-border px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">

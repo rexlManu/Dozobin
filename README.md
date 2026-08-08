@@ -29,7 +29,19 @@ ddev exec composer setup
 
 Open the DDEV URL and follow the installer. DDEV already runs Vite, both queue workers, and the scheduler.
 
-## Production install
+## Docker production install
+
+The supported container runs Nginx, PHP-FPM, both queue workers, and the scheduler. It applies database migrations before those processes start. Copy `compose.production.yaml`, provide `APP_KEY`, `APP_URL`, `DB_PASSWORD`, and `DB_ROOT_PASSWORD`, then start it with Docker Compose or import the service into Coolify.
+
+```sh
+docker compose -f compose.production.yaml up -d
+```
+
+Uploads use the persistent `app-data` volume at `/data/files` by default. Set `FILESYSTEM_DISK=s3` and the S3 variables to use AWS S3, MinIO, or Hetzner Object Storage instead. See [Docker deployment](docs/operations/docker.md) for the complete configuration and upgrade procedure.
+
+The image will become anonymously pullable from `ghcr.io/rexlmanu/dozobin` with the first public release. Until then, the repository and package remain private and the sample image does not exist publicly. The one-time visibility change and tag flow are documented in [publishing releases](docs/operations/releases.md).
+
+## Manual production install
 
 Point the web server at `public/`; never serve the repository root. Then install the locked dependencies and compile the frontend:
 
@@ -39,7 +51,6 @@ pnpm install --frozen-lockfile
 pnpm run build
 php artisan key:generate
 php artisan migrate --force
-php artisan storage:link
 php artisan optimize
 ```
 
@@ -54,7 +65,7 @@ php artisan queue:work --queue=scans --sleep=1 --tries=4 --timeout=300
 
 Run `php artisan schedule:run` once per minute, or supervise `php artisan schedule:work`. Restart both workers after every deployment with `php artisan queue:restart`.
 
-The first request opens a three-step installer unless `DOZOBIN_SKIP_INSTALLER=true`. Read [first-run installation](docs/operations/first-run-installation.md) and [maintenance and malware scanning](docs/operations/maintenance-and-malware-scanning.md) before exposing the host.
+The first request opens a three-step installer unless `DOZOBIN_SKIP_INSTALLER=true`. Read [first-run installation](docs/operations/first-run-installation.md), [Docker deployment](docs/operations/docker.md), and [maintenance and malware scanning](docs/operations/maintenance-and-malware-scanning.md) before exposing the host.
 
 ## Search indexing
 

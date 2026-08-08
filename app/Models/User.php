@@ -27,6 +27,7 @@ use Lab404\Impersonate\Models\Impersonate;
  * @property UserRole $role
  * @property UserStatus $status
  * @property string|null $avatar_path
+ * @property string|null $dismissed_update_version
  * @property Appearance $appearance
  * @property Expiration $default_expiration
  * @property int $storage_limit

@@ -6,7 +6,6 @@ use App\Models\Share;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /** @mixin User */
 final class UserResource extends JsonResource
@@ -23,7 +22,10 @@ final class UserResource extends JsonResource
             'id' => (string) $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'avatarSrc' => $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : '',
+            'avatarSrc' => $this->avatar_path ? route('avatars.show', [
+                'user' => $this->id,
+                'v' => $this->updated_at?->getTimestamp(),
+            ]) : '',
             'role' => $this->role->value,
             'createdAt' => $this->created_at?->getTimestampMs(),
             'status' => $this->status->value,

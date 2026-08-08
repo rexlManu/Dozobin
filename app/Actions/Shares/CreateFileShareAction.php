@@ -8,26 +8,26 @@ use App\Enums\ShareState;
 use App\Models\InstallationSetting;
 use App\Models\Share;
 use App\Models\User;
+use App\Services\FileStore;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use RuntimeException;
 use Throwable;
 
 final class CreateFileShareAction
 {
-    public function __construct(private QueueMalwareScanAction $queueMalwareScan) {}
+    public function __construct(
+        private readonly QueueMalwareScanAction $queueMalwareScan,
+        private readonly FileStore $files,
+    ) {}
 
     public function handle(?User $user, CreateFileShareData $data): Share
     {
         $slug = Str::lower(Str::random(20));
-        $path = $data->file->storeAs(
+        $path = $this->files->storeAs(
+            $data->file,
             "shares/{$slug}",
             Str::random(16).'.'.$data->file->getClientOriginalExtension(),
         );
-        if (! is_string($path)) {
-            throw new RuntimeException('The uploaded file could not be stored.');
-        }
 
         try {
             $share = Share::query()->create([
@@ -44,7 +44,7 @@ final class CreateFileShareAction
             ]);
 
         } catch (Throwable $exception) {
-            Storage::delete($path);
+            $this->files->delete($path);
             throw $exception;
         }
 

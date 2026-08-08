@@ -1,0 +1,61 @@
+name: dozobin
+
+services:
+  app:
+    image: "ghcr.io/rexlmanu/dozobin:${DOZOBIN_VERSION:-latest}"
+    restart: unless-stopped
+    ports:
+      - "${DOZOBIN_PORT:-8080}:8080"
+    environment:
+      APP_NAME: Dōzobin
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: "${APP_KEY:?Set APP_KEY}"
+      APP_URL: "${APP_URL:?Set APP_URL}"
+      SESSION_SECURE_COOKIE: "true"
+      TRUSTED_PROXIES: REMOTE_ADDR
+      DB_CONNECTION: mariadb
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_DATABASE: dozobin
+      DB_USERNAME: dozobin
+      DB_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD}"
+      FILESYSTEM_DISK: "${FILESYSTEM_DISK:-local}"
+      FILE_STORE_PATH: /data/files
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
+      AWS_BUCKET: "${AWS_BUCKET:-}"
+      AWS_ENDPOINT: "${AWS_ENDPOINT:-null}"
+      AWS_URL: "${AWS_URL:-null}"
+      AWS_USE_PATH_STYLE_ENDPOINT: "${AWS_USE_PATH_STYLE_ENDPOINT:-false}"
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      DOZOBIN_UPDATE_CHECK: "${DOZOBIN_UPDATE_CHECK:-true}"
+    volumes:
+      - app-data:/data
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: mariadb:11.8
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: dozobin
+      MARIADB_USER: dozobin
+      MARIADB_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD}"
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}"
+    volumes:
+      - database-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  app-data:
+  database-data:

@@ -7,9 +7,11 @@ use App\Http\Controllers\Admin\InviteCodeController;
 use App\Http\Controllers\Admin\MalwareScanController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\TransferSessionController as AdminTransferSessionController;
+use App\Http\Controllers\Admin\UpdateNoticeController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\Install\AdministratorController;
 use App\Http\Controllers\Install\DatabaseController as InstallDatabaseController;
 use App\Http\Controllers\Install\InstallationController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\Page\SettingsPageController;
 use App\Http\Controllers\PasswordResetLinkController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicShareController;
+use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Seo\RobotsController;
 use App\Http\Controllers\Seo\SitemapController;
 use App\Http\Controllers\ShareController;
@@ -30,6 +33,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', RobotsController::class)->name('seo.robots');
 Route::get('/sitemap.xml', SitemapController::class)->name('seo.sitemap');
+Route::get('/ready', ReadinessController::class)->name('ready');
 
 /*
  * First run. Every other route redirects here until the wizard finishes, and
@@ -48,6 +52,7 @@ Route::prefix('install')->name('install.')->group(function (): void {
 Route::get('/', HomeController::class)->name('home');
 Route::get('/s/{share}', [PublicShareController::class, 'showFile'])->name('shares.show');
 Route::get('/p/{share}', [PublicShareController::class, 'showPaste'])->name('pastes.show');
+Route::get('/avatars/{user}', AvatarController::class)->name('avatars.show');
 Route::post('/shares/{share}/unlock', [PublicShareController::class, 'unlock'])->middleware('throttle:10,1')->name('shares.unlock');
 Route::get('/shares/{share}/content', [PublicShareController::class, 'content'])->name('shares.content');
 Route::get('/shares/{share}/download', [PublicShareController::class, 'download'])->name('shares.download');
@@ -111,7 +116,9 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('/settings/file-types', [AdminPageController::class, 'fileTypes'])->name('settings.file-types');
     Route::get('/settings/transfer', [AdminPageController::class, 'transferSettings'])->name('settings.transfer');
     Route::get('/settings/housekeeping', [AdminPageController::class, 'housekeeping'])->name('settings.housekeeping');
+    Route::get('/settings/system', [AdminPageController::class, 'system'])->name('settings.system');
     Route::patch('/settings', [InstallationSettingController::class, 'update'])->name('settings.update');
+    Route::post('/update-notice/dismiss', [UpdateNoticeController::class, 'store'])->name('update-notice.dismiss');
     Route::post('/housekeeping/expired-share-payloads', [ExpiredSharePayloadController::class, 'store'])->name('housekeeping.expired-share-payloads.store');
     Route::post('/uploads/{share}/malware-scan', [MalwareScanController::class, 'store'])->name('uploads.malware-scan.store');
     Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');

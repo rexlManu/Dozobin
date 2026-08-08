@@ -67,3 +67,34 @@ it('stores uploads and only lets their owner delete them', function (): void {
     $this->assertSoftDeleted($share);
     Storage::disk('local')->assertMissing((string) $share->storage_path);
 });
+
+it('redirects an authorized S3 download to a short-lived signed URL', function (): void {
+    Storage::fake('s3');
+    config([
+        'filesystems.default' => 's3',
+        'filesystems.disks.s3.driver' => 's3',
+    ]);
+
+    $options = [];
+    Storage::disk('s3')->buildTemporaryUrlsUsing(
+        function (string $path, DateTimeInterface $expiresAt, array $requestOptions) use (&$options): string {
+            $options = $requestOptions;
+
+            return 'https://objects.example.test/'.urlencode($path).'?signed=yes';
+        },
+    );
+
+    $share = Share::factory()->file()->create([
+        'filename' => 'report.pdf',
+        'mime_type' => 'application/pdf',
+        'storage_path' => 'shares/report.pdf',
+    ]);
+    Storage::disk('s3')->put((string) $share->storage_path, 'report');
+
+    $this->get("/shares/{$share->slug}/download")
+        ->assertRedirect('https://objects.example.test/shares%2Freport.pdf?signed=yes');
+
+    expect($options)->toMatchArray([
+        'ResponseContentType' => 'application/pdf',
+    ])->and($options['ResponseContentDisposition'] ?? null)->toContain('attachment');
+});

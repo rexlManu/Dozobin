@@ -1,6 +1,22 @@
 <?php
 
+$build = json_decode((string) file_get_contents(dirname(__DIR__).'/bootstrap/build.json'), true);
+$build = is_array($build) ? $build : [];
+
 return [
+    'file_store' => [
+        'signed_url_ttl_seconds' => (int) env('FILE_STORE_SIGNED_URL_TTL', 60),
+    ],
+
+    'release' => [
+        'version' => is_string($build['version'] ?? null) ? $build['version'] : 'dev',
+        'commit' => is_string($build['commit'] ?? null) ? $build['commit'] : null,
+        'built_at' => is_string($build['builtAt'] ?? null) ? $build['builtAt'] : null,
+        'repository' => env('DOZOBIN_RELEASE_REPOSITORY', 'rexlManu/Dozobin'),
+        'update_checks' => filter_var(env('DOZOBIN_UPDATE_CHECK', true), FILTER_VALIDATE_BOOL),
+        'cache_hours' => (int) env('DOZOBIN_UPDATE_CACHE_HOURS', 24),
+    ],
+
     // Transition path for installations upgrading from the original single-code system.
     // Remove it from the environment after issuing managed invites.
     'invite_code' => env('DOZOBIN_INVITE_CODE'),

@@ -17,3 +17,8 @@ Schedule::command('shares:cleanup-expired-payloads')
     ->hourly()
     ->onOneServer()
     ->withoutOverlapping();
+
+Schedule::command('updates:check')
+    ->daily()
+    ->onOneServer()
+    ->withoutOverlapping();

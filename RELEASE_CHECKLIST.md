@@ -9,12 +9,13 @@ Code can cover safe defaults, but it can't choose your domain, backup storage, o
 - [ ] Set `APP_ENV=production`, `APP_DEBUG=false`, a generated `APP_KEY`, and the final HTTPS `APP_URL`.
 - [ ] Terminate TLS at the web server or reverse proxy, redirect HTTP to HTTPS, and set `SESSION_SECURE_COOKIE=true`.
 - [ ] If a reverse proxy forwards requests, set `TRUSTED_PROXIES` to its IP ranges. Don't use `*` on a host that clients can reach directly.
-- [ ] Give the PHP process write access only where Laravel needs it: `storage/` and `bootstrap/cache/`.
+- [ ] Give the PHP process write access only where Laravel needs it: `storage/`, `bootstrap/cache/`, and the local File Store path when used.
 
 ## Data and background work
 
 - [ ] Use a persistent production database and run `php artisan migrate --force` during deployments.
-- [ ] Keep uploaded payloads on persistent storage. Confirm that the selected `FILESYSTEM_DISK` survives container replacement.
+- [ ] Keep uploaded payloads on persistent storage. Confirm that `/data` is mounted or that the private S3-compatible bucket survives container replacement.
+- [ ] Check `/ready` and verify that both the database and File Store report ready.
 - [ ] Supervise the default queue worker, the `scans` worker, and the scheduler. Alert when any of them stops or builds a backlog.
 - [ ] Back up the database and payload storage, encrypt off-host copies, and test one full restore before launch.
 - [ ] Choose log retention and send production exceptions somewhere an operator will see them.
@@ -34,6 +35,8 @@ Code can cover safe defaults, but it can't choose your domain, backup storage, o
 - [ ] Check `/robots.txt`, `/sitemap.xml`, canonical URLs, and social metadata on the final domain.
 - [ ] Submit the sitemap to Google Search Console and Bing Webmaster Tools if indexing is enabled.
 - [ ] Set the GitHub description, topics, and project URL, then enable private vulnerability reporting and branch protection.
+- [ ] Before the first tag, make the repository public so installations can read GitHub Releases without credentials.
+- [ ] After the first image is published, make the `dozobin` GHCR package public and verify an anonymous pull from a logged-out Docker client.
 
 ## Release proof
 

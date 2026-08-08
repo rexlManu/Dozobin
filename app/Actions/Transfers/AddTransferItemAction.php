@@ -6,16 +6,18 @@ use App\Enums\TransferItemKind;
 use App\Models\TransferItem;
 use App\Models\TransferParticipant;
 use App\Models\TransferSession;
+use App\Services\FileStore;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use RuntimeException;
 use Throwable;
 
 final class AddTransferItemAction
 {
-    public function __construct(private TouchTransferSessionAction $touch) {}
+    public function __construct(
+        private readonly TouchTransferSessionAction $touch,
+        private readonly FileStore $files,
+    ) {}
 
     public function handle(
         TransferSession $session,
@@ -26,13 +28,11 @@ final class AddTransferItemAction
         $path = null;
         try {
             if ($file !== null) {
-                $path = $file->storeAs(
+                $path = $this->files->storeAs(
+                    $file,
                     "transfers/{$session->access_code}",
                     Str::random(16).'.'.$file->getClientOriginalExtension(),
                 );
-                if (! is_string($path)) {
-                    throw new RuntimeException('The transfer item could not be stored.');
-                }
             }
 
             return DB::transaction(function () use ($session, $participant, $file, $body, $path): TransferItem {
@@ -53,7 +53,7 @@ final class AddTransferItemAction
             });
         } catch (Throwable $exception) {
             if (is_string($path)) {
-                Storage::delete($path);
+                $this->files->delete($path);
             }
             throw $exception;
         }
