@@ -1,4 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -51,6 +52,28 @@ function titleForComponent(component: string): string {
 export function AppProviders({ children }: { children: React.ReactNode }) {
     const { component, props } = usePage<SharedPageProps>();
     const title = titleForComponent(component);
+    const structuredData = props.seo.canonical
+        ? {
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: props.name,
+              description: props.seo.description,
+              url: props.seo.canonical,
+              applicationCategory: 'UtilitiesApplication',
+              operatingSystem: 'Web',
+              isAccessibleForFree: true,
+          }
+        : null;
+    const structuredDataJson = structuredData
+        ? JSON.stringify(structuredData).replaceAll('<', '\\u003c')
+        : null;
+
+    useEffect(() => {
+        // Blade supplies crawler-visible tags; Inertia owns them after hydration.
+        document
+            .querySelectorAll('[data-server-seo]')
+            .forEach((element) => element.remove());
+    }, []);
 
     return (
         <ThemeProvider>
@@ -81,6 +104,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                             head-key="og:title"
                             property="og:title"
                             content={`${title} - ${props.name}`}
+                        />
+                        <meta
+                            head-key="og:site_name"
+                            property="og:site_name"
+                            content={props.name}
                         />
                         <meta
                             head-key="og:description"
@@ -114,6 +142,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                                     content={props.seo.image}
                                 />
                             </>
+                        )}
+                        {structuredDataJson && (
+                            <script
+                                head-key="structured-data"
+                                type="application/ld+json"
+                                dangerouslySetInnerHTML={{
+                                    __html: structuredDataJson,
+                                }}
+                            />
                         )}
                     </>
                 )}

@@ -14,7 +14,7 @@ The app runs on Laravel 13, Inertia 3, React 19, and MariaDB or another Laravel-
 
 ## Requirements
 
-- PHP 8.4 or newer with the extensions checked by the installer
+- PHP 8.4.1 or newer with the extensions checked by the installer
 - Composer 2
 - Node.js 24 and pnpm 10
 - MariaDB 11, MySQL 8, PostgreSQL, or SQLite

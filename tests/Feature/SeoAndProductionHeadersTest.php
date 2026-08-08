@@ -49,15 +49,15 @@ it('renders indexable metadata only on the Drop Workspace', function (): void {
     $this->get('/')
         ->assertOk()
         ->assertHeader('X-Robots-Tag', 'index, follow')
-        ->assertSee('<meta name="robots" content="index, follow">', false)
-        ->assertSee('<link rel="canonical" href="'.$canonical.'">', false)
+        ->assertSee('<meta data-server-seo name="robots" content="index, follow">', false)
+        ->assertSee('<link data-server-seo rel="canonical" href="'.$canonical.'">', false)
         ->assertSee('https://schema.org', false);
 
     $this->get('/signin')
         ->assertOk()
         ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
-        ->assertSee('<meta name="robots" content="noindex, nofollow, noarchive">', false)
-        ->assertDontSee('<link rel="canonical"', false);
+        ->assertSee('<meta data-server-seo name="robots" content="noindex, nofollow, noarchive">', false)
+        ->assertDontSee('rel="canonical"', false);
 });
 
 it('keeps unlisted shares out of search results', function (): void {
@@ -69,7 +69,7 @@ it('keeps unlisted shares out of search results', function (): void {
     $this->get(route('shares.show', $share))
         ->assertOk()
         ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
-        ->assertSee('<meta name="robots" content="noindex, nofollow, noarchive">', false);
+        ->assertSee('<meta data-server-seo name="robots" content="noindex, nofollow, noarchive">', false);
 });
 
 it('sandboxes browser-rendered upload payloads', function (): void {
