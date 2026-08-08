@@ -5,7 +5,7 @@ Code can cover safe defaults, but it can't choose your domain, backup storage, o
 ## Host and application
 
 - [ ] Point the web root at `public/` and reject direct access to dotfiles.
-- [ ] Install PHP 8.4.1 or newer, the required extensions, Composer 2, Node.js 24, and pnpm 10.
+- [ ] Install PHP 8.5 or newer, the required extensions, Composer 2, Node.js 24, and pnpm 10.
 - [ ] Set `APP_ENV=production`, `APP_DEBUG=false`, a generated `APP_KEY`, and the final HTTPS `APP_URL`.
 - [ ] Terminate TLS at the web server or reverse proxy, redirect HTTP to HTTPS, and set `SESSION_SECURE_COOKIE=true`.
 - [ ] If a reverse proxy forwards requests, set `TRUSTED_PROXIES` to its IP ranges. Don't use `*` on a host that clients can reach directly.

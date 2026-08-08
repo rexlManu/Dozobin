@@ -4,7 +4,7 @@
 
 Dōzobin is a self-hosted workspace for unlisted File Shares, Pastes, and temporary accountless Transfer Sessions. It is a single Laravel application with an Inertia/React frontend, database-backed queues, and one deployment-controlled File Store.
 
-- Backend: PHP 8.4.1+, Laravel 13, Eloquent, Pest 4, PHPStan/Larastan level 7, and Laravel Pint.
+- Backend: PHP 8.5+, Laravel 13, Eloquent, Pest 4, PHPStan/Larastan level 7, and Laravel Pint.
 - Frontend: TypeScript, React 19, Inertia 3, Vite 8, Tailwind CSS 4, and Vitest.
 - Local environment: DDEV with MariaDB, Node.js 24, and pnpm 10.
 - Production: the repository Docker image or an equivalent PHP deployment, with MariaDB or another Laravel-supported database.

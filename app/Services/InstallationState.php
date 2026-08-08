@@ -20,7 +20,7 @@ use Throwable;
  */
 final class InstallationState
 {
-    private const REQUIRED_PHP = '8.4.1';
+    private const REQUIRED_PHP = '8.5';
 
     /** @var list<string> */
     private const REQUIRED_EXTENSIONS = [

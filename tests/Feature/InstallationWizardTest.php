@@ -52,7 +52,7 @@ it('reports the database connection and the environment on the first step', func
             ->where('database.connected', true)
             ->where('database.migrated', false)
             ->has('requirements')
-            ->where('requirements.0.label', 'PHP 8.4.1 or newer')
+            ->where('requirements.0.label', 'PHP 8.5 or newer')
             ->where('requirements.4.label', 'File Store')
             ->where('requirements.4.satisfied', true)
             ->where('installation.complete', false)
