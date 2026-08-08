@@ -1,0 +1,4 @@
+[      70ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/css/app.css:0
+[      71ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@vite/client:0
+[      71ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/js/app.tsx:0
+[      74ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@react-refresh:0

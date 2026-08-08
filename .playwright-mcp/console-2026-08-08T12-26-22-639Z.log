@@ -1,0 +1,12 @@
+[     199ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/css/app.css:0
+[     199ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@vite/client:0
+[     200ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/js/app.tsx:0
+[     211ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@react-refresh:0
+[   11216ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/css/app.css:0
+[   11216ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@vite/client:0
+[   11217ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/js/app.tsx:0
+[   11218ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@react-refresh:0
+[   20523ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/css/app.css:0
+[   20523ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@vite/client:0
+[   20523ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/resources/js/app.tsx:0
+[   20523ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://dozobin.ddev.site:5173/@react-refresh:0

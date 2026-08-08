@@ -62,6 +62,9 @@ export function DataTable<T>({
     const pages = table.getPageCount();
     const { pageIndex, pageSize } = table.getState().pagination;
     const total = table.getFilteredRowModel().rows.length;
+    const selectable = table
+        .getAllLeafColumns()
+        .some((column) => column.id === 'select');
     const firstOnPage = total === 0 ? 0 : pageIndex * pageSize + 1;
     const lastOnPage = Math.min(total, (pageIndex + 1) * pageSize);
 
@@ -72,13 +75,17 @@ export function DataTable<T>({
   */
     const strip = (
         <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
-            <Checkbox
-                aria-label="Select everything on this page"
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(v) =>
-                    table.toggleAllPageRowsSelected(v === true)
-                }
-            />
+            {/* Only where a row can actually be selected — otherwise it is a
+                control that reports on nothing. */}
+            {selectable && (
+                <Checkbox
+                    aria-label="Select everything on this page"
+                    checked={table.getIsAllPageRowsSelected()}
+                    onCheckedChange={(v) =>
+                        table.toggleAllPageRowsSelected(v === true)
+                    }
+                />
+            )}
             {selected > 0 && selectionBar ? (
                 <>
                     <span className="text-[12.5px] font-medium">
