@@ -39,7 +39,7 @@ docker compose -f compose.production.yaml up -d
 
 Uploads use the persistent `app-data` volume at `/data/files` by default. Set `FILESYSTEM_DISK=s3` and the S3 variables to use AWS S3, MinIO, or Hetzner Object Storage instead. See [Docker deployment](docs/operations/docker.md) for the complete configuration and upgrade procedure.
 
-The image will become anonymously pullable from `ghcr.io/rexlmanu/dozobin` with the first public release. Until then, the repository and package remain private and the sample image does not exist publicly. The one-time visibility change and tag flow are documented in [publishing releases](docs/operations/releases.md).
+Published images are anonymously pullable from `ghcr.io/rexlmanu/dozobin`. Pin an immutable version such as `0.1.0-alpha.1` instead of relying on a moving tag. The release and package-visibility flow is documented in [publishing releases](docs/operations/releases.md).
 
 ## Manual production install
 

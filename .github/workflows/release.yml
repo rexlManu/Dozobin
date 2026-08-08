@@ -15,7 +15,40 @@ env:
   IMAGE_NAME: ghcr.io/rexlmanu/dozobin
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: sqlite
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup application
+        run: composer setup
+
+      - name: Run CI checks
+        run: composer ci:check
+
   publish:
+    needs: verify
     runs-on: ubuntu-latest
 
     steps:
@@ -24,12 +57,19 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Validate stable release tag
+      - name: Classify release tag
+        id: release
         shell: bash
         run: |
-          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release tags must use vMAJOR.MINOR.PATCH without a prerelease suffix." >&2
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE." >&2
             exit 1
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Record build time
@@ -53,11 +93,12 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ${{ env.IMAGE_NAME }}
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
+            type=semver,pattern={{major}}.{{minor}},enable=${{ steps.release.outputs.prerelease == 'false' }}
+            type=semver,pattern={{major}},enable=${{ steps.release.outputs.prerelease == 'false' && !startsWith(github.ref_name, 'v0.') }}
+            type=raw,value=latest,enable=${{ steps.release.outputs.prerelease == 'false' }}
 
       - name: Build and publish image
         id: publish
@@ -89,5 +130,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+            args=(--verify-tag --generate-notes --title "$GITHUB_REF_NAME")
+
+            if [[ "${{ steps.release.outputs.prerelease }}" == "true" ]]; then
+              args+=(--prerelease --latest=false)
+            fi
+
+            gh release create "$GITHUB_REF_NAME" "${args[@]}"
           fi

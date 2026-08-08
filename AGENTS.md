@@ -89,7 +89,7 @@ Add or update a Pest regression test for backend behavior. Frontend behavior bel
 
 Production behavior is defined by `Dockerfile`, `compose.production.yaml`, and `docs/operations/docker.md`. The container applies migrations before supervising Nginx, PHP-FPM, both queue workers, and the scheduler. ClamAV and the database remain separate services.
 
-The workflow in `.github/workflows/release.yml` publishes only stable `vMAJOR.MINOR.PATCH` tags to GHCR for AMD64 and ARM64, then creates the matching GitHub Release. Do not publish an image or create a tag unless the user explicitly requests a release. Follow `RELEASE_CHECKLIST.md` and `docs/operations/releases.md` before publishing.
+The workflow in `.github/workflows/release.yml` publishes stable `vMAJOR.MINOR.PATCH` tags and semantic prerelease tags such as `v0.1.0-alpha.1` to GHCR for AMD64 and ARM64, then creates the matching GitHub Release. Prereleases publish only their immutable full-version image tag and never move stable aliases. Do not publish an image or create a tag unless the user explicitly requests a release. Follow `RELEASE_CHECKLIST.md` and `docs/operations/releases.md` before publishing.
 
 ## Laravel Boost ownership
 
@@ -114,6 +114,10 @@ This application is a Laravel application running on PHP 8.5. You are an expert 
 Before relying on a package's API, confirm its installed version:
 - PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
 - JS packages: check `package.json` for the installed versions.
+
+## Skills Activation
+
+This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
 
 ## Conventions
 
