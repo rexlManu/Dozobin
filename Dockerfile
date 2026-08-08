@@ -43,10 +43,15 @@ RUN composer install \
     --prefer-dist \
     --classmap-authoritative
 
-FROM node:24-bookworm-slim AS frontend
+FROM node:24-bookworm-slim AS node-runtime
+
+FROM php-base AS frontend
+
+COPY --from=node-runtime /usr/local /usr/local
 
 WORKDIR /app
 COPY . .
+COPY --from=vendor /var/www/html/vendor /app/vendor
 RUN corepack enable \
     && corepack prepare pnpm@10.33.2 --activate \
     && pnpm install --frozen-lockfile \
