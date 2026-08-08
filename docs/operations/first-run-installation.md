@@ -18,6 +18,14 @@ On the `installation_settings` row, not on disk: in a container the database is 
 
 While the installation is unfinished **and** the database is unreachable, sessions, the cache, and the queue fall back to the filesystem for the duration of the request. Otherwise the wizard could not render the very failure it exists to report.
 
+## Trying it on DDEV
+
+`ddev exec php artisan db:wipe --force` puts the project back to a genuine first run: no schema, no administrator, no settings. Opening the site then lands on step 1, and `rm -f public/storage` first if you also want to watch the symlink get created.
+
+`ddev exec php artisan migrate:fresh --seed` restores the seeded development data and skips the wizard again, because the settings factory writes `installed_at`.
+
+To see the failure path, point `DB_HOST` at an address that does not answer, `ddev restart`, and load the site. It reports the driver's own error within `DB_CONNECT_TIMEOUT` seconds, and sessions fall back to the filesystem so the page can render at all.
+
 ## Provisioned deployments
 
 Set `DOZOBIN_SKIP_INSTALLER=true` when a deployment creates the administrator and settings itself. The wizard then never appears, and no route is held shut.

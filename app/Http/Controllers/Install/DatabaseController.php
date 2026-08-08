@@ -11,10 +11,8 @@ final class DatabaseController extends Controller
 {
     public function store(RunDatabaseMigrationsAction $migrate, InstallationState $state): RedirectResponse
     {
-        $output = $migrate->handle();
+        $migrate->handle();
 
-        return redirect()
-            ->route('install.'.$state->step()->value)
-            ->with('status', $output === '' ? 'The database schema is up to date.' : $output);
+        return redirect()->route('install.'.$state->step()->value);
     }
 }

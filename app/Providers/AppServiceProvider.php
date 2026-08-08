@@ -30,17 +30,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-        $this->surviveAnUnreachableDatabase();
+        $this->surviveAnUnpreparedDatabase();
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
     }
 
     /**
      * Sessions, the cache and the queue all live in the database by default,
-     * so a first run against a database that is not up yet would fail before
-     * the wizard could say so. While the installation is unfinished and the
-     * connection is down, move those onto the filesystem.
+     * and on a first run that database is either unreachable or empty. Either
+     * way the wizard could not render the failure it exists to report, so put
+     * those three on the filesystem until the schema can carry them.
      */
-    protected function surviveAnUnreachableDatabase(): void
+    protected function surviveAnUnpreparedDatabase(): void
     {
         if ($this->app->runningInConsole()) {
             return;
@@ -48,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
 
         $installation = $this->app->make(InstallationState::class);
 
-        if ($installation->isComplete() || $installation->database()->connected) {
+        if ($installation->isComplete() || $installation->databaseStoresReady()) {
             return;
         }
 

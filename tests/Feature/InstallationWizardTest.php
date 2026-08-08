@@ -3,6 +3,7 @@
 use App\Enums\UserRole;
 use App\Models\InstallationSetting;
 use App\Models\User;
+use App\Services\InstallationState;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /** The settings payload the wizard posts, matching the administration form. */
@@ -136,6 +137,17 @@ it('treats a settings row without an installed_at as unfinished', function (): v
     InstallationSetting::factory()->pending()->create();
 
     $this->get('/')->assertRedirect('/install/account');
+});
+
+it('knows an empty schema cannot back sessions or the cache', function (): void {
+    $state = app(InstallationState::class);
+
+    expect($state->databaseStoresReady())->toBeTrue();
+
+    Schema::drop('sessions');
+    $state->refresh();
+
+    expect($state->databaseStoresReady())->toBeFalse();
 });
 
 it('skips the wizard entirely when the deployment opts out', function (): void {

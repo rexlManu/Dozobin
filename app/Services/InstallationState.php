@@ -31,6 +31,8 @@ final class InstallationState
 
     private ?DatabaseStatus $database = null;
 
+    private ?bool $storesReady = null;
+
     public function __construct(private readonly Migrator $migrator) {}
 
     /**
@@ -58,6 +60,16 @@ final class InstallationState
     public function database(): DatabaseStatus
     {
         return $this->database ??= $this->resolveDatabase();
+    }
+
+    /**
+     * Whether the database can already back sessions and the cache. False on a
+     * first run whether the server is down or merely empty: an unmigrated
+     * schema has no sessions table to write to.
+     */
+    public function databaseStoresReady(): bool
+    {
+        return $this->storesReady ??= $this->resolveStoresReady();
     }
 
     public function hasAdministrator(): bool
@@ -121,6 +133,18 @@ final class InstallationState
     {
         $this->complete = null;
         $this->database = null;
+        $this->storesReady = null;
+    }
+
+    private function resolveStoresReady(): bool
+    {
+        try {
+            $schema = DB::connection()->getSchemaBuilder();
+
+            return $schema->hasTable('sessions') && $schema->hasTable('cache');
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private function resolveComplete(): bool

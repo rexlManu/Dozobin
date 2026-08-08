@@ -11,8 +11,7 @@ final class RunDatabaseMigrationsAction
 {
     public function __construct(private InstallationState $state) {}
 
-    /** @return string The migrator's own output, shown back to the operator. */
-    public function handle(): string
+    public function handle(): void
     {
         $status = $this->state->database();
 
@@ -31,7 +30,5 @@ final class RunDatabaseMigrationsAction
         }
 
         $this->state->refresh();
-
-        return trim(Artisan::output());
     }
 }

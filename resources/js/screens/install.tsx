@@ -234,8 +234,11 @@ export function DatabaseStep({
     requirements: InstallRequirement[];
 }) {
     // The migrator reports through the shared error bag rather than a field,
-    // because this step submits nothing.
-    const { flash, errors } = usePage<SharedPageProps>().props;
+    // because this step submits nothing. Success is not flashed back: running
+    // the migrations is what gives the database a sessions table, so anything
+    // put in the session here is written to a store the next request has
+    // already stopped reading. The connection card says the same thing anyway.
+    const { errors } = usePage<SharedPageProps>().props;
     const form = useForm({});
     const blocked = requirements.some((check) => !check.satisfied);
     const failure =
@@ -248,12 +251,6 @@ export function DatabaseStep({
             intro="Dōzobin reads its database credentials from the environment it was started with. Nothing on this page writes to that environment, so a failure here is fixed in your compose file or .env and then rechecked."
         >
             <ConnectionCard database={database} />
-
-            {flash.status !== null && (
-                <pre className="max-h-56 overflow-auto rounded-lg border border-border bg-sunken px-4 py-3 font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap">
-                    {flash.status}
-                </pre>
-            )}
 
             {failure !== undefined && (
                 <p className="flex items-start gap-1.5 text-[12.5px] text-destructive">
