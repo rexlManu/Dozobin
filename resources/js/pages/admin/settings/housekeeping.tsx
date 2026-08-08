@@ -25,7 +25,10 @@ function HousekeepingContent({ shares }: { shares: Share[] }) {
         () => shares.filter((s) => s.ownerId === null),
         [shares],
     );
-    const cleanupCutoff = now - draft.payloadCleanupGraceHours * 60 * 60 * 1000;
+    const cleanupCutoff =
+        now === null
+            ? Number.NEGATIVE_INFINITY
+            : now - draft.payloadCleanupGraceHours * 60 * 60 * 1000;
     const expiredWithPayload = useMemo(
         () =>
             shares.filter(
