@@ -2,6 +2,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import type { SharedPageProps } from '@/types';
 
 const pageTitles: Record<string, string> = {
     workspace: 'Drop',
@@ -48,11 +49,75 @@ function titleForComponent(component: string): string {
 }
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-    const { component } = usePage();
+    const { component, props } = usePage<SharedPageProps>();
+    const title = titleForComponent(component);
 
     return (
         <ThemeProvider>
-            <Head title={titleForComponent(component)} />
+            <Head title={title}>
+                <meta
+                    head-key="description"
+                    name="description"
+                    content={props.seo.description}
+                />
+                <meta
+                    head-key="robots"
+                    name="robots"
+                    content={props.seo.robots}
+                />
+                {props.seo.canonical && (
+                    <>
+                        <link
+                            head-key="canonical"
+                            rel="canonical"
+                            href={props.seo.canonical}
+                        />
+                        <meta
+                            head-key="og:type"
+                            property="og:type"
+                            content="website"
+                        />
+                        <meta
+                            head-key="og:title"
+                            property="og:title"
+                            content={`${title} - ${props.name}`}
+                        />
+                        <meta
+                            head-key="og:description"
+                            property="og:description"
+                            content={props.seo.description}
+                        />
+                        <meta
+                            head-key="og:url"
+                            property="og:url"
+                            content={props.seo.canonical}
+                        />
+                        <meta
+                            head-key="twitter:card"
+                            name="twitter:card"
+                            content={
+                                props.seo.image
+                                    ? 'summary_large_image'
+                                    : 'summary'
+                            }
+                        />
+                        {props.seo.image && (
+                            <>
+                                <meta
+                                    head-key="og:image"
+                                    property="og:image"
+                                    content={props.seo.image}
+                                />
+                                <meta
+                                    head-key="twitter:image"
+                                    name="twitter:image"
+                                    content={props.seo.image}
+                                />
+                            </>
+                        )}
+                    </>
+                )}
+            </Head>
             <TooltipProvider delayDuration={200}>
                 {children}
                 <Toaster position="bottom-center" />

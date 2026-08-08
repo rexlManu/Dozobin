@@ -72,9 +72,24 @@ class HandleInertiaRequests extends Middleware
                 'step' => $this->installation->step()->value,
             ],
             'appearance' => $user?->appearance->value ?? 'system',
+            'seo' => fn (): array => $this->seo($request),
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
             ],
+        ];
+    }
+
+    /** @return array{description: string, robots: string, canonical: string|null, image: string|null} */
+    private function seo(Request $request): array
+    {
+        $indexable = (bool) config('seo.indexing_enabled') && $request->routeIs('home');
+        $image = config('seo.image');
+
+        return [
+            'description' => (string) config('seo.description'),
+            'robots' => $indexable ? 'index, follow' : 'noindex, nofollow, noarchive',
+            'canonical' => $indexable ? rtrim((string) config('app.url'), '/') : null,
+            'image' => is_string($image) && $image !== '' ? $image : null,
         ];
     }
 }

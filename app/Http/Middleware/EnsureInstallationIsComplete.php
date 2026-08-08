@@ -18,7 +18,7 @@ class EnsureInstallationIsComplete
     {
         // The health endpoint sits in the web group too, and an orchestrator
         // polling it during a first boot should not be told to go install.
-        if ($request->routeIs('install.*') || $request->is('up')) {
+        if ($request->routeIs('install.*', 'seo.*') || $request->is('up')) {
             return $next($request);
         }
 

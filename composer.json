@@ -4,17 +4,20 @@
     "type": "project",
     "description": "A self-hosted drop for files, screenshots, and text.",
     "keywords": [
+        "file-sharing",
+        "self-hosted",
         "laravel",
-        "framework"
+        "inertia"
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "inertiajs/inertia-laravel": "^3.0",
         "lab404/laravel-impersonate": "^1.7",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "spatie/laravel-sitemap": "^8.2",
         "spatie/laravel-query-builder": "^7.3"
     },
     "require-dev": {

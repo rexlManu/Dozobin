@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AddResponseHeaders;
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureInstallationIsComplete;
 use App\Http\Middleware\EnsureInstallationIsPending;
@@ -18,14 +19,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustHosts();
         $middleware->alias([
             'dozo.token' => AuthenticateApiToken::class,
             'install.pending' => EnsureInstallationIsPending::class,
         ]);
         $middleware->web(prepend: [
+            AddResponseHeaders::class,
             EnsureInstallationIsComplete::class,
         ]);
         $middleware->api(prepend: [
+            AddResponseHeaders::class,
             EnsureInstallationIsComplete::class,
         ]);
         $middleware->web(append: [

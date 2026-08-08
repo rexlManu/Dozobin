@@ -20,10 +20,15 @@ use App\Http\Controllers\Page\SettingsPageController;
 use App\Http\Controllers\PasswordResetLinkController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicShareController;
+use App\Http\Controllers\Seo\RobotsController;
+use App\Http\Controllers\Seo\SitemapController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\TransferItemController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/robots.txt', RobotsController::class)->name('seo.robots');
+Route::get('/sitemap.xml', SitemapController::class)->name('seo.sitemap');
 
 /*
  * First run. Every other route redirects here until the wizard finishes, and
@@ -61,9 +66,9 @@ Route::get('/transfer-items/{transferItem}/content', [TransferItemController::cl
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/signin', [AuthPageController::class, 'signIn'])->name('signin');
-    Route::post('/signin', [AuthController::class, 'login'])->name('login');
+    Route::post('/signin', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
     Route::get('/register', [AuthPageController::class, 'register'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.store');
     Route::get('/reset', [AuthPageController::class, 'reset'])->name('password.request');
     Route::post('/reset', PasswordResetLinkController::class)->middleware('throttle:6,1')->name('password.email');
 });
