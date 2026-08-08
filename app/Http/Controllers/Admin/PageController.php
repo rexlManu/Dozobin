@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Transfers\FindCurrentTransferSessionAction;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\InviteCodeResource;
 use App\Http\Resources\ShareResource;
 use App\Http\Resources\TransferSessionResource;
 use App\Http\Resources\UserResource;
+use App\Models\InviteCode;
 use App\Models\Share;
 use App\Models\TransferSession;
 use App\Models\User;
@@ -80,6 +82,15 @@ final class PageController extends Controller
             'transfer' => fn () => $this->transfer($request, $current->handle($request)),
             'transferHistory' => fn () => TransferSessionResource::collection(
                 TransferSession::query()->with(['items.participant', 'participants', 'activities'])->latest()->limit(100)->get(),
+            )->resolve($request),
+        ]);
+    }
+
+    public function invites(Request $request): Response
+    {
+        return Inertia::render('admin/invites/index', [
+            'invites' => fn () => InviteCodeResource::collection(
+                InviteCode::query()->latest()->get(),
             )->resolve($request),
         ]);
     }

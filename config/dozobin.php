@@ -1,6 +1,8 @@
 <?php
 
 return [
+    // Transition path for installations upgrading from the original single-code system.
+    // Remove it from the environment after issuing managed invites.
     'invite_code' => env('DOZOBIN_INVITE_CODE'),
 
     'installation' => [

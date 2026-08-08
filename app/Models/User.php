@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -18,6 +19,7 @@ use Lab404\Impersonate\Models\Impersonate;
 
 /**
  * @property int $id
+ * @property int|null $invite_code_id
  * @property string $name
  * @property string $email
  * @property CarbonImmutable|null $email_verified_at
@@ -41,7 +43,7 @@ class User extends Authenticatable
 
     /** @var list<string> */
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'status', 'avatar_path', 'appearance',
+        'invite_code_id', 'name', 'email', 'password', 'role', 'status', 'avatar_path', 'appearance',
         'default_expiration', 'storage_limit', 'suspended_at',
     ];
 
@@ -55,6 +57,18 @@ class User extends Authenticatable
     public function apiTokens(): HasMany
     {
         return $this->hasMany(ApiToken::class);
+    }
+
+    /** @return BelongsTo<InviteCode, $this> */
+    public function inviteCode(): BelongsTo
+    {
+        return $this->belongsTo(InviteCode::class);
+    }
+
+    /** @return HasMany<InviteCode, $this> */
+    public function createdInviteCodes(): HasMany
+    {
+        return $this->hasMany(InviteCode::class, 'created_by_user_id');
     }
 
     public function isAdmin(): bool
