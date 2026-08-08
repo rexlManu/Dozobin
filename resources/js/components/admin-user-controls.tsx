@@ -35,7 +35,13 @@ export function RoleChip({ role }: { role: Account['role'] }) {
     );
 }
 
-export function StatusChip({ account }: { account: Account }) {
+export function StatusChip({
+    account,
+    now,
+}: {
+    account: Account;
+    now: number;
+}) {
     if (account.status === 'active') {
         return (
             <span className="text-[12.5px] text-muted-foreground">Active</span>
@@ -46,7 +52,7 @@ export function StatusChip({ account }: { account: Account }) {
         <span
             title={
                 account.suspendedAt
-                    ? `Suspended ${relativeTime(account.suspendedAt)}`
+                    ? `Suspended ${relativeTime(account.suspendedAt, now)}`
                     : undefined
             }
             className="inline-flex items-center rounded-sm bg-destructive-soft px-1.5 py-0.5 text-[11px] font-medium text-destructive"

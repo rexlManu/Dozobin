@@ -85,6 +85,21 @@ export interface ApiToken {
     justCreated?: boolean;
 }
 
+export type InviteCodeStatus = 'active' | 'expired' | 'exhausted' | 'revoked';
+
+export interface InviteCode {
+    id: string;
+    name: string;
+    code: string;
+    shareUrl: string;
+    maxUses: number | null;
+    uses: number;
+    expiresAt: number | null;
+    revokedAt: number | null;
+    createdAt: number;
+    status: InviteCodeStatus;
+}
+
 export interface LoginSession {
     id: string;
     device: string;

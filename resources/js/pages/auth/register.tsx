@@ -13,14 +13,21 @@ import { Input } from '@/components/ui/input';
 import { Link } from '@/lib/navigation';
 import type { SharedPageProps } from '@/types';
 
+interface RegisterPageProps extends SharedPageProps {
+    initialInvite: string;
+    inviteAvailable: boolean | null;
+}
+
 function RegisterContent() {
-    const registration = usePage<SharedPageProps>().props.config.registration;
+    const { config, initialInvite, inviteAvailable } =
+        usePage<RegisterPageProps>().props;
+    const registration = config.registration;
     const form = useForm({
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
-        invite: '',
+        invite: initialInvite,
     });
 
     if (registration === 'closed') {
@@ -39,6 +46,27 @@ function RegisterContent() {
             >
                 <Button asChild size="lg">
                     <Link to="/">Share as a Guest</Link>
+                </Button>
+            </Panel>
+        );
+    }
+
+    if (registration === 'invite' && inviteAvailable === false) {
+        return (
+            <Panel
+                title="Invite link unavailable"
+                intro="This invite is invalid, expired, revoked, or has reached its use limit. Ask the administrator for a new link."
+                footer={
+                    <Link
+                        className="underline decoration-border-strong underline-offset-4"
+                        to="/"
+                    >
+                        Back to the workspace
+                    </Link>
+                }
+            >
+                <Button asChild size="lg">
+                    <Link to="/">Go to the workspace</Link>
                 </Button>
             </Panel>
         );

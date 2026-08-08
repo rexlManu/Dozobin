@@ -8,13 +8,15 @@ import {
 import { AppProviders } from '@/components/app-providers';
 import { Countdown } from '@/components/expiry';
 import { Input } from '@/components/ui/input';
+import { useNow } from '@/hooks/use-now';
 import { isTransferExpired, transferExpiresAt } from '@/lib/transfer-state';
 import type { TransferSession } from '@/lib/types';
 
 function TransferContent({ transfer }: { transfer: TransferSession | null }) {
+    const now = useNow(30_000);
     const { draft, setDraft, shown } = useAdminSettings();
     const windowMs = draft.transferWindowHours * 60 * 60 * 1000;
-    const live = transfer && !isTransferExpired(transfer, windowMs);
+    const live = transfer && !isTransferExpired(transfer, windowMs, now);
 
     return (
         <>

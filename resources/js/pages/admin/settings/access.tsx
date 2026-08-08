@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
@@ -9,10 +10,14 @@ import { AppProviders } from '@/components/app-providers';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
+import { Link } from '@/lib/navigation';
 import type { AdminConfig } from '@/lib/types';
+import type { SharedPageProps } from '@/types';
 
 function AccessContent() {
     const { draft, setDraft } = useAdminSettings();
+    const persistedRegistration =
+        usePage<SharedPageProps>().props.config.registration;
 
     return (
         <>
@@ -82,6 +87,24 @@ function AccessContent() {
                         </label>
                     ))}
                 </RadioGroup>
+                {draft.registration === 'invite' && (
+                    <p className="text-[12px] leading-relaxed text-muted-foreground">
+                        {persistedRegistration === 'invite' ? (
+                            <>
+                                Create and revoke codes under{' '}
+                                <Link
+                                    to="/admin/invites"
+                                    className="text-foreground underline decoration-border-strong underline-offset-4"
+                                >
+                                    Invites
+                                </Link>
+                                .
+                            </>
+                        ) : (
+                            'Save this change before creating invite codes.'
+                        )}
+                    </p>
+                )}
             </AdminSettingsField>
         </>
     );

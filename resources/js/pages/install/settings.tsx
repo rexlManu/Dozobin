@@ -117,7 +117,7 @@ function SettingsContent({ defaults }: { defaults: AdminConfig }) {
                                 [
                                     'invite',
                                     'Invite only',
-                                    'Registration needs the code in DOZOBIN_INVITE_CODE.',
+                                    'Registration needs a code an administrator creates after setup.',
                                 ],
                                 ['closed', 'Closed', 'No new accounts at all.'],
                             ] as const

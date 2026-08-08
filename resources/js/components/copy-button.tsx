@@ -1,4 +1,4 @@
-import { Check, Copy } from '@phosphor-icons/react';
+import { Check, Copy, WarningCircle } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,11 +24,16 @@ async function writeClipboard(value: string) {
         area.style.position = 'fixed';
         area.style.opacity = '0';
         document.body.append(area);
-        area.select();
-        const ok = document.execCommand('copy');
-        area.remove();
 
-        return ok;
+        try {
+            area.select();
+
+            return document.execCommand('copy');
+        } catch {
+            return false;
+        } finally {
+            area.remove();
+        }
     }
 }
 
@@ -41,34 +46,43 @@ export function CopyButton({
     size,
     ...rest
 }: CopyButtonProps) {
-    const [copied, setCopied] = useState(false);
+    const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
     const timer = useRef<number | undefined>(undefined);
 
     useEffect(() => () => window.clearTimeout(timer.current), []);
 
     const isIcon = typeof size === 'string' && size.startsWith('icon');
+    const stateLabel =
+        state === 'copied'
+            ? copiedLabel
+            : state === 'failed'
+              ? 'Copy failed'
+              : label;
 
     return (
         <Button
             type="button"
             variant={variant}
             size={size}
-            aria-label={isIcon ? label : undefined}
+            aria-label={isIcon ? stateLabel : undefined}
             className={cn(className)}
             onClick={async () => {
-                await writeClipboard(value);
-                setCopied(true);
+                const copied = await writeClipboard(value);
+                setState(copied ? 'copied' : 'failed');
                 window.clearTimeout(timer.current);
-                timer.current = window.setTimeout(() => setCopied(false), 1600);
+                timer.current = window.setTimeout(() => setState('idle'), 1600);
             }}
+            aria-live="polite"
             {...rest}
         >
-            {copied ? (
+            {state === 'copied' ? (
                 <Check weight="bold" className="text-primary" />
+            ) : state === 'failed' ? (
+                <WarningCircle weight="fill" className="text-destructive" />
             ) : (
                 <Copy />
             )}
-            {!isIcon && <span>{copied ? copiedLabel : label}</span>}
+            {!isIcon && <span>{stateLabel}</span>}
         </Button>
     );
 }

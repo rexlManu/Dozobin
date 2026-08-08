@@ -55,7 +55,7 @@ export function formatBytes(bytes: number): string {
 }
 
 /** "in 3 days" / "4 minutes ago" without pulling in a date library. */
-export function relativeTime(target: number, now = Date.now()): string {
+export function relativeTime(target: number, now: number): string {
     const diff = target - now;
     const abs = Math.abs(diff);
     const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
@@ -88,7 +88,7 @@ export function formatDateTime(at: number): string {
 }
 
 /** Fixed-width countdown, e.g. "11:58:04" or "3d 04:11". */
-export function countdown(target: number, now = Date.now()): string {
+export function countdown(target: number, now: number): string {
     const left = Math.max(0, target - now);
     const days = Math.floor(left / DAY);
     const hours = Math.floor((left % DAY) / HOUR);
@@ -103,10 +103,7 @@ export function countdown(target: number, now = Date.now()): string {
     return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-export function isExpiringSoon(
-    expiresAt: number | null,
-    now = Date.now(),
-): boolean {
+export function isExpiringSoon(expiresAt: number | null, now: number): boolean {
     if (expiresAt === null) {
         return false;
     }

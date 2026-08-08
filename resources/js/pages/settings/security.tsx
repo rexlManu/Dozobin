@@ -8,10 +8,12 @@ import { SettingsLayout, SettingsPageHead } from '@/components/settings-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useNow } from '@/hooks/use-now';
 import { relativeTime } from '@/lib/format';
 import type { SharedPageProps } from '@/types';
 
 function SecurityContent() {
+    const now = useNow(30_000);
     const account = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
 
@@ -174,7 +176,10 @@ function SecurityContent() {
                                         {session.browser} · {session.location} ·{' '}
                                         {session.current
                                             ? 'active now'
-                                            : relativeTime(session.lastSeenAt)}
+                                            : relativeTime(
+                                                  session.lastSeenAt,
+                                                  now,
+                                              )}
                                     </p>
                                 </div>
                                 <Button

@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/select';
 import type { View } from '@/components/view-switch';
 import { ViewSwitch } from '@/components/view-switch';
+import { useNow } from '@/hooks/use-now';
 import { formatBytes, relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import {
@@ -75,12 +76,12 @@ const STATES: [State, string][] = [
 
 const GUEST = '__guest';
 
-function matchesState(share: Share, state: State): boolean {
+function matchesState(share: Share, state: State, now: number): boolean {
     switch (state) {
         case 'live':
-            return share.state === 'ready' && !isShareExpired(share);
+            return share.state === 'ready' && !isShareExpired(share, now);
         case 'expired':
-            return isShareExpired(share);
+            return isShareExpired(share, now);
         case 'missing':
             return share.state === 'unavailable';
         case 'blocked':
@@ -143,6 +144,7 @@ export function AdminUploadsExplorer({
     accountList: Account[];
     ownerId?: string;
 }) {
+    const now = useNow(30_000);
     const accounts = useMemo(
         () =>
             Object.fromEntries(
@@ -209,8 +211,8 @@ export function AdminUploadsExplorer({
                 ? shares.filter((s) => s.ownerId === null)
                 : shares.filter((s) => s.ownerId === owner);
 
-        return byOwner.filter((s) => matchesState(s, state));
-    }, [shares, scoped, ownerId, owner, state]);
+        return byOwner.filter((s) => matchesState(s, state, now));
+    }, [shares, scoped, ownerId, owner, state, now]);
 
     const typeCounts = useMemo(() => {
         const tally = {} as Record<Category, number>;
@@ -279,11 +281,11 @@ export function AdminUploadsExplorer({
             malwareScanningEnabled &&
             share.kind === 'file' &&
             share.state === 'ready' &&
-            !isShareExpired(share) &&
+            !isShareExpired(share, now) &&
             (share.malwareScan?.status === null ||
                 share.malwareScan?.status === undefined ||
                 share.malwareScan.status === 'failed'),
-        [malwareScanningEnabled],
+        [malwareScanningEnabled, now],
     );
 
     const columns = useMemo(() => {
@@ -316,7 +318,7 @@ export function AdminUploadsExplorer({
                 cell: ({ row }) => {
                     const share = row.original;
                     const broken =
-                        share.state !== 'ready' || isShareExpired(share);
+                        share.state !== 'ready' || isShareExpired(share, now);
 
                     return (
                         <div className="flex min-w-0 items-center gap-2">
@@ -443,7 +445,7 @@ export function AdminUploadsExplorer({
                 header: 'Added',
                 cell: (c) => (
                     <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
-                        {relativeTime(c.getValue())}
+                        {relativeTime(c.getValue(), now)}
                     </span>
                 ),
                 meta: { className: 'hidden lg:table-cell' },
@@ -509,7 +511,15 @@ export function AdminUploadsExplorer({
                 meta: { className: 'w-10' },
             }),
         ];
-    }, [accounts, canQueueScan, ownerName, queueScan, removeSelected, scoped]);
+    }, [
+        accounts,
+        canQueueScan,
+        ownerName,
+        queueScan,
+        removeSelected,
+        scoped,
+        now,
+    ]);
 
     // React Compiler intentionally leaves TanStack Table's mutable adapter alone.
     // eslint-disable-next-line react-hooks/incompatible-library
@@ -562,7 +572,7 @@ export function AdminUploadsExplorer({
                 card={(row) => {
                     const share = row.original;
                     const broken =
-                        share.state !== 'ready' || isShareExpired(share);
+                        share.state !== 'ready' || isShareExpired(share, now);
                     const owner = ownerName(share.ownerId);
 
                     return (
@@ -857,6 +867,7 @@ export function AdminUploadsExplorer({
                                 <LibraryTile
                                     key={row.id}
                                     share={row.original}
+                                    now={now}
                                     label={shareLabel(row.original)}
                                     meta={`${typeChip(row.original)} · ${formatBytes(shareSize(row.original))}`}
                                     selected={row.getIsSelected()}

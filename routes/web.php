@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ExpiredSharePayloadController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\InstallationSettingController;
+use App\Http\Controllers\Admin\InviteCodeController;
 use App\Http\Controllers\Admin\MalwareScanController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\TransferSessionController as AdminTransferSessionController;
@@ -97,6 +98,9 @@ Route::middleware('auth')->group(function (): void {
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', fn () => redirect()->route('admin.users.index'));
     Route::get('/users', [AdminPageController::class, 'users'])->name('users.index');
+    Route::get('/invites', [AdminPageController::class, 'invites'])->name('invites.index');
+    Route::post('/invites', [InviteCodeController::class, 'store'])->name('invites.store');
+    Route::delete('/invites/{inviteCode}', [InviteCodeController::class, 'destroy'])->name('invites.destroy');
     Route::get('/users/{user}', [AdminPageController::class, 'user'])->name('users.show');
     Route::get('/users/{user}/uploads', [AdminPageController::class, 'userUploads'])->name('users.uploads');
     Route::get('/uploads', [AdminPageController::class, 'uploads'])->name('uploads.index');

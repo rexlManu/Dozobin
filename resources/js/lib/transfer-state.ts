@@ -21,7 +21,7 @@ export function transferExpiresAt(
 export function isTransferExpired(
     session: TransferSession,
     windowMs: number,
-    now = Date.now(),
+    now: number,
 ): boolean {
     return session.expired || now >= transferExpiresAt(session, windowMs);
 }

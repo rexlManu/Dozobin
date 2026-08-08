@@ -28,6 +28,7 @@ const pageTitles: Record<string, string> = {
     'admin/users/index': 'Users',
     'admin/users/show': 'User details',
     'admin/users/uploads': 'User uploads',
+    'admin/invites/index': 'Invite codes',
     'admin/uploads/index': 'Uploads',
     'admin/transfers/index': 'Transfer sessions',
     'admin/settings/access': 'Access settings',

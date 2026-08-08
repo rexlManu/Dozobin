@@ -8,12 +8,14 @@ import { SettingsLayout, SettingsPageHead } from '@/components/settings-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useNow } from '@/hooks/use-now';
 import { maskApiToken } from '@/lib/api-token';
 import { formatDateTime, relativeTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
 
 function TokensContent() {
+    const now = useNow(30_000);
     const account = usePage<SharedPageProps>().props.auth.user;
     const { confirm, dialog } = useConfirm();
 
@@ -88,7 +90,7 @@ function TokensContent() {
                                         {token.revoked
                                             ? 'revoked'
                                             : token.lastUsedAt
-                                              ? `last used ${relativeTime(token.lastUsedAt)}`
+                                              ? `last used ${relativeTime(token.lastUsedAt, now)}`
                                               : 'never used'}
                                     </p>
                                 </div>

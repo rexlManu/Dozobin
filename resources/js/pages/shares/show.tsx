@@ -10,6 +10,7 @@ import { PasswordGate } from '@/components/password-gate';
 import { ShareMetaRow } from '@/components/share-meta-row';
 import { Button } from '@/components/ui/button';
 import { Unavailable } from '@/components/unavailable';
+import { useNow } from '@/hooks/use-now';
 import { requestJson } from '@/lib/api';
 import { mimeLabel } from '@/lib/detect';
 import { downloadSource } from '@/lib/download';
@@ -24,6 +25,8 @@ function ShareViewRoute({
     share: FileShare;
     unlocked: boolean;
 }) {
+    const now = useNow(30_000);
+
     if (share.state === 'blocked') {
         return (
             <AppShell variant="public">
@@ -35,7 +38,7 @@ function ShareViewRoute({
         );
     }
 
-    if (isShareExpired(share)) {
+    if (isShareExpired(share, now)) {
         return (
             <AppShell variant="public">
                 <Unavailable reason="expired" expiredAt={share.expiresAt} />

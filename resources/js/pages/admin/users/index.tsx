@@ -48,6 +48,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useNow } from '@/hooks/use-now';
 import { relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import { countSharesByOwner } from '@/lib/share-display';
@@ -115,6 +116,7 @@ function AdminUsersContent({
     accounts: Account[];
     shares: Share[];
 }) {
+    const now = useNow(30_000);
     const {
         guard,
         guardCopy,
@@ -260,7 +262,7 @@ function AdminUsersContent({
                                 { value: 'suspended', label: 'Suspended' },
                             ]}
                         >
-                            <StatusChip account={account} />
+                            <StatusChip account={account} now={now} />
                         </InlineSelect>
                     );
                 },
@@ -307,7 +309,7 @@ function AdminUsersContent({
                 header: 'Joined',
                 cell: (c) => (
                     <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
-                        {relativeTime(c.getValue())}
+                        {relativeTime(c.getValue(), now)}
                     </span>
                 ),
                 meta: { className: 'hidden lg:table-cell' },
@@ -400,6 +402,7 @@ function AdminUsersContent({
         deleteOne,
         impersonate,
         setQuota,
+        now,
     ]);
 
     // React Compiler intentionally leaves TanStack Table's mutable adapter alone.
@@ -527,7 +530,10 @@ function AdminUsersContent({
                                             },
                                         ]}
                                     >
-                                        <StatusChip account={account} />
+                                        <StatusChip
+                                            account={account}
+                                            now={now}
+                                        />
                                     </InlineSelect>
                                     <span className="font-mono text-[11px] text-muted-foreground">
                                         {counts[account.id] ?? 0} shares

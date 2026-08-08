@@ -52,6 +52,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'serverNow' => now()->getTimestampMs(),
             'auth' => [
                 'user' => fn () => $user === null
                     ? null
