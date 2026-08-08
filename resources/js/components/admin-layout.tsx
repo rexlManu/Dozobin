@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 const NAV = [
     { to: '/admin/users', label: 'Users' },
+    { to: '/admin/invites', label: 'Invites' },
     { to: '/admin/uploads', label: 'Uploads' },
     // "Sessions" rather than "Transfer sessions", because Site settings already
     // has an item by that name and two identical labels in one sidebar is a

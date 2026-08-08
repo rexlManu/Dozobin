@@ -80,6 +80,7 @@ it('renders administration pages through Laravel authorization and dedicated com
             ->missing('state'));
 })->with([
     'users' => ['/admin/users', 'admin/users/index'],
+    'invites' => ['/admin/invites', 'admin/invites/index'],
     'uploads' => ['/admin/uploads', 'admin/uploads/index'],
     'sessions' => ['/admin/sessions', 'admin/transfers/index'],
     'access' => ['/admin/settings/access', 'admin/settings/access'],
