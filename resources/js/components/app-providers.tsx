@@ -90,70 +90,78 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                     content={props.seo.robots}
                 />
                 {props.seo.canonical && (
-                    <>
-                        <link
-                            head-key="canonical"
-                            rel="canonical"
-                            href={props.seo.canonical}
-                        />
-                        <meta
-                            head-key="og:type"
-                            property="og:type"
-                            content="website"
-                        />
-                        <meta
-                            head-key="og:title"
-                            property="og:title"
-                            content={`${title} - ${props.name}`}
-                        />
-                        <meta
-                            head-key="og:site_name"
-                            property="og:site_name"
-                            content={props.name}
-                        />
-                        <meta
-                            head-key="og:description"
-                            property="og:description"
-                            content={props.seo.description}
-                        />
-                        <meta
-                            head-key="og:url"
-                            property="og:url"
-                            content={props.seo.canonical}
-                        />
-                        <meta
-                            head-key="twitter:card"
-                            name="twitter:card"
-                            content={
-                                props.seo.image
-                                    ? 'summary_large_image'
-                                    : 'summary'
-                            }
-                        />
-                        {props.seo.image && (
-                            <>
-                                <meta
-                                    head-key="og:image"
-                                    property="og:image"
-                                    content={props.seo.image}
-                                />
-                                <meta
-                                    head-key="twitter:image"
-                                    name="twitter:image"
-                                    content={props.seo.image}
-                                />
-                            </>
-                        )}
-                        {structuredDataJson && (
-                            <script
-                                head-key="structured-data"
-                                type="application/ld+json"
-                                dangerouslySetInnerHTML={{
-                                    __html: structuredDataJson,
-                                }}
-                            />
-                        )}
-                    </>
+                    <link
+                        head-key="canonical"
+                        rel="canonical"
+                        href={props.seo.canonical}
+                    />
+                )}
+                {props.seo.canonical && (
+                    <meta
+                        head-key="og:type"
+                        property="og:type"
+                        content="website"
+                    />
+                )}
+                {props.seo.canonical && (
+                    <meta
+                        head-key="og:title"
+                        property="og:title"
+                        content={`${title} - ${props.name}`}
+                    />
+                )}
+                {props.seo.canonical && (
+                    <meta
+                        head-key="og:site_name"
+                        property="og:site_name"
+                        content={props.name}
+                    />
+                )}
+                {props.seo.canonical && (
+                    <meta
+                        head-key="og:description"
+                        property="og:description"
+                        content={props.seo.description}
+                    />
+                )}
+                {props.seo.canonical && (
+                    <meta
+                        head-key="og:url"
+                        property="og:url"
+                        content={props.seo.canonical}
+                    />
+                )}
+                {props.seo.canonical && (
+                    <meta
+                        head-key="twitter:card"
+                        name="twitter:card"
+                        content={
+                            props.seo.image ? 'summary_large_image' : 'summary'
+                        }
+                    />
+                )}
+                {props.seo.canonical && props.seo.image && (
+                    <meta
+                        head-key="og:image"
+                        property="og:image"
+                        content={props.seo.image}
+                    />
+                )}
+                {props.seo.canonical && props.seo.image && (
+                    <meta
+                        head-key="twitter:image"
+                        name="twitter:image"
+                        content={props.seo.image}
+                    />
+                )}
+                {props.seo.canonical && structuredDataJson && (
+                    <script
+                        head-key="structured-data"
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: structuredDataJson,
+                        }}
+                    />
                 )}
             </Head>
             <TooltipProvider delayDuration={200}>
