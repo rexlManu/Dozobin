@@ -4,6 +4,16 @@ Dōzobin is a self-hosted workspace for sharing files, screenshots, and text. Re
 
 The app runs on Laravel 13, Inertia 3, React 19, and MariaDB or another Laravel-supported database.
 
+## Screenshots
+
+![Dōzobin file drop workspace](docs/images/dozobin-drop.png)
+
+_Drop workspace for file shares and screenshots._
+
+![Dōzobin Transfer Session setup](docs/images/dozobin-transfer.png)
+
+_Accountless Transfer Sessions can be created or joined with an Access Code._
+
 ## What it does
 
 - File Shares and Pastes with expiration, optional password protection, and Member Libraries
@@ -39,7 +49,7 @@ docker compose -f compose.production.yaml up -d
 
 Uploads use the persistent `app-data` volume at `/data/files` by default. Set `FILESYSTEM_DISK=s3` and the S3 variables to use AWS S3, MinIO, or Hetzner Object Storage instead. See [Docker deployment](docs/operations/docker.md) for the complete configuration and upgrade procedure.
 
-Published images are anonymously pullable from `ghcr.io/rexlmanu/dozobin`. Pin an immutable version such as `0.1.0-alpha.1` instead of relying on a moving tag. The release and package-visibility flow is documented in [publishing releases](docs/operations/releases.md).
+Published images are anonymously pullable from `ghcr.io/rexlmanu/dozobin`. Pin an immutable version such as `0.1.0-alpha.2` instead of relying on a moving tag. The release and package-visibility flow is documented in [publishing releases](docs/operations/releases.md).
 
 ## Manual production install
 
