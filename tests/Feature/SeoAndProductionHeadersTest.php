@@ -40,6 +40,16 @@ it('generates production robots and sitemap responses dynamically', function ():
         ->assertSee('<priority>1.0</priority>', false);
 });
 
+it('uses the application name in the browser title', function (): void {
+    InstallationSetting::factory()->create();
+    $this->withoutVite();
+
+    $this->get('/signin')
+        ->assertOk()
+        ->assertSee('Dōzobin</title>', false)
+        ->assertDontSee('Laravel</title>', false);
+});
+
 it('renders indexable metadata only on the Drop Workspace', function (): void {
     InstallationSetting::factory()->create();
     config(['seo.indexing_enabled' => true]);

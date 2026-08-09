@@ -1,9 +1,8 @@
 import { createInertiaApp } from '@inertiajs/react';
-
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+import { formatPageTitle } from '@/lib/app-title';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: formatPageTitle,
     progress: {
         color: '#4B5563',
     },
