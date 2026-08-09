@@ -118,6 +118,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('/settings/housekeeping', [AdminPageController::class, 'housekeeping'])->name('settings.housekeeping');
     Route::get('/settings/system', [AdminPageController::class, 'system'])->name('settings.system');
     Route::patch('/settings', [InstallationSettingController::class, 'update'])->name('settings.update');
+    Route::patch('/settings/tracking-code', [InstallationSettingController::class, 'updateTrackingCode'])->name('settings.tracking-code.update');
     Route::post('/update-notice/dismiss', [UpdateNoticeController::class, 'store'])->name('update-notice.dismiss');
     Route::post('/housekeeping/expired-share-payloads', [ExpiredSharePayloadController::class, 'store'])->name('housekeeping.expired-share-payloads.store');
     Route::post('/uploads/{share}/malware-scan', [MalwareScanController::class, 'store'])->name('uploads.malware-scan.store');

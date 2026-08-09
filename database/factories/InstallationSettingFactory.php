@@ -32,6 +32,7 @@ class InstallationSettingFactory extends Factory
             'transfer_window_hours' => 12,
             'payload_cleanup_grace_hours' => 24,
             'malware_scanning_enabled' => false,
+            'tracking_code' => null,
             'installed_at' => now(),
         ];
     }

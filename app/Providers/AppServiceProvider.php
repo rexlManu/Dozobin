@@ -3,15 +3,20 @@
 namespace App\Providers;
 
 use App\Contracts\MalwareScanner;
+use App\Models\InstallationSetting;
 use App\Models\User;
 use App\Services\ClamDScanner;
 use App\Services\InstallationState;
+use App\Services\TrackingScriptParser;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View as BladeView;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->surviveAnUnpreparedDatabase();
+        $this->shareTrackingScriptWithRootView();
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
     }
 
@@ -79,5 +85,26 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Tracking attributes stay outside Inertia's JSON page data. The root view
+     * renders an escaped tag only when the stored value still passes parsing.
+     */
+    protected function shareTrackingScriptWithRootView(): void
+    {
+        View::composer('app', function (BladeView $view): void {
+            try {
+                $storedCode = InstallationSetting::query()->value('tracking_code');
+                $trackingCode = is_string($storedCode) ? $storedCode : null;
+            } catch (Throwable) {
+                $trackingCode = null;
+            }
+
+            $view->with(
+                'trackingScriptAttributes',
+                app(TrackingScriptParser::class)->parse($trackingCode),
+            );
+        });
     }
 }

@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $transfer_window_hours
  * @property int $payload_cleanup_grace_hours
  * @property bool $malware_scanning_enabled
+ * @property string|null $tracking_code
  * @property CarbonImmutable|null $installed_at
  */
 class InstallationSetting extends Model
@@ -37,6 +38,7 @@ class InstallationSetting extends Model
         'guest_default_expiration', 'member_default_expiration', 'guest_password_protection',
         'default_quota_mb', 'max_upload_mb', 'file_type_mode', 'file_type_list',
         'transfer_window_hours', 'payload_cleanup_grace_hours', 'malware_scanning_enabled',
+        'tracking_code',
     ];
 
     public static function current(): self
@@ -67,6 +69,7 @@ class InstallationSetting extends Model
             'transfer_window_hours' => 12,
             'payload_cleanup_grace_hours' => 24,
             'malware_scanning_enabled' => false,
+            'tracking_code' => null,
         ];
     }
 

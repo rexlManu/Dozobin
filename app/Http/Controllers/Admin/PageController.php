@@ -8,6 +8,7 @@ use App\Http\Resources\InviteCodeResource;
 use App\Http\Resources\ShareResource;
 use App\Http\Resources\TransferSessionResource;
 use App\Http\Resources\UserResource;
+use App\Models\InstallationSetting;
 use App\Models\InviteCode;
 use App\Models\Share;
 use App\Models\TransferSession;
@@ -131,7 +132,9 @@ final class PageController extends Controller
 
     public function system(): Response
     {
-        return Inertia::render('admin/settings/system');
+        return Inertia::render('admin/settings/system', [
+            'trackingCodeBase64' => fn (): string => base64_encode(InstallationSetting::current()->tracking_code ?? ''),
+        ]);
     }
 
     /** @return array<string, mixed>|null */

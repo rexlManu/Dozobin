@@ -1,10 +1,36 @@
-import { usePage } from '@inertiajs/react';
-import { ArrowUpRight } from '@phosphor-icons/react';
+import { useForm, usePage } from '@inertiajs/react';
+import { ArrowUpRight, CheckCircle, Warning } from '@phosphor-icons/react';
+import { updateTrackingCode } from '@/actions/App/Http/Controllers/Admin/InstallationSettingController';
 import { AdminLayout } from '@/components/admin-layout';
+import { AdminSettingsPageHead } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
+import { Textarea } from '@/components/ui/textarea';
 import type { UpdateStatus } from '@/lib/types';
 import type { SharedPageProps } from '@/types';
+
+interface SystemPageProps extends SharedPageProps {
+    trackingCodeBase64: string;
+}
+
+function decodeTrackingCode(encoded: string): string {
+    try {
+        const bytes = Uint8Array.from(globalThis.atob(encoded), (character) =>
+            character.charCodeAt(0),
+        );
+
+        return new TextDecoder().decode(bytes);
+    } catch {
+        return '';
+    }
+}
 
 function dateTime(value: string | number | null) {
     if (value === null) {
@@ -109,19 +135,119 @@ function VersionStatus({ update }: { update: UpdateStatus }) {
     );
 }
 
+function TrackingCodeSetting({ encoded }: { encoded: string }) {
+    const form = useForm({
+        trackingCode: decodeTrackingCode(encoded),
+    });
+
+    return (
+        <section className="border-t border-border pt-7">
+            <AdminSettingsPageHead
+                title="Tracking code"
+                description="Add one external analytics script to every page. Leave this empty to disable tracking."
+            />
+
+            <div className="mt-5 flex flex-col gap-4">
+                <Alert>
+                    <Warning aria-hidden />
+                    <AlertTitle>Runs for every visitor</AlertTitle>
+                    <AlertDescription>
+                        Only add code from a provider you trust. Changes take
+                        effect after the next page load.
+                    </AlertDescription>
+                </Alert>
+
+                <form
+                    className="flex flex-col gap-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        form.submit(updateTrackingCode(), {
+                            preserveScroll: true,
+                            onSuccess: () => form.setDefaults(),
+                        });
+                    }}
+                >
+                    <Field data-invalid={Boolean(form.errors.trackingCode)}>
+                        <FieldLabel htmlFor="tracking-code">
+                            Script tag
+                        </FieldLabel>
+                        <Textarea
+                            id="tracking-code"
+                            className="min-h-32 resize-y font-mono text-[12px] leading-relaxed"
+                            value={form.data.trackingCode}
+                            placeholder={
+                                '<script defer src="https://analytics.example.com/script.js" data-website-id="…"></script>'
+                            }
+                            spellCheck={false}
+                            aria-invalid={Boolean(form.errors.trackingCode)}
+                            onChange={(event) =>
+                                form.setData('trackingCode', event.target.value)
+                            }
+                        />
+                        <FieldDescription>
+                            One HTTPS script tag. Inline JavaScript, event
+                            handlers, and additional HTML are rejected.
+                        </FieldDescription>
+                        <FieldError>{form.errors.trackingCode}</FieldError>
+                    </Field>
+
+                    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+                        <p className="text-[12.5px] text-muted-foreground">
+                            {form.recentlySuccessful ? (
+                                <span className="flex items-center gap-1.5 text-foreground">
+                                    <CheckCircle
+                                        weight="fill"
+                                        className="size-3.5 text-primary"
+                                    />
+                                    Saved
+                                </span>
+                            ) : form.isDirty ? (
+                                'Unsaved changes'
+                            ) : (
+                                'No changes'
+                            )}
+                        </p>
+                        <div className="ml-auto flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={!form.isDirty || form.processing}
+                                onClick={() => form.resetAndClearErrors()}
+                            >
+                                Discard
+                            </Button>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={!form.isDirty || form.processing}
+                            >
+                                Save tracking code
+                            </Button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+    );
+}
+
 export default function SystemPage() {
-    const update = usePage<SharedPageProps>().props.update;
+    const { trackingCodeBase64, update } = usePage<SystemPageProps>().props;
 
     return (
         <AppProviders>
             <AdminLayout>
-                {update === null ? (
-                    <p className="text-[13px] text-muted-foreground">
-                        Release status is available to administrators only.
-                    </p>
-                ) : (
-                    <VersionStatus update={update} />
-                )}
+                <div className="flex flex-col gap-7">
+                    {update === null ? (
+                        <p className="text-[13px] text-muted-foreground">
+                            Release status is available to administrators only.
+                        </p>
+                    ) : (
+                        <VersionStatus update={update} />
+                    )}
+                    <TrackingCodeSetting encoded={trackingCodeBase64} />
+                </div>
             </AdminLayout>
         </AppProviders>
     );

@@ -50,6 +50,10 @@
         <x-inertia::head>
             <title>{{ config('app.name', 'Dōzobin') }}</title>
         </x-inertia::head>
+
+        @if ($trackingScriptAttributes !== null)
+            <script {{ new Illuminate\View\ComponentAttributeBag($trackingScriptAttributes) }}></script>
+        @endif
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />
