@@ -8,8 +8,13 @@ import {
     UploadSimple,
     Wrench,
 } from '@phosphor-icons/react';
+import {
+    BackdropSwitcher,
+    PageBackdrop,
+    backdropFrame,
+    useBackdrop,
+} from '@/components/backdrop';
 import { Wordmark } from '@/components/brand';
-import { SkyBackdrop } from '@/components/night-sky';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -190,10 +195,17 @@ export function AppShell({
     const items = navItems(role);
     const showNav = variant === 'app';
     const scrolled = useScrolled();
+    const backdrop = useBackdrop();
 
     return (
-        <div className="relative isolate flex min-h-[100dvh] flex-col bg-background">
-            <SkyBackdrop />
+        <div
+            className={cn(
+                'relative isolate flex min-h-[100dvh] flex-col bg-background',
+                backdropFrame(backdrop),
+            )}
+        >
+            <PageBackdrop name={backdrop} />
+            <BackdropSwitcher current={backdrop} />
 
             <header
                 className={cn(

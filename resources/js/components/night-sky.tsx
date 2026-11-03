@@ -10,7 +10,7 @@ type Star = {
 };
 
 /** Deterministic star positions (a small linear congruential generator), so every render matches. */
-function starField(
+export function starField(
     count: number,
     width: number,
     height: number,
@@ -100,7 +100,14 @@ const WINDOWS = [
  * rooftops sit at the same height on a phone and on a wide screen. Static on
  * purpose: nothing in it animates.
  */
-export function NightSky({ className }: { className?: string }) {
+export function NightSky({
+    className,
+    sky = true,
+}: {
+    className?: string;
+    /** False draws only the rooftops, clouds and windows, on a clear background. */
+    sky?: boolean;
+}) {
     const id = useId();
 
     return (
@@ -156,20 +163,29 @@ export function NightSky({ className }: { className?: string }) {
                     </g>
                 </g>
             </defs>
-            <rect
-                x="-1440"
-                width="4320"
-                height="380"
-                fill={`url(#${id}-sky)`}
-            />
-            <g transform="translate(-1440 0)">
-                <Stars count={420} width={4320} height={300} />
-            </g>
-            <circle cx="1180" cy="92" r="90" fill={`url(#${id}-glow)`} />
-            <path
-                d="M1196 58a40 40 0 1 0 22 62a34 34 0 1 1-22-62z"
-                fill="#fff4d2"
-            />
+            {sky && (
+                <>
+                    <rect
+                        x="-1440"
+                        width="4320"
+                        height="380"
+                        fill={`url(#${id}-sky)`}
+                    />
+                    <g transform="translate(-1440 0)">
+                        <Stars count={420} width={4320} height={300} />
+                    </g>
+                    <circle
+                        cx="1180"
+                        cy="92"
+                        r="90"
+                        fill={`url(#${id}-glow)`}
+                    />
+                    <path
+                        d="M1196 58a40 40 0 1 0 22 62a34 34 0 1 1-22-62z"
+                        fill="#fff4d2"
+                    />
+                </>
+            )}
             <use href={`#${id}-city`} x="-1440" />
             <use href={`#${id}-city`} />
             <use href={`#${id}-city`} x="1440" />
@@ -182,14 +198,16 @@ export function NightSky({ className }: { className?: string }) {
  * `sm`, fading into the black ground. Put it first inside a `relative isolate`
  * page frame.
  */
-export function SkyBackdrop() {
+export function SkyBackdrop({ fade = true }: { fade?: boolean }) {
     return (
         <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[300px] overflow-hidden sm:h-[340px]"
         >
             <NightSky />
-            <span className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-b from-transparent to-background" />
+            {fade && (
+                <span className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-b from-transparent to-background" />
+            )}
         </div>
     );
 }
