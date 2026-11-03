@@ -11,7 +11,6 @@ import { AppProviders } from '@/components/app-providers';
 import { AppShell } from '@/components/app-shell';
 import { Dozo } from '@/components/dozo';
 import { DropZone } from '@/components/dropzone';
-import { NightSky } from '@/components/night-sky';
 import { PasteComposer, PasteTruths } from '@/components/paste-composer';
 import { ShareOptions } from '@/components/share-options';
 import { Button } from '@/components/ui/button';
@@ -273,14 +272,9 @@ function WorkspaceRoute() {
         config.fileTypeMode === 'allow' ? config.fileTypeList : [];
 
     return (
-        <AppShell overlay>
-            <div className="relative h-[300px] overflow-hidden sm:h-[340px]">
-                <NightSky />
-                <span
-                    aria-hidden
-                    className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-background"
-                />
-                <div className="rail relative pt-[92px] sm:pt-[108px]">
+        <AppShell
+            head={
+                <>
                     <p className="font-bold text-lamp">
                         <span lang="ja" className="mr-1.5 text-primary">
                             どうぞ
@@ -290,10 +284,10 @@ function WorkspaceRoute() {
                     <h1 className="mt-1.5 max-w-[16ch] text-[34px] leading-[1.08] font-bold text-balance sm:text-[clamp(34px,4.6vw,58px)]">
                         What are we sending today?
                     </h1>
-                </div>
-            </div>
-
-            <div className="rail relative z-10 -mt-16 pb-20">
+                </>
+            }
+        >
+            <div className="rail pb-20">
                 {blocked ? (
                     <Blocked suspended={suspended} />
                 ) : (

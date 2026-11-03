@@ -224,7 +224,7 @@ function UpdateNotice() {
     }
 
     return (
-        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] bg-lavender-soft py-2.5 pr-2.5 pl-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] bg-lavender-soft py-2.5 pr-2.5 pl-4">
             <ArrowUpRight
                 aria-hidden
                 weight="bold"
@@ -272,8 +272,8 @@ function UpdateNotice() {
 }
 
 /**
- * Frame for every admin page: the title, the update notice, the section pills
- * and, on settings pages, a second row of settings tabs. The nav sits on top
+ * Frame for every admin page: the title and section pills in the sky, then
+ * the update notice and, on settings pages, a row of settings tabs. The nav sits on top
  * rather than in a sidebar so wide tables get the full rail.
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
@@ -281,29 +281,29 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     const inSettings = isUnder(path, '/admin/settings');
 
     return (
-        <AppShell>
-            <div className="rail py-6 sm:py-8">
-                <h1 className="text-[28px] leading-tight font-bold">
-                    Administration
-                </h1>
-
+        <AppShell
+            head={
+                <div className="grid gap-4">
+                    <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
+                        Administration
+                    </h1>
+                    <PillRow label="Administration" items={NAV} path={path} />
+                </div>
+            }
+        >
+            <div className="rail grid gap-5 pb-10">
                 <UpdateNotice />
 
-                <div className="mt-4 grid gap-2.5">
-                    <PillRow label="Administration" items={NAV} path={path} />
-                    {inSettings && (
-                        <PillRow
-                            label="Settings"
-                            items={SETTINGS_NAV}
-                            path={path}
-                            track
-                        />
-                    )}
-                </div>
+                {inSettings && (
+                    <PillRow
+                        label="Settings"
+                        items={SETTINGS_NAV}
+                        path={path}
+                        track
+                    />
+                )}
 
-                <div className="mt-7 flex min-w-0 flex-col gap-5">
-                    {children}
-                </div>
+                <div className="flex min-w-0 flex-col gap-5">{children}</div>
             </div>
         </AppShell>
     );

@@ -9,6 +9,7 @@ import {
     Wrench,
 } from '@phosphor-icons/react';
 import { Wordmark } from '@/components/brand';
+import { SkyBackdrop } from '@/components/night-sky';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useScrolled } from '@/hooks/use-scrolled';
 import { initials } from '@/lib/format';
 import { Link, NavLink, useLocation, useNavigate } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
@@ -163,47 +165,43 @@ function ImpersonationBanner() {
     );
 }
 
+/**
+ * The frame of every page. A night sky of one fixed height sits behind the top
+ * of the page, so switching pages never moves it. `head` (the page title)
+ * sits inside the sky, above the rooftops; the page body always starts where
+ * the rooftops meet the ground.
+ */
 export function AppShell({
     children,
     variant = 'app',
-    surface = 'page',
+    head,
     headerExtra,
-    overlay = false,
 }: {
     children: React.ReactNode;
     variant?: 'app' | 'public';
-    /**
-     * "canvas" hands the whole window to the route: the page never scrolls, and
-     * the chrome sits in flow so the route can bleed to every edge between it.
-     */
-    surface?: 'page' | 'canvas';
-    /** Route-level controls that belong in the header rather than on the canvas. */
+    /** The page title block, drawn in the sky. */
+    head?: React.ReactNode;
+    /** Route-level controls that belong in the header rather than on the page. */
     headerExtra?: React.ReactNode;
-    /** Float the header over the page's own top art (the night sky). */
-    overlay?: boolean;
 }) {
     const account = usePage<SharedPageProps>().props.auth.user;
     const role = account?.role ?? 'guest';
     const { pathname } = useLocation();
     const items = navItems(role);
     const showNav = variant === 'app';
-    const canvas = surface === 'canvas';
+    const scrolled = useScrolled();
 
     return (
-        <div
-            className={cn(
-                'relative flex flex-col bg-background',
-                canvas ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]',
-            )}
-        >
+        <div className="relative isolate flex min-h-[100dvh] flex-col bg-background">
+            <SkyBackdrop />
+
             <header
                 className={cn(
-                    'z-30',
-                    overlay
-                        ? 'absolute inset-x-0 top-0'
-                        : 'sticky top-0 bg-background/90 backdrop-blur-md',
+                    'sticky top-0 z-30 -mb-16 transition-colors duration-200',
+                    scrolled && 'bg-background/85 backdrop-blur-md',
                 )}
             >
+                <ImpersonationBanner />
                 <div className="rail-wide flex h-16 items-center gap-5">
                     <Link to="/" className="rounded-[14px]">
                         <Wordmark />
@@ -244,21 +242,19 @@ export function AppShell({
                 </div>
             </header>
 
-            <ImpersonationBanner />
-
-            <main
-                className={cn('flex-1', canvas ? 'min-h-0' : 'pb-24 md:pb-0')}
-            >
-                {children}
+            <main className="flex-1 pb-24 md:pb-0">
+                <div className="h-[300px] sm:h-[340px]">
+                    {head && (
+                        <div className="rail pt-[88px] sm:pt-[100px]">
+                            {head}
+                        </div>
+                    )}
+                </div>
+                <div className="relative z-10 -mt-16">{children}</div>
             </main>
 
             {showNav && (
-                <nav
-                    className={cn(
-                        'pb-safe z-30 grid grid-flow-col gap-1 bg-background/95 px-2 pt-1.5 backdrop-blur-md md:hidden',
-                        canvas ? 'shrink-0' : 'fixed inset-x-0 bottom-0',
-                    )}
-                >
+                <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-flow-col gap-1 bg-background/95 px-2 pt-1.5 backdrop-blur-md md:hidden">
                     {items.map((item) => {
                         const active =
                             item.to === '/'

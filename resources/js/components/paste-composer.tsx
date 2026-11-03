@@ -148,7 +148,7 @@ export function PasteComposer({
                             placeholder={
                                 'Paste or type anything. No title needed.'
                             }
-                            className="min-h-[260px] resize-y rounded-none border-0 bg-transparent bg-[repeating-linear-gradient(transparent_0_23px,rgb(185_168_255/0.08)_23px_24px)] bg-local px-0 py-4 font-mono text-[14px] leading-[24px] shadow-none focus-visible:ring-0 md:text-[14px]"
+                            className="min-h-[260px] resize-y rounded-none border-0 bg-transparent bg-[repeating-linear-gradient(transparent_0_23px,rgb(185_168_255/0.08)_23px_24px)] bg-local bg-[position:0_13px] px-0 py-4 font-mono text-[14px] leading-[24px] shadow-none focus-visible:ring-0 md:text-[14px]"
                         />
                     </div>
                 </div>

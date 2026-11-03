@@ -443,12 +443,12 @@ function LibraryRoute({ shares }: { shares: Share[] }) {
     );
 
     return (
-        <AppShell>
-            <div className="rail pt-4 pb-20">
+        <AppShell
+            head={
                 <div className="flex items-center gap-4">
                     <Dozo size={64} mood="happy" body={DOZO_COLORS[2]} />
                     <div className="grid gap-1">
-                        <h1 className="text-[32px] leading-tight font-bold">
+                        <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
                             Library
                         </h1>
                         {account && (
@@ -474,8 +474,10 @@ function LibraryRoute({ shares }: { shares: Share[] }) {
                         )}
                     </div>
                 </div>
-
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            }
+        >
+            <div className="rail pb-20">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="relative min-w-0 flex-1">
                         <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input

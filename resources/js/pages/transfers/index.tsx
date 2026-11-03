@@ -7,7 +7,6 @@ import { AppProviders } from '@/components/app-providers';
 import { AppShell } from '@/components/app-shell';
 import { Dozo } from '@/components/dozo';
 import { Countdown } from '@/components/expiry';
-import { NightSky } from '@/components/night-sky';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -161,21 +160,14 @@ function TransferLobbyRoute({
         !transfer.leftLocally;
 
     return (
-        <AppShell overlay>
-            <div className="relative h-[260px] overflow-hidden sm:h-[300px]">
-                <NightSky />
-                <span
-                    aria-hidden
-                    className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-background"
-                />
-                <div className="rail relative pt-[92px] sm:pt-[108px]">
-                    <h1 className="max-w-[24ch] text-[32px] leading-[1.08] font-bold text-balance sm:text-[44px]">
-                        Pass things between your own devices.
-                    </h1>
-                </div>
-            </div>
-
-            <div className="rail relative z-10 -mt-10 grid gap-5 pb-20 md:grid-cols-2">
+        <AppShell
+            head={
+                <h1 className="max-w-[24ch] text-[32px] leading-[1.08] font-bold text-balance sm:text-[44px]">
+                    Pass things between your own devices.
+                </h1>
+            }
+        >
+            <div className="rail grid gap-5 pb-20 md:grid-cols-2">
                 {live && (
                     <p className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[22px] border-[1.5px] border-lavender/50 bg-lavender-soft px-4 py-3 md:col-span-2">
                         <Dozo size={40} mood="happy" />

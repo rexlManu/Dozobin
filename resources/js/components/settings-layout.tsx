@@ -83,13 +83,15 @@ export function SettingsLayout({ children }: { children: ReactNode }) {
     const pathname = usePage().url.split('?')[0];
 
     return (
-        <AppShell>
-            <div className="rail py-6 sm:py-10">
-                <h1 className="text-[28px] leading-tight font-bold">
+        <AppShell
+            head={
+                <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
                     Settings
                 </h1>
-
-                <div className="mt-5 grid gap-5 lg:mt-7 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+            }
+        >
+            <div className="rail pb-10">
+                <div className="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
                     <nav
                         aria-label="Settings"
                         className="flex flex-wrap gap-1.5 lg:sticky lg:top-24 lg:flex-col lg:flex-nowrap lg:gap-1 lg:self-start"

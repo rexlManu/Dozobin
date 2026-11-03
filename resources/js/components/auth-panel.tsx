@@ -1,7 +1,7 @@
 import { Wordmark } from '@/components/brand';
 import { Dozo } from '@/components/dozo';
 import type { DozoMood } from '@/components/dozo';
-import { MiniSky } from '@/components/night-sky';
+import { SkyBackdrop } from '@/components/night-sky';
 import { Link } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -10,8 +10,8 @@ export const authLinkClass =
     'font-bold text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground';
 
 /**
- * A soft card headed by a small night sky, with Dozo sitting on the edge of
- * the sky. Shared by the sign-in pages and the installer.
+ * A soft card with a head band, with Dozo sitting on the edge of the band.
+ * Shared by the sign-in pages and the installer.
  */
 export function SkyCard({
     band,
@@ -35,11 +35,8 @@ export function SkyCard({
                 className,
             )}
         >
-            <div className="relative h-28 overflow-hidden rounded-t-[26.5px]">
-                <MiniSky />
-                <div className="relative px-[18px] pt-4 sm:px-[26px]">
-                    {band}
-                </div>
+            <div className="h-28 border-b-[1.5px] border-border px-[18px] pt-4 sm:px-[26px]">
+                {band}
             </div>
             <div
                 aria-hidden
@@ -59,7 +56,7 @@ export function SkyCard({
     );
 }
 
-/** Centered sign-in, registration and reset card on the black ground. */
+/** Centered sign-in, registration and reset card under the night sky. */
 export function AuthPanel({
     title,
     intro,
@@ -76,7 +73,8 @@ export function AuthPanel({
     footer: React.ReactNode;
 }) {
     return (
-        <div className="flex min-h-[100dvh] flex-col bg-background">
+        <div className="relative isolate flex min-h-[100dvh] flex-col bg-background">
+            <SkyBackdrop />
             <div className="mx-auto flex w-full max-w-[27rem] flex-1 flex-col justify-center px-4 py-10 sm:py-16">
                 <SkyCard
                     greeting={greeting}

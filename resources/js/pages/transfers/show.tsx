@@ -3,6 +3,8 @@ import {
     Copy,
     DownloadSimple,
     Link as LinkIcon,
+    PaperPlaneTilt,
+    Paperclip,
     QrCode,
     SignOut,
     Trash,
@@ -16,7 +18,7 @@ import { useConfirm } from '@/components/confirm-dialog';
 import { CopyButton } from '@/components/copy-button';
 import { DOZO_COLORS, Dozo } from '@/components/dozo';
 import { FileGlyph } from '@/components/file-glyph';
-import { MiniSky, Sparkle } from '@/components/night-sky';
+import { Sparkle } from '@/components/night-sky';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -26,7 +28,6 @@ import {
 } from '@/components/ui/dialog';
 import { useNow } from '@/hooks/use-now';
 import { useOrigin } from '@/hooks/use-origin';
-import type { LiveStatus } from '@/hooks/use-transfer-live';
 import { useTransferLive } from '@/hooks/use-transfer-live';
 import { firstApiError, requestJson } from '@/lib/api';
 import { downloadSource, downloadText } from '@/lib/download';
@@ -72,47 +73,46 @@ function remainingText(ms: number): string {
         : `${minutes} min left`;
 }
 
-/** The code, the QR and the two copy actions: everything a new device needs. */
+/** The QR code, the Access Code and two copy actions: everything a new device needs to join. */
 function AddDevice({ code, joinUrl }: { code: string; joinUrl: string }) {
     return (
-        <div className="grid gap-3 rounded-[22px] bg-linear-to-b from-night to-[#0b0a18] p-3.5">
-            <span className="label-meta flex items-center gap-1.5">
-                <QrCode className="size-4" /> Add a device
-            </span>
-            <div className="flex gap-1" aria-label={`Access Code ${code}`}>
-                {code.split('').map((char, index) => (
-                    <span
-                        key={index}
-                        aria-hidden
-                        className={cn(
-                            'grid h-[34px] w-[27px] place-items-center rounded-[9px] bg-foreground text-[18px] font-bold text-night',
-                            index === 4 && 'ml-[5px]',
-                        )}
-                    >
-                        {char}
-                    </span>
-                ))}
-            </div>
-            <div className="flex items-center gap-3">
-                <span className="size-24 shrink-0 rounded-[16px] bg-white p-2">
+        <section
+            aria-label="Add a device"
+            className="grid gap-3 rounded-[22px] bg-sunken p-3"
+        >
+            <div className="flex items-center gap-3.5">
+                <span className="grid size-[104px] shrink-0 place-items-center rounded-[16px] bg-white">
                     {joinUrl.startsWith('http') && (
                         <QRCodeSVG
                             value={joinUrl}
-                            size={80}
+                            size={88}
                             level="M"
                             bgColor="#ffffff"
                             fgColor="#120f2c"
                         />
                     )}
                 </span>
-                <span className="grid gap-1.5">
-                    <CopyButton value={code} size="sm" label="Copy code" />
-                    <CopyButton value={joinUrl} size="sm" label="Copy link">
-                        <LinkIcon />
-                    </CopyButton>
-                </span>
+                <div className="grid min-w-0 gap-1.5">
+                    <span className="label-meta">Add a device</span>
+                    <span
+                        aria-label={`Access Code ${code}`}
+                        className="font-mono text-[22px] leading-none tracking-[0.08em] whitespace-nowrap"
+                    >
+                        {code.slice(0, 4)}
+                        <span className="ml-[0.4em]">{code.slice(4)}</span>
+                    </span>
+                    <span className="text-[13px] leading-snug text-muted-foreground">
+                        Scan it, or enter the code.
+                    </span>
+                </div>
             </div>
-        </div>
+            <div className="grid grid-cols-2 gap-2">
+                <CopyButton value={code} size="sm" label="Copy code" />
+                <CopyButton value={joinUrl} size="sm" label="Copy link">
+                    <LinkIcon />
+                </CopyButton>
+            </div>
+        </section>
     );
 }
 
@@ -120,7 +120,6 @@ function Party({
     participants,
     colorOf,
     isOnline,
-    status,
     expiresAt,
     windowMs,
     now,
@@ -133,7 +132,6 @@ function Party({
     participants: Participant[];
     colorOf: (id: string) => string;
     isOnline: (participant: Participant) => boolean;
-    status: LiveStatus;
     expiresAt: number;
     windowMs: number;
     now: number;
@@ -143,32 +141,10 @@ function Party({
     onToggleCode: () => void;
     onLeave: () => void;
 }) {
-    const here = participants.filter(isOnline).length;
     const remaining = Math.max(0, expiresAt - now);
 
     return (
-        <aside className="flex min-h-0 scrollbar-slim flex-col gap-3.5 overflow-auto rounded-[28px] border-[1.5px] border-border bg-card pb-4">
-            <div className="relative h-24 shrink-0 overflow-hidden rounded-t-[26px]">
-                <MiniSky />
-                <p className="absolute bottom-2.5 left-4 grid leading-tight [text-shadow:0_1px_8px_#05061a]">
-                    <b className="text-[18px]">
-                        {here} of {participants.length} here
-                    </b>
-                    <span
-                        className={cn(
-                            'text-[13px] font-bold',
-                            status === 'live' ? 'text-mint' : 'text-lamp',
-                        )}
-                    >
-                        {status === 'live'
-                            ? 'Live'
-                            : status === 'connecting'
-                              ? 'Connecting…'
-                              : 'Updates every few seconds'}
-                    </span>
-                </p>
-            </div>
-
+        <aside className="flex min-h-0 scrollbar-slim flex-col gap-3.5 overflow-auto rounded-[28px] border-[1.5px] border-border bg-card pt-3 pb-4">
             <ul
                 className="grid gap-1.5 px-3"
                 aria-label="Devices in this session"
@@ -440,6 +416,7 @@ function ItemLine({
     );
 }
 
+/** The message bar under the log: attach on the left, the text in the middle, Send on the right. */
 function Compose({
     onSend,
     onAttach,
@@ -448,73 +425,62 @@ function Compose({
     onAttach: () => void;
 }) {
     const [text, setText] = useState('');
+    const empty = text.trim() === '';
     const submit = async () => {
-        const value = text.trim();
-
-        if (value === '') {
+        if (empty) {
             return;
         }
 
-        await onSend(value);
+        await onSend(text.trim());
         setText('');
     };
 
     return (
-        <form
-            className="relative mt-3 grid shrink-0 gap-1.5 rounded-[24px] border-[1.5px] border-border-strong bg-sunken px-4 pt-5 pb-2 shadow-[inset_0_0_0_4px_var(--sunken),inset_0_0_0_5.5px_var(--border)]"
-            onSubmit={(event) => {
-                event.preventDefault();
-                void submit();
-            }}
-        >
-            <span className="absolute -top-[13px] left-5 rounded-[10px] bg-primary px-3.5 py-0.5 text-[13px] font-bold text-primary-foreground shadow-[0_0_0_3px_#000]">
-                You
-            </span>
-            <textarea
-                rows={2}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault();
-                        void submit();
-                    }
+        <div className="mt-3 grid shrink-0 gap-1.5">
+            <form
+                className="flex items-end gap-1.5 rounded-[24px] border-[1.5px] border-border bg-card p-1.5 transition-colors focus-within:border-lavender/70"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    void submit();
                 }}
-                placeholder="Write something…"
-                aria-label="New Transfer Item"
-                className="min-h-[30px] resize-none bg-transparent text-[16px] outline-none placeholder:text-muted-foreground sm:min-h-[50px]"
-            />
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-                <button
-                    type="submit"
-                    className="group inline-flex items-baseline gap-2 py-1.5 text-[16px] font-bold shadow-[inset_0_-3px_0_var(--primary)] disabled:opacity-50"
-                >
-                    <i
-                        aria-hidden
-                        className="text-[12px] text-primary not-italic"
-                    >
-                        ▶
-                    </i>
-                    Send
-                </button>
-                <button
+            >
+                <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Attach files"
+                    className="rounded-[18px]"
                     onClick={onAttach}
-                    className="group inline-flex items-baseline gap-2 py-1.5 text-[16px] font-bold text-muted-foreground hover:text-foreground"
                 >
-                    <i
-                        aria-hidden
-                        className="text-[12px] text-primary not-italic opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                    >
-                        ▶
-                    </i>
-                    Attach a file
-                </button>
-                <small className="ml-auto hidden text-[12px] text-muted-foreground sm:block">
-                    Enter sends · Shift Enter adds a line
-                </small>
-            </div>
-        </form>
+                    <Paperclip className="size-5" />
+                </Button>
+                <textarea
+                    rows={1}
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            void submit();
+                        }
+                    }}
+                    placeholder="Write something…"
+                    aria-label="New Transfer Item"
+                    className="field-sizing-content max-h-40 min-h-10 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[16px] leading-6 outline-none placeholder:text-muted-foreground"
+                />
+                <Button
+                    type="submit"
+                    disabled={empty}
+                    className="rounded-[18px]"
+                >
+                    <PaperPlaneTilt weight="fill" /> Send
+                </Button>
+            </form>
+            <p className="hidden px-4 text-[12px] text-muted-foreground sm:block">
+                Enter sends, Shift Enter adds a line. Drop or paste files
+                anywhere on the page.
+            </p>
+        </div>
     );
 }
 
@@ -733,14 +699,43 @@ function TransferSessionRoute({
         });
     };
 
+    const here = participants.filter(isOnline).length;
+
     return (
-        <AppShell>
-            <div className="rail-wide grid gap-4 pt-2 pb-6 lg:h-[calc(100dvh-64px)] lg:min-h-[600px] lg:grid-cols-[300px_minmax(0,1fr)] lg:pb-5">
+        <AppShell
+            head={
+                <div className="grid gap-1.5">
+                    <p className="flex flex-wrap items-center gap-x-2 font-bold">
+                        <span
+                            className={
+                                status === 'live' ? 'text-mint' : 'text-lamp'
+                            }
+                        >
+                            {status === 'live'
+                                ? 'Live'
+                                : status === 'connecting'
+                                  ? 'Connecting…'
+                                  : 'Updates every few seconds'}
+                        </span>
+                        <span aria-hidden className="text-muted-foreground">
+                            ·
+                        </span>
+                        <span className="font-mono tracking-[0.08em]">
+                            {code}
+                        </span>
+                    </p>
+                    <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
+                        {here} of {participants.length}{' '}
+                        {participants.length === 1 ? 'device' : 'devices'} here
+                    </h1>
+                </div>
+            }
+        >
+            <div className="rail grid gap-4 pb-6 lg:h-[calc(100dvh-276px)] lg:min-h-[520px] lg:grid-cols-[300px_minmax(0,1fr)] lg:pb-5">
                 <Party
                     participants={participants}
                     colorOf={colorOf}
                     isOnline={isOnline}
-                    status={status}
                     expiresAt={transferExpiresAt(transfer, windowMs)}
                     windowMs={windowMs}
                     now={now}

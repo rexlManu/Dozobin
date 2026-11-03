@@ -2,6 +2,7 @@ import { Check } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { SkyCard } from '@/components/auth-panel';
 import { Wordmark } from '@/components/brand';
+import { SkyBackdrop } from '@/components/night-sky';
 import type { InstallStepKey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -68,7 +69,8 @@ export function InstallShell({
     const stepNumber = STEPS.findIndex((item) => item.key === step) + 1;
 
     return (
-        <div className="flex min-h-[100dvh] flex-col bg-background">
+        <div className="relative isolate flex min-h-[100dvh] flex-col bg-background">
+            <SkyBackdrop />
             <div className="mx-auto w-full max-w-[46rem] flex-1 px-4 py-10 sm:py-14">
                 <StepChips current={step} />
 

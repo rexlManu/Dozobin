@@ -47,10 +47,10 @@ export function InlineSelect<T extends string>({
             aria-label={label}
             disabled={Boolean(disabledReason)}
             className={cn(
-                '-mx-1.5 h-auto w-fit gap-1 rounded-sm border-transparent bg-transparent px-1.5 py-1 text-[13px] dark:bg-transparent',
-                'hover:bg-muted dark:hover:bg-muted',
+                '-mx-1.5 h-auto w-fit gap-1 rounded-sm border-transparent bg-transparent px-1.5 py-1 text-[13px]',
+                'hover:bg-muted',
                 'data-[state=open]:border-border data-[state=open]:bg-muted',
-                'disabled:opacity-100 disabled:hover:bg-transparent dark:disabled:hover:bg-transparent',
+                'disabled:opacity-100 disabled:hover:bg-transparent',
                 // The caret is the only affordance that appears; everything else about
                 // the cell holds still, so nothing jumps as the pointer crosses the row.
                 '[&>svg]:size-3 [&>svg]:opacity-0 [&>svg]:transition-opacity',
