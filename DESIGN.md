@@ -2,7 +2,7 @@
 name: Dōzobin
 description: Soft, cozy night world for sharing files, text and Transfer Sessions.
 colors:
-  ground: "#000000"
+  ground: "#070616"
   ink: "#f5f1ff"
   ink-muted: "#aaa2cc"
   panel: "#0e0c1a"
@@ -93,22 +93,22 @@ components:
 
 **Creative North Star: "Yoru, the night delivery"**
 
-Dōzobin is a quiet room at night. The ground is true black; on top of it sit deep indigo panels with large, friendly radii, a drawn night sky over low rooftops, and a small mascot, Dozo (a soft parcel with a sprout). The tone is cozy and kind, never cute for its own sake: every soft shape still carries real state (progress, expiry, protection, who is online).
+Dōzobin is a quiet room at night. Every page sits in one painted night sky (stars, a Milky Way, the moon, low clouds) that ends in a lit city at the bottom of the page. On top of it sit deep indigo panels with large, friendly radii, and a small mascot, Dozo (a soft parcel with a sprout). The tone is cozy and kind, never cute for its own sake: every soft shape still carries real state (progress, expiry, protection, who is online).
 
 The world was chosen over seven other directions (waybill, poster, contact sheet, timetable, notebook, room). It keeps the Yozora screens and takes the session layout from the room idea: a party column of devices and a dialogue log.
 
 **Key characteristics:**
-- True black ground, indigo panels, one soft border weight (1.5px).
+- A painted night sky behind every page, indigo panels, one soft border weight (1.5px).
 - Sakura for the one main action on a screen; lamplight for time and pressed choices; lavender for focus, live state and active tabs; mint for success; coral for danger.
 - Zen Maru Gothic everywhere, bold for anything you act on; Fragment Mono only for machine strings.
-- Authored SVG art only (Dozo, night sky, sparkles). No stock imagery, no copied characters.
+- Authored art only: SVG for Dozo and sparkles, a canvas painting for the sky and the city. No stock imagery, no copied characters.
 - Motion is short and runs once: a soft pop on arrival, a small lift on hover. Nothing loops.
 
 ## Colors
 
 A night palette with pastel lights. Tokens live in `resources/css/app.css` and map to Tailwind (`bg-card`, `bg-sunken`, `text-muted-foreground`, `bg-primary`, `text-lavender`, `bg-lamp`, `text-mint`, `text-destructive`).
 
-- **Ground** `#000`: page background below the sky band. Never tint it.
+- **Ground** `#070616` (`bg-background`): the solid header after scrolling, the phone nav, and the fallback behind the sky. The page itself shows the painted sky, not this color.
 - **Panel** `#0e0c1a` (`bg-card`): cards, rows, the session column.
 - **Panel raised** `#15122a` (`bg-sunken`): inputs, tracks, nested blocks inside a card.
 - **Night** `#120f2c`: dark text on light fills, and the gradient of code boxes.
@@ -127,8 +127,8 @@ Type steps in use: 12, 13, 14, 15 (body), 16, 18, 20, 22, 24, 26, 28, 30, 32 px 
 ## Layout
 
 - Content rail: `max-w-[68rem]` with 16px phone and 28px desktop gutters (`.rail`). The header uses the full width (`.rail-wide`).
-- Every page opens with the same night sky band: 300px on a phone, 340px from `sm`. `AppShell` draws it, so it never moves when you switch pages. The sky keeps its height on every screen width; the city repeats sideways instead of scaling.
-- The page title goes in `AppShell head`, inside the sky and above the rooftops. The page body always starts 64px above the bottom of the sky, where the rooftops meet the ground. Nothing transparent sits on top of the rooftops.
+- "Long night": the sky is fixed to the window behind the whole page, so it never moves when you switch pages or scroll. Every page ends with the city (220px on a phone, 260px from `sm`), in flow after the content, so content never covers it.
+- The page title goes in `AppShell head`: a block of 300px on a phone and 340px from `sm` at the top of the page. The page body starts 64px above the end of that block, at the same place on every page.
 - The header floats over the sky and turns solid only after the page scrolls.
 - Transfer Session on desktop: the live state and "2 of 3 devices here" sit in the sky; below it, a 300px device column and a flexible log fill the rest of the viewport. On a phone the column stacks on top and the code panel folds behind "Add a device".
 - Library and admin lists are tables on desktop and two-line rows on a phone. No card grids for lists.
@@ -153,7 +153,7 @@ Radii grow with size: chips 13px, inputs 14px, buttons 16px, list rows 20px, car
 - **Rows**: `bg-card`, 20px radius, 44px icon blob, name, one muted meta line, a status tag, actions on the right.
 - **Status tag**: tinted background plus colored text (`bg-mint-soft text-mint` and so on).
 - **Dozo** (`components/dozo.tsx`): moods `happy`, `calm`, `wow`, `sleep`. Use it for welcome, empty states, locked or expired states, and as each device's avatar (body color per device). At most one large Dozo per screen.
-- **Night sky** (`components/night-sky.tsx`): `SkyBackdrop` behind the top of every page (drawn by `AppShell`, the auth pages and the installer), `Sparkle` as the online marker.
+- **Night sky** (`components/night-sky.tsx`, painters in `lib/night-paint.ts`): `NightSky` (fixed, behind the page) and `NightCity` (last in the page) in `AppShell`, the auth pages and the installer. Both are canvases painted once per size with a seeded random, so the picture is the same on every load; they repaint only after a resize, never per frame. `Sparkle` is the online marker.
 - **Compose bar** (Transfer Session): one rounded panel with an attach button, a text field that grows with its content, and a sakura Send button.
 - **Toast**: white bubble with night text, bold.
 - **Dialog**: panel card with a 26px radius, roomy padding.
@@ -163,7 +163,7 @@ Radii grow with size: chips 13px, inputs 14px, buttons 16px, list rows 20px, car
 - Do keep one sakura action per screen. Secondary actions are soft or ghost buttons.
 - Do say states in words next to their color.
 - Do use Dozo to soften empty, locked and expired states, with short, plain copy.
-- Don't add gradients behind text, glows, glass blur on content, or looping animations (pulse, shimmer, spinners).
+- Don't add gradients, glows or glass blur to content (cards, rows, buttons), or looping animations (pulse, shimmer, spinners). Glow belongs to the painted sky only.
 - Don't use gray subtitle lines above headings, or decorative card chrome around single values.
 - Don't use em dashes in copy. Keep copy short and direct.
 - Don't add faux-Japanese decoration. "どうぞ" is the only Japanese text.

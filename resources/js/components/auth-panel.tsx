@@ -1,7 +1,7 @@
 import { Wordmark } from '@/components/brand';
 import { Dozo } from '@/components/dozo';
 import type { DozoMood } from '@/components/dozo';
-import { SkyBackdrop } from '@/components/night-sky';
+import { NightCity, NightSky } from '@/components/night-sky';
 import { Link } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -73,8 +73,8 @@ export function AuthPanel({
     footer: React.ReactNode;
 }) {
     return (
-        <div className="relative isolate flex min-h-[100dvh] flex-col bg-background">
-            <SkyBackdrop />
+        <div className="relative isolate flex min-h-[100dvh] flex-col">
+            <NightSky />
             <div className="mx-auto flex w-full max-w-[27rem] flex-1 flex-col justify-center px-4 py-10 sm:py-16">
                 <SkyCard
                     greeting={greeting}
@@ -99,6 +99,7 @@ export function AuthPanel({
                     {footer}
                 </div>
             </div>
+            <NightCity />
         </div>
     );
 }

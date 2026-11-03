@@ -8,13 +8,8 @@ import {
     UploadSimple,
     Wrench,
 } from '@phosphor-icons/react';
-import {
-    BackdropSwitcher,
-    PageBackdrop,
-    backdropFrame,
-    useBackdrop,
-} from '@/components/backdrop';
 import { Wordmark } from '@/components/brand';
+import { NightCity, NightSky } from '@/components/night-sky';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -195,17 +190,10 @@ export function AppShell({
     const items = navItems(role);
     const showNav = variant === 'app';
     const scrolled = useScrolled();
-    const backdrop = useBackdrop();
 
     return (
-        <div
-            className={cn(
-                'relative isolate flex min-h-[100dvh] flex-col bg-background',
-                backdropFrame(backdrop),
-            )}
-        >
-            <PageBackdrop name={backdrop} />
-            <BackdropSwitcher current={backdrop} />
+        <div className="relative isolate flex min-h-[100dvh] flex-col">
+            <NightSky />
 
             <header
                 className={cn(
@@ -254,7 +242,7 @@ export function AppShell({
                 </div>
             </header>
 
-            <main className="flex-1 pb-24 md:pb-0">
+            <main className="flex-1">
                 <div className="h-[300px] sm:h-[340px]">
                     {head && (
                         <div className="rail pt-[88px] sm:pt-[100px]">
@@ -264,6 +252,8 @@ export function AppShell({
                 </div>
                 <div className="relative z-10 -mt-16">{children}</div>
             </main>
+
+            <NightCity />
 
             {showNav && (
                 <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-flow-col gap-1 bg-background/95 px-2 pt-1.5 backdrop-blur-md md:hidden">

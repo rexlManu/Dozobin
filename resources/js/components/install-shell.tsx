@@ -2,7 +2,7 @@ import { Check } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { SkyCard } from '@/components/auth-panel';
 import { Wordmark } from '@/components/brand';
-import { SkyBackdrop } from '@/components/night-sky';
+import { NightCity, NightSky } from '@/components/night-sky';
 import type { InstallStepKey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -69,8 +69,8 @@ export function InstallShell({
     const stepNumber = STEPS.findIndex((item) => item.key === step) + 1;
 
     return (
-        <div className="relative isolate flex min-h-[100dvh] flex-col bg-background">
-            <SkyBackdrop />
+        <div className="relative isolate flex min-h-[100dvh] flex-col">
+            <NightSky />
             <div className="mx-auto w-full max-w-[46rem] flex-1 px-4 py-10 sm:py-14">
                 <StepChips current={step} />
 
@@ -96,6 +96,7 @@ export function InstallShell({
                     <div className="mt-6 flex flex-col gap-6">{children}</div>
                 </SkyCard>
             </div>
+            <NightCity />
         </div>
     );
 }
