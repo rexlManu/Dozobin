@@ -33,7 +33,7 @@ export function ViewSwitch({
     ];
 
     return (
-        <div className="inline-flex rounded-md bg-muted p-0.5">
+        <div className="inline-flex gap-0.5 rounded-[14px] bg-sunken p-1">
             {options.map((option) => (
                 <Tooltip key={option.id}>
                     <TooltipTrigger asChild>
@@ -43,9 +43,9 @@ export function ViewSwitch({
                             aria-label={option.label}
                             onClick={() => onView(option.id)}
                             className={cn(
-                                'rounded-[5px] px-2 py-1.5 transition-colors',
+                                'rounded-[10px] px-2.5 py-1.5 transition-colors',
                                 view === option.id
-                                    ? 'bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.07)]'
+                                    ? 'bg-lavender text-night'
                                     : 'text-muted-foreground hover:text-foreground',
                             )}
                         >

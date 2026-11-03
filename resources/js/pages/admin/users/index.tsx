@@ -19,7 +19,7 @@ import {
 import type { SortingState } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { AdminLayout } from '@/components/admin-layout';
+import { AdminLayout, AdminPageHead } from '@/components/admin-layout';
 import {
     GuardedItem,
     RoleChip,
@@ -49,7 +49,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useNow } from '@/hooks/use-now';
-import { relativeTime } from '@/lib/format';
+import { initials, relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import { countSharesByOwner } from '@/lib/share-display';
 import type { Account, Share } from '@/lib/types';
@@ -188,28 +188,27 @@ function AdminUsersContent({
                 cell: ({ row }) => (
                     <Link
                         to={`/admin/users/${row.original.id}`}
-                        className="group flex min-w-0 items-center gap-2.5"
+                        className="group flex min-w-0 items-center gap-3"
                     >
-                        <Avatar className="size-6 shrink-0 rounded-md">
-                            <AvatarImage
-                                src={row.original.avatarSrc}
-                                alt=""
-                                className="rounded-md"
-                            />
-                            <AvatarFallback className="rounded-md text-[10px]">
-                                {row.original.name.slice(0, 2)}
+                        <Avatar className="size-9 shrink-0">
+                            <AvatarImage src={row.original.avatarSrc} alt="" />
+                            <AvatarFallback className="text-[12px]">
+                                {initials(row.original.name)}
                             </AvatarFallback>
                         </Avatar>
                         <span className="min-w-0">
-                            <span className="block truncate text-[13px] font-medium group-hover:underline">
+                            <span className="block truncate font-bold group-hover:underline">
                                 {row.original.name}
                             </span>
-                            <span className="block truncate font-mono text-[11px] text-muted-foreground">
+                            <span className="block truncate text-[13px] text-muted-foreground">
                                 {row.original.email}
                             </span>
                         </span>
                     </Link>
                 ),
+                // Takes the remaining width and truncates: a table cell only clips
+                // when its own width is pinned, which max-w-0 with w-full does.
+                meta: { className: 'w-full max-w-0' },
             }),
             col.accessor('role', {
                 header: 'Role',
@@ -299,7 +298,7 @@ function AdminUsersContent({
                 id: 'shares',
                 header: 'Shares',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px]">
+                    <span className="font-bold tabular-nums">
                         {c.getValue<number>()}
                     </span>
                 ),
@@ -308,7 +307,7 @@ function AdminUsersContent({
             col.accessor('createdAt', {
                 header: 'Joined',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
+                    <span className="text-[14px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue(), now)}
                     </span>
                 ),
@@ -436,14 +435,20 @@ function AdminUsersContent({
         storageOnly !== 'any' ||
         query !== '';
 
+    const suspended = accounts.filter((a) => a.status === 'suspended').length;
+    const admins = accounts.filter((a) => a.role === 'admin').length;
+
     return (
         <>
+            <AdminPageHead
+                title="Users"
+                description={`${accounts.length} ${accounts.length === 1 ? 'account' : 'accounts'}, ${admins} ${admins === 1 ? 'administrator' : 'administrators'}${suspended > 0 ? `, ${suspended} suspended` : ''}.`}
+            />
             <DataTable
                 table={table}
                 unit="user"
-                // The phone shape of a row. Identity leads, the three editable truths
-                // sit under it on one line, and the meter spans the width where it can
-                // actually be read — the same cells, re-stacked rather than reduced.
+                // The phone shape of a row: identity on top, then the three
+                // editable values (role, status, quota) on one line under it.
                 card={(row) => {
                     const account = row.original;
 
@@ -451,38 +456,38 @@ function AdminUsersContent({
                         <div className="flex items-start gap-3">
                             <Checkbox
                                 aria-label={`Select ${account.name}`}
-                                className="mt-1.5 shrink-0"
+                                className="mt-2 shrink-0"
                                 checked={row.getIsSelected()}
                                 onCheckedChange={(v) =>
                                     row.toggleSelected(v === true)
                                 }
                             />
-                            <div className="min-w-0 flex-1">
+                            <div className="grid min-w-0 flex-1 gap-2">
                                 <Link
                                     to={`/admin/users/${account.id}`}
-                                    className="flex min-w-0 items-center gap-2.5"
+                                    className="flex min-w-0 items-center gap-3"
                                 >
-                                    <Avatar className="size-8 shrink-0 rounded-md">
+                                    <Avatar className="size-9 shrink-0">
                                         <AvatarImage
                                             src={account.avatarSrc}
                                             alt=""
-                                            className="rounded-md"
                                         />
-                                        <AvatarFallback className="rounded-md text-[11px]">
-                                            {account.name.slice(0, 2)}
+                                        <AvatarFallback className="text-[12px]">
+                                            {initials(account.name)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <span className="min-w-0">
-                                        <span className="block truncate text-[13.5px] font-medium">
+                                        <span className="block truncate font-bold">
                                             {account.name}
                                         </span>
-                                        <span className="block truncate font-mono text-[11px] text-muted-foreground">
-                                            {account.email}
+                                        <span className="block truncate text-[13px] text-muted-foreground">
+                                            {account.email} ·{' '}
+                                            {counts[account.id] ?? 0} shares
                                         </span>
                                     </span>
                                 </Link>
 
-                                <div className="mt-2.5 flex flex-wrap items-center gap-x-1 gap-y-1.5">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                                     <InlineSelect
                                         label={`Role for ${account.name}`}
                                         value={account.role}
@@ -535,27 +540,26 @@ function AdminUsersContent({
                                             now={now}
                                         />
                                     </InlineSelect>
-                                    <span className="font-mono text-[11px] text-muted-foreground">
-                                        {counts[account.id] ?? 0} shares
-                                    </span>
-                                </div>
-
-                                <div className="mt-2">
-                                    <InlineSelect
-                                        label={`Quota for ${account.name}`}
-                                        value={String(account.storageLimit)}
-                                        options={quotaOptions(
-                                            account.storageLimit,
-                                        )}
-                                        onChange={(next) => {
-                                            setQuota(account.id, Number(next));
-                                            toast(
-                                                `Quota for ${account.name} set to ${quotaLabel(Number(next))}`,
-                                            );
-                                        }}
-                                    >
-                                        <UsageBar account={account} />
-                                    </InlineSelect>
+                                    <div className="basis-full">
+                                        <InlineSelect
+                                            label={`Quota for ${account.name}`}
+                                            value={String(account.storageLimit)}
+                                            options={quotaOptions(
+                                                account.storageLimit,
+                                            )}
+                                            onChange={(next) => {
+                                                setQuota(
+                                                    account.id,
+                                                    Number(next),
+                                                );
+                                                toast(
+                                                    `Quota for ${account.name} set to ${quotaLabel(Number(next))}`,
+                                                );
+                                            }}
+                                        >
+                                            <UsageBar account={account} />
+                                        </InlineSelect>
+                                    </div>
                                 </div>
                             </div>
 
@@ -600,7 +604,7 @@ function AdminUsersContent({
                     );
                 }}
                 toolbar={
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+                    <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center">
                         <div className="relative min-w-0 flex-1">
                             <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -634,7 +638,7 @@ function AdminUsersContent({
                             >
                                 <SelectTrigger
                                     aria-label="Filter by role"
-                                    className="w-[8.5rem] text-[13px]"
+                                    className="w-[8.5rem] max-sm:w-auto max-sm:min-w-[9rem] max-sm:flex-1"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
@@ -658,7 +662,7 @@ function AdminUsersContent({
                             >
                                 <SelectTrigger
                                     aria-label="Filter by status"
-                                    className="w-[9rem] text-[13px]"
+                                    className="w-[9rem] max-sm:w-auto max-sm:min-w-[9rem] max-sm:flex-1"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
@@ -682,7 +686,7 @@ function AdminUsersContent({
                             >
                                 <SelectTrigger
                                     aria-label="Filter by storage"
-                                    className="w-[10rem] text-[13px]"
+                                    className="w-[10rem] max-sm:w-auto max-sm:min-w-[9rem] max-sm:flex-1"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
@@ -720,10 +724,10 @@ function AdminUsersContent({
                 }
                 empty={
                     <>
-                        <p className="text-[14px] font-medium">
+                        <p className="text-[17px] font-bold">
                             No accounts match that
                         </p>
-                        <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed text-muted-foreground">
+                        <p className="text-muted-foreground">
                             Try a shorter search, or clear the filters.
                         </p>
                     </>

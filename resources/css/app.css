@@ -2,33 +2,32 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 /*
-  IBM Plex, weight axis only: the width axis is never used, and Plex Mono is
-  static, so it loads the three weights the interface actually renders (400 for
-  everything, 400 italic and 700 for Shiki's comment and keyword tokens).
+  Zen Maru Gothic for every word of interface: rounded, soft, readable at small
+  sizes, and it carries the few Japanese glyphs (どうぞ) without a second font.
+  Fragment Mono only for strings a person might copy into a machine: code,
+  Paste bodies, Access Codes, URLs and tokens.
 */
-@import '@fontsource-variable/ibm-plex-sans/wght.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/400-italic.css';
-@import '@fontsource/ibm-plex-mono/700.css';
+@import '@fontsource/zen-maru-gothic/400.css';
+@import '@fontsource/zen-maru-gothic/500.css';
+@import '@fontsource/zen-maru-gothic/700.css';
+@import '@fontsource/fragment-mono/400.css';
 
 @custom-variant dark (&:is(.dark *));
 
 /*
-  Dōzobin design system
-  ---------------------
-  Direction: utilitarian instrument. Flat surfaces, hairline rules, mono for
-  machine-truths (sizes, codes, timestamps, mime types), sans for prose.
-  Accent is yuzu (acid citrus). Chosen because this product's whole job is
-  "press the one button that hands the thing over" - the accent marks that act
-  and nothing else. It also stays clear of the red/amber the app needs for
-  failure and expiry semantics.
-  Radius: 8px containers, 6px controls, 4px chips. Never pill except avatars.
+  Dōzobin design system: "Yoru" (night)
+  -------------------------------------
+  A soft night world on a true black ground. Surfaces are deep indigo panels
+  with large, friendly radii. Sakura is the one action color, lamplight marks
+  time and warnings, lavender marks focus and live state, mint marks success.
+  A small parcel mascot, Dozo, appears at moments of welcome and empty states.
+  Full spec: DESIGN.md.
 */
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
-    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --font-sans: 'Zen Maru Gothic', ui-rounded, system-ui, sans-serif;
+    --font-mono: 'Fragment Mono', ui-monospace, SFMono-Regular, monospace;
 
     --color-ring: var(--ring);
     --color-input: var(--input);
@@ -56,84 +55,70 @@
     --color-sunken: var(--sunken);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    --color-lavender: var(--lavender);
+    --color-lavender-soft: var(--lavender-soft);
+    --color-mint: var(--mint);
+    --color-mint-soft: var(--mint-soft);
+    --color-lamp: var(--lamp);
+    --color-night: var(--night);
 
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    --radius-xl: 12px;
-    --radius-2xl: 16px;
-    --radius-3xl: 20px;
-    --radius-4xl: 24px;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --radius-xl: 22px;
+    --radius-2xl: 26px;
+    --radius-3xl: 28px;
+    --radius-4xl: 32px;
+
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-:root {
-    --radius: 8px;
-
-    /* Light: cool paper, not cream. */
-    --background: oklch(0.981 0.0025 250);
-    --foreground: oklch(0.205 0.012 258);
-    --sunken: oklch(0.958 0.004 250);
-    --card: oklch(1 0 0);
-    --card-foreground: var(--foreground);
-    --popover: oklch(1 0 0);
-    --popover-foreground: var(--foreground);
-
-    --primary: oklch(0.855 0.178 112);
-    --primary-foreground: oklch(0.235 0.055 118);
-    --primary-soft: oklch(0.955 0.06 112);
-
-    --secondary: oklch(0.955 0.004 250);
-    --secondary-foreground: oklch(0.28 0.012 258);
-    --muted: oklch(0.955 0.004 250);
-    --muted-foreground: oklch(0.525 0.013 256);
-    --accent: oklch(0.945 0.005 250);
-    --accent-foreground: oklch(0.24 0.012 258);
-
-    --destructive: oklch(0.545 0.205 25);
-    --destructive-foreground: oklch(0.99 0.005 25);
-    --destructive-soft: oklch(0.955 0.028 25);
-    --warn: oklch(0.585 0.135 62);
-    --warn-foreground: oklch(0.99 0.01 62);
-    --warn-soft: oklch(0.958 0.04 70);
-
-    --border: oklch(0.902 0.005 250);
-    --border-strong: oklch(0.845 0.007 250);
-    --input: oklch(0.895 0.005 250);
-    --ring: oklch(0.72 0.15 112);
-}
-
+/*
+  One palette. Yoru is a night world, so light and dark appearance resolve to
+  the same tokens.
+*/
+:root,
 .dark {
-    /* Dark: deep slate ink, never pure black. */
-    --background: oklch(0.168 0.006 260);
-    --foreground: oklch(0.965 0.003 250);
-    --sunken: oklch(0.142 0.006 260);
-    --card: oklch(0.205 0.007 260);
+    --radius: 18px;
+    color-scheme: dark;
+
+    --background: #000;
+    --foreground: #f5f1ff;
+    --card: #0e0c1a;
     --card-foreground: var(--foreground);
-    --popover: oklch(0.215 0.008 260);
+    --sunken: #15122a;
+    --popover: #15122a;
     --popover-foreground: var(--foreground);
+    --night: #120f2c;
 
-    --primary: oklch(0.865 0.185 112);
-    --primary-foreground: oklch(0.215 0.055 118);
-    --primary-soft: oklch(0.3 0.065 115);
+    --primary: #ffb3c7;
+    --primary-foreground: #3a0f1f;
+    --primary-soft: rgb(255 179 199 / 0.12);
 
-    --secondary: oklch(0.262 0.008 260);
-    --secondary-foreground: oklch(0.955 0.003 250);
-    --muted: oklch(0.255 0.008 260);
-    --muted-foreground: oklch(0.665 0.012 258);
-    --accent: oklch(0.272 0.009 260);
-    --accent-foreground: oklch(0.965 0.003 250);
+    --secondary: #15122a;
+    --secondary-foreground: var(--foreground);
+    --muted: #15122a;
+    --muted-foreground: #aaa2cc;
+    --accent: #1d1736;
+    --accent-foreground: var(--foreground);
 
-    --destructive: oklch(0.665 0.185 25);
-    --destructive-foreground: oklch(0.16 0.02 25);
-    --destructive-soft: oklch(0.3 0.07 25);
-    --warn: oklch(0.755 0.135 68);
-    --warn-foreground: oklch(0.18 0.02 68);
-    --warn-soft: oklch(0.3 0.055 68);
+    --lavender: #b9a8ff;
+    --lavender-soft: rgb(185 168 255 / 0.12);
+    --mint: #9fe3cf;
+    --mint-soft: rgb(159 227 207 / 0.1);
+    --lamp: #ffd98a;
 
-    --border: oklch(1 0 0 / 10%);
-    --border-strong: oklch(1 0 0 / 18%);
-    --input: oklch(1 0 0 / 14%);
-    --ring: oklch(0.72 0.15 112);
+    --destructive: #ff8b7b;
+    --destructive-foreground: #3a120c;
+    --destructive-soft: rgb(255 139 123 / 0.12);
+    --warn: #ffd98a;
+    --warn-foreground: #2a1c08;
+    --warn-soft: rgb(255 217 138 / 0.1);
+
+    --border: #2a2540;
+    --border-strong: #4a4170;
+    --input: #2a2540;
+    --ring: #b9a8ff;
 }
 
 @layer base {
@@ -148,8 +133,10 @@
 
     body {
         @apply bg-background text-foreground;
-        /* Countdowns, sizes and quotas sit in columns and must not jitter. */
-        font-variant-numeric: tabular-nums;
+    }
+
+    body {
+        font-weight: 500;
     }
 
     ::selection {
@@ -158,13 +145,12 @@
     }
 
     :focus-visible {
-        @apply outline-2 outline-offset-2 outline-ring;
+        @apply outline-3 outline-offset-3 outline-ring;
     }
 
     /*
       A slashed zero, so an Access Code or a share slug can never be read wrong.
-      Plex Mono draws one by default; this keeps the intent explicit and holds
-      if the mono ever changes again.
+      Keeps the intent explicit for any mono that supports the feature.
     */
     .font-mono {
         font-feature-settings: 'zero';
@@ -172,11 +158,10 @@
 }
 
 @layer components {
-    /* Small uppercase machine label. Used for column heads and field labels. */
-    /* Names a region or a column. Never a field sitting next to its control:
-       at this size the caps and tracking read heavier than the control itself. */
-    .label-mono {
-        @apply font-mono text-[10.5px] font-normal tracking-[0.1em] text-muted-foreground uppercase;
+    /* Names a region, a column or a metadata term. Sentence case, quiet ink:
+       the value next to it is what a person reads. */
+    .label-meta {
+        @apply text-[13px] font-bold text-muted-foreground;
     }
 
     /* Hairline rule that reads as structure rather than decoration. */
@@ -191,7 +176,17 @@
       objects on the page rather than the page itself.
     */
     .rail {
-        @apply mx-auto w-full max-w-[68rem] px-4 sm:px-6;
+        @apply mx-auto w-full max-w-[68rem] px-4 sm:px-7;
+    }
+
+    /* The header spans wider than the content, like a window frame. */
+    .rail-wide {
+        @apply w-full px-4 sm:px-7;
+    }
+
+    /* Arrival of a new row or Transfer Item: a short, soft pop. Runs once. */
+    .dz-pop {
+        animation: dz-pop 0.5s var(--ease-bounce) both;
     }
 
     /*
@@ -262,6 +257,13 @@
             [data-slot='checkbox']
         ):only-child::after {
         min-width: 44px;
+    }
+}
+
+@keyframes dz-pop {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
     }
 }
 

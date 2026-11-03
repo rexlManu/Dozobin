@@ -29,6 +29,7 @@ use App\Http\Controllers\Seo\SitemapController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\TransferItemController;
+use App\Http\Controllers\TransferSocketController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', RobotsController::class)->name('seo.robots');
@@ -63,11 +64,12 @@ Route::post('/shares/pastes', [ShareController::class, 'storePaste'])->middlewar
 Route::get('/transfer', [TransferController::class, 'index'])->name('transfer.lobby');
 Route::post('/transfers', [TransferController::class, 'store'])->middleware('throttle:20,1')->name('transfers.store');
 Route::post('/transfers/join', [TransferController::class, 'join'])->middleware('throttle:30,1')->name('transfers.join');
+Route::post('/transfers/socket-auth', TransferSocketController::class)->middleware('throttle:60,1')->name('transfers.socket-auth');
 Route::get('/transfer/{transferSession}', [TransferController::class, 'show'])->name('transfers.show');
 Route::post('/transfers/{transferSession}/touch', [TransferController::class, 'touch'])->name('transfers.touch');
 Route::delete('/transfers/{transferSession}/leave', [TransferController::class, 'leave'])->name('transfers.leave');
 Route::post('/transfers/{transferSession}/items', [TransferItemController::class, 'store'])->name('transfer-items.store');
-Route::delete('/transfers/{transferSession}/items/{transferItem}', [TransferItemController::class, 'destroy'])->scopeBindings()->name('transfer-items.destroy');
+Route::delete('/transfers/{transferSession}/items/{transferItem}', [TransferItemController::class, 'destroy'])->name('transfer-items.destroy');
 Route::get('/transfer-items/{transferItem}/content', [TransferItemController::class, 'content'])->name('transfer-items.content');
 
 Route::middleware('guest')->group(function (): void {

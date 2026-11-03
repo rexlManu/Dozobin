@@ -2,11 +2,12 @@ import { router, usePage } from '@inertiajs/react';
 import { CheckCircle } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { AppProviders } from '@/components/app-providers';
-import { SettingsLayout, SettingsPageHead } from '@/components/settings-layout';
+import { SettingsCard, SettingsLayout } from '@/components/settings-layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { initials } from '@/lib/format';
 import type { SharedPageProps } from '@/types';
 
 function ProfileContent() {
@@ -31,24 +32,18 @@ function ProfileContent() {
     }
 
     return (
-        <>
-            <SettingsPageHead title="Profile" />
-            <div className="flex flex-col gap-5">
+        <SettingsCard title="Profile">
+            <div className="flex flex-col gap-6">
                 <div className="flex items-center gap-4">
-                    <Avatar className="size-14 rounded-lg">
-                        <AvatarImage
-                            src={account.avatarSrc}
-                            alt=""
-                            className="rounded-lg"
-                        />
-                        <AvatarFallback className="rounded-lg">
-                            {account.name.slice(0, 2)}
+                    <Avatar className="size-16">
+                        <AvatarImage src={account.avatarSrc} alt="" />
+                        <AvatarFallback className="text-[20px]">
+                            {initials(account.name)}
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-wrap gap-2">
                         <Button
                             variant="outline"
-                            size="sm"
                             onClick={() => avatarInput.current?.click()}
                         >
                             Change avatar
@@ -77,7 +72,6 @@ function ProfileContent() {
                         />
                         <Button
                             variant="ghost"
-                            size="sm"
                             onClick={() =>
                                 router.patch(
                                     '/profile',
@@ -113,7 +107,6 @@ function ProfileContent() {
 
                 <div className="flex items-center gap-3">
                     <Button
-                        size="sm"
                         disabled={
                             name === account.name && email === account.email
                         }
@@ -131,17 +124,14 @@ function ProfileContent() {
                         Save profile
                     </Button>
                     {saved && (
-                        <span className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-                            <CheckCircle
-                                weight="fill"
-                                className="size-3.5 text-primary"
-                            />{' '}
+                        <span className="flex items-center gap-1.5 font-bold text-mint">
+                            <CheckCircle weight="fill" className="size-4" />
                             Saved
                         </span>
                     )}
                 </div>
             </div>
-        </>
+        </SettingsCard>
     );
 }
 

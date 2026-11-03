@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { AppProviders } from '@/components/app-providers';
-import { AuthPanel as Panel } from '@/components/auth-panel';
+import { AuthPanel as Panel, authLinkClass } from '@/components/auth-panel';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -22,21 +22,16 @@ function SignInContent() {
     return (
         <Panel
             title="Sign in"
-            intro="Membership adds a Library, settings, and API tokens. Sharing itself works without it."
+            greeting="Welcome back."
+            intro="Members get a Library, settings and API tokens. You can share without an account."
             footer={
                 <>
                     <span>No account yet? </span>
-                    <Link
-                        className="underline decoration-border-strong underline-offset-4"
-                        to="/register"
-                    >
+                    <Link className={authLinkClass} to="/register">
                         Register
                     </Link>
-                    <span> · </span>
-                    <Link
-                        className="underline decoration-border-strong underline-offset-4"
-                        to="/reset"
-                    >
+                    <span className="mx-2">·</span>
+                    <Link className={authLinkClass} to="/reset">
                         Forgot password
                     </Link>
                 </>
@@ -87,8 +82,10 @@ function SignInContent() {
                 </FieldGroup>
             </form>
             {development && (
-                <div className="mt-5 rounded-md border border-border bg-sunken px-3 py-2.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
-                    <p className="text-foreground">Local seeded accounts</p>
+                <div className="mt-5 rounded-[18px] bg-sunken px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+                    <p className="font-bold text-foreground">
+                        Local seeded accounts
+                    </p>
                     <p>member@dozobin.test · member</p>
                     <p>admin@dozobin.test · administrator</p>
                     <p>password</p>

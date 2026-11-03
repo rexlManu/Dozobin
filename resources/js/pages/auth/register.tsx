@@ -1,6 +1,6 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { AppProviders } from '@/components/app-providers';
-import { AuthPanel as Panel } from '@/components/auth-panel';
+import { AuthPanel as Panel, authLinkClass } from '@/components/auth-panel';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -34,12 +34,11 @@ function RegisterContent() {
         return (
             <Panel
                 title="Registration is closed"
-                intro="The administrator of this installation is not taking new accounts. Guest sharing and Transfer Sessions still work."
+                greeting="Sorry, not today."
+                mood="sleep"
+                intro="This installation does not take new Members right now. You can still share as a Guest or start a Transfer Session."
                 footer={
-                    <Link
-                        className="underline decoration-border-strong underline-offset-4"
-                        to="/"
-                    >
+                    <Link className={authLinkClass} to="/">
                         Back to the workspace
                     </Link>
                 }
@@ -55,12 +54,11 @@ function RegisterContent() {
         return (
             <Panel
                 title="Invite link unavailable"
-                intro="This invite is invalid, expired, revoked, or has reached its use limit. Ask the administrator for a new link."
+                greeting="Oh no."
+                mood="wow"
+                intro="This invite is invalid, expired, revoked or used up. Ask the administrator for a new link."
                 footer={
-                    <Link
-                        className="underline decoration-border-strong underline-offset-4"
-                        to="/"
-                    >
+                    <Link className={authLinkClass} to="/">
                         Back to the workspace
                     </Link>
                 }
@@ -75,18 +73,16 @@ function RegisterContent() {
     return (
         <Panel
             title="Create an account"
+            greeting="Nice to meet you."
             intro={
                 registration === 'invite'
-                    ? 'This installation is invite only, so registration needs a code from the administrator.'
-                    : 'Registration is open on this installation.'
+                    ? 'This installation is invite only. You need a code from the administrator.'
+                    : 'Become a Member to keep your shares in a Library.'
             }
             footer={
                 <>
                     <span>Already have one? </span>
-                    <Link
-                        className="underline decoration-border-strong underline-offset-4"
-                        to="/signin"
-                    >
+                    <Link className={authLinkClass} to="/signin">
                         Sign in
                     </Link>
                 </>

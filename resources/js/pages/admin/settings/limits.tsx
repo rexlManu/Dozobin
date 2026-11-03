@@ -1,4 +1,4 @@
-import { AdminLayout } from '@/components/admin-layout';
+import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
@@ -16,12 +16,12 @@ function LimitsContent() {
         <>
             <AdminSettingsPageHead
                 title="Limits"
-                description="Quotas apply to Members. Guest shares count against nothing because they belong to no account."
+                description="Quotas apply to Members. Guest shares belong to no account, so they count against nothing."
             />
-            <div className="grid gap-5 sm:grid-cols-2">
+            <AdminCard className="grid gap-6 sm:grid-cols-2">
                 <AdminSettingsField
                     label="Default Member storage quota"
-                    hint="0 means no limit. Applies to accounts created from here on."
+                    hint="0 means no limit. Applies to new accounts."
                     error={shown('defaultQuotaMb')}
                 >
                     <div className="flex items-center gap-2">
@@ -35,9 +35,9 @@ function LimitsContent() {
                                     defaultQuotaMb: Number(event.target.value),
                                 })
                             }
-                            className="w-[9rem] font-mono"
+                            className="w-[9rem]"
                         />
-                        <span className="font-mono text-[12px] text-muted-foreground">
+                        <span className="text-[14px] text-muted-foreground">
                             MB
                         </span>
                     </div>
@@ -58,24 +58,25 @@ function LimitsContent() {
                                     maxUploadMb: Number(event.target.value),
                                 })
                             }
-                            className="w-[9rem] font-mono"
+                            className="w-[9rem]"
                         />
-                        <span className="font-mono text-[12px] text-muted-foreground">
+                        <span className="text-[14px] text-muted-foreground">
                             MB per file
                         </span>
                     </div>
                 </AdminSettingsField>
-            </div>
-            <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                An individual quota is set on the person, under{' '}
-                <Link
-                    to="/admin/users"
-                    className="underline underline-offset-4"
-                >
-                    Users
-                </Link>
-                .
-            </p>
+
+                <p className="text-[14px] text-muted-foreground sm:col-span-2">
+                    Set a quota for one person under{' '}
+                    <Link
+                        to="/admin/users"
+                        className="font-bold text-lavender underline underline-offset-4"
+                    >
+                        Users
+                    </Link>
+                    .
+                </p>
+            </AdminCard>
         </>
     );
 }

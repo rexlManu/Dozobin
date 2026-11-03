@@ -1,11 +1,13 @@
+import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { NavLink } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
+// Yoru has one theme, so Appearance is left out of the nav. Its page and route
+// still exist until the owner decides whether to remove them.
 const SECTIONS = [
     { to: '/settings/profile', label: 'Profile' },
-    { to: '/settings/appearance', label: 'Appearance' },
     { to: '/settings/sharing', label: 'Sharing defaults' },
     { to: '/settings/storage', label: 'Storage' },
     { to: '/settings/security', label: 'Security' },
@@ -13,20 +15,21 @@ const SECTIONS = [
     { to: '/settings/sharex', label: 'ShareX' },
 ];
 
+/** Bold heading with an optional short explanation, used at the top of a settings card. */
 export function SettingsPageHead({
     title,
     description,
+    className,
 }: {
     title: string;
     description?: string;
+    className?: string;
 }) {
     return (
-        <header>
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
-                {title}
-            </h2>
+        <header className={className}>
+            <h2 className="text-[22px] leading-tight font-bold">{title}</h2>
             {description && (
-                <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 max-w-[62ch] text-muted-foreground">
                     {description}
                 </p>
             )}
@@ -34,45 +37,80 @@ export function SettingsPageHead({
     );
 }
 
+/**
+ * One soft settings card: a bold title, an optional explanation and the
+ * controls below. `danger` tints the card for destructive actions.
+ */
+export function SettingsCard({
+    title,
+    description,
+    danger = false,
+    children,
+}: {
+    title: string;
+    description?: string;
+    danger?: boolean;
+    children: ReactNode;
+}) {
+    return (
+        <section
+            className={cn(
+                'grid gap-5 rounded-[26px] border-[1.5px] bg-card p-[18px] sm:p-[26px]',
+                danger ? 'border-destructive/40' : 'border-border',
+            )}
+        >
+            <header>
+                <h2
+                    className={cn(
+                        'text-[20px] leading-tight font-bold',
+                        danger && 'text-destructive',
+                    )}
+                >
+                    {title}
+                </h2>
+                {description && (
+                    <p className="mt-1.5 max-w-[62ch] text-muted-foreground">
+                        {description}
+                    </p>
+                )}
+            </header>
+            {children}
+        </section>
+    );
+}
+
 export function SettingsLayout({ children }: { children: ReactNode }) {
+    const pathname = usePage().url.split('?')[0];
+
     return (
         <AppShell>
-            <div className="rail py-6 sm:py-8">
-                <h1 className="text-xl font-medium tracking-[-0.02em]">
+            <div className="rail py-6 sm:py-10">
+                <h1 className="text-[28px] leading-tight font-bold">
                     Settings
                 </h1>
 
-                <div className="mt-6 grid gap-7 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-10">
-                    {/*
-            The indicator is the header's own device turned on its side: a
-            hairline the active item sits against, ink rather than yuzu, because
-            the accent belongs to acts and never to navigation.
-          */}
-                    <nav className="-mx-4 flex scrollbar-slim gap-1 overflow-x-auto border-b border-border px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">
+                <div className="mt-5 grid gap-5 lg:mt-7 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+                    <nav
+                        aria-label="Settings"
+                        className="flex flex-wrap gap-1.5 lg:sticky lg:top-24 lg:flex-col lg:flex-nowrap lg:gap-1 lg:self-start"
+                    >
                         {SECTIONS.map((section) => (
                             <NavLink
                                 key={section.to}
                                 to={section.to}
+                                aria-current={
+                                    pathname === section.to ? 'page' : undefined
+                                }
                                 className={({ isActive }) =>
                                     cn(
-                                        'relative shrink-0 px-2.5 py-2 text-[13px] transition-colors lg:py-1.5',
+                                        'rounded-[14px] px-3.5 py-2 font-bold whitespace-nowrap transition-colors',
                                         isActive
-                                            ? 'font-medium text-foreground'
-                                            : 'text-muted-foreground hover:text-foreground',
+                                            ? 'bg-lavender text-night'
+                                            : 'text-muted-foreground hover:bg-sunken hover:text-foreground',
                                     )
                                 }
                             >
-                                {({ isActive }) => (
-                                    <>
-                                        {isActive && (
-                                            <span
-                                                aria-hidden
-                                                className="absolute inset-x-2 -bottom-px h-[1.5px] bg-foreground lg:inset-x-auto lg:inset-y-1 lg:-left-px lg:h-auto lg:w-[1.5px]"
-                                            />
-                                        )}
-                                        {section.label}
-                                    </>
-                                )}
+                                {section.label}
                             </NavLink>
                         ))}
                     </nav>

@@ -1,19 +1,18 @@
 import { router } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
-import { AdminLayout } from '@/components/admin-layout';
+import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
     AdminSettingsPageHead,
+    AdminSettingsSwitch,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { useNow } from '@/hooks/use-now';
 import type { Share } from '@/lib/types';
 
@@ -88,10 +87,10 @@ function HousekeepingContent({ shares }: { shares: Share[] }) {
         <>
             <AdminSettingsPageHead
                 title="Housekeeping"
-                description="Control how expired payloads leave storage and whether File Shares are checked by ClamAV. Share records remain after automatic cleanup."
+                description="How expired payloads leave storage, and whether ClamAV checks File Shares. Share records stay after cleanup."
             />
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <AdminCard className="grid gap-7 sm:grid-cols-2">
                 <AdminSettingsField
                     label="Expired payload grace period"
                     hint="0 means the next hourly cleanup run."
@@ -113,87 +112,69 @@ function HousekeepingContent({ shares }: { shares: Share[] }) {
                                     ),
                                 })
                             }
-                            className="w-[9rem] font-mono"
+                            className="w-[9rem]"
                         />
-                        <span className="font-mono text-[12px] text-muted-foreground">
+                        <span className="text-[14px] text-muted-foreground">
                             hours
                         </span>
                     </div>
                 </AdminSettingsField>
 
-                <div className="flex items-start gap-3">
-                    <Switch
-                        id="malware-scanning"
-                        checked={draft.malwareScanningEnabled}
-                        aria-invalid={Boolean(shown('malwareScanningEnabled'))}
-                        onCheckedChange={(checked) =>
-                            setDraft({ malwareScanningEnabled: checked })
-                        }
-                    />
-                    <div>
-                        <Label
-                            htmlFor="malware-scanning"
-                            className="text-[13px]"
-                        >
-                            Scan new File Shares for malware
-                        </Label>
-                        <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                            Requires a reachable clamd service. Files stay
-                            downloadable while scans are pending or fail.
-                        </p>
-                        {shown('malwareScanningEnabled') && (
-                            <p className="mt-1 text-[12px] text-destructive">
-                                {shown('malwareScanningEnabled')}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-                <div className="mr-auto">
-                    <p className="text-[13px] font-medium">
-                        Delete every Guest share
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {guestShares.length} on this installation right now.
-                    </p>
-                </div>
-                <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={guestShares.length === 0}
-                    onClick={() =>
-                        void sweep(
-                            guestShares.map((s) => s.id),
-                            `Delete ${guestShares.length} Guest shares?`,
-                            'Every link handed out by a signed-out visitor stops resolving right away. Nobody gets a warning first.',
-                        )
+                <AdminSettingsSwitch
+                    id="malware-scanning"
+                    label="Scan new File Shares for malware"
+                    hint="Needs a reachable clamd service. Files stay downloadable while a scan is pending or fails."
+                    error={shown('malwareScanningEnabled')}
+                    checked={draft.malwareScanningEnabled}
+                    onCheckedChange={(checked) =>
+                        setDraft({ malwareScanningEnabled: checked })
                     }
-                >
-                    Delete
-                </Button>
-            </div>
+                />
+            </AdminCard>
 
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-                <div className="mr-auto">
-                    <p className="text-[13px] font-medium">
-                        Clean expired payloads now
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {expiredWithPayload.length} are past expiry and the
-                        configured grace period.
-                    </p>
+            <section className="grid gap-2">
+                <h3 className="mb-1 text-[17px] font-bold">Clean up now</h3>
+                <div className="flex flex-wrap items-center gap-3 rounded-[20px] bg-card px-4 py-3">
+                    <div className="mr-auto min-w-0">
+                        <p className="font-bold">Delete every Guest share</p>
+                        <p className="text-[13px] text-muted-foreground">
+                            {guestShares.length} on this installation now.
+                        </p>
+                    </div>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={guestShares.length === 0}
+                        onClick={() =>
+                            void sweep(
+                                guestShares.map((s) => s.id),
+                                `Delete ${guestShares.length} Guest shares?`,
+                                'Every link a Guest handed out stops working right away. Nobody is warned first.',
+                            )
+                        }
+                    >
+                        Delete
+                    </Button>
                 </div>
-                <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={expiredWithPayload.length === 0}
-                    onClick={() => void cleanExpiredPayloads()}
-                >
-                    Queue cleanup
-                </Button>
-            </div>
+
+                <div className="flex flex-wrap items-center gap-3 rounded-[20px] bg-card px-4 py-3">
+                    <div className="mr-auto min-w-0">
+                        <p className="font-bold">Clean expired payloads</p>
+                        <p className="text-[13px] text-muted-foreground">
+                            {expiredWithPayload.length} are past expiry and the
+                            grace period.
+                        </p>
+                    </div>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={expiredWithPayload.length === 0}
+                        onClick={() => void cleanExpiredPayloads()}
+                    >
+                        Queue cleanup
+                    </Button>
+                </div>
+            </section>
             {dialog}
         </>
     );

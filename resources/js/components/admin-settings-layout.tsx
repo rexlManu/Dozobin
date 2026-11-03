@@ -2,8 +2,10 @@ import { router, usePage } from '@inertiajs/react';
 import { CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { AdminPageHead } from '@/components/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Link } from '@/lib/navigation';
 import type { AdminConfig } from '@/lib/types';
 import type { SharedPageProps } from '@/types';
@@ -83,6 +85,7 @@ function validate(draft: AdminConfig): Errors {
     return errors;
 }
 
+/** A labelled form field: 13px bold label, optional hint, then the control and its error. */
 export function AdminSettingsField({
     label,
     hint,
@@ -96,18 +99,16 @@ export function AdminSettingsField({
 }) {
     return (
         <div className="flex flex-col gap-2">
-            <Label className="text-[13px]">{label}</Label>
-            {hint && (
-                <p className="-mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                    {hint}
-                </p>
-            )}
+            <Label className="label-meta">{label}</Label>
             {children}
+            {hint && (
+                <p className="text-[13px] text-muted-foreground">{hint}</p>
+            )}
             {error && (
-                <p className="flex items-start gap-1.5 text-[12.5px] text-destructive">
+                <p className="flex items-start gap-1.5 text-[13px] font-bold text-destructive">
                     <WarningCircle
                         weight="fill"
-                        className="mt-px size-3.5 shrink-0"
+                        className="mt-0.5 size-4 shrink-0"
                     />
                     {error}
                 </p>
@@ -116,24 +117,52 @@ export function AdminSettingsField({
     );
 }
 
-export function AdminSettingsPageHead({
-    title,
-    description,
+/** A switch with a bold label and one muted line under it. */
+export function AdminSettingsSwitch({
+    id,
+    label,
+    hint,
+    error,
+    checked,
+    onCheckedChange,
 }: {
-    title: string;
-    description: string;
+    id: string;
+    label: string;
+    hint?: React.ReactNode;
+    error?: string;
+    checked: boolean;
+    onCheckedChange: (checked: boolean) => void;
 }) {
     return (
-        <header>
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
-                {title}
-            </h2>
-            <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
-                {description}
-            </p>
-        </header>
+        <div className="flex items-start gap-3">
+            <Switch
+                id={id}
+                checked={checked}
+                aria-invalid={Boolean(error)}
+                onCheckedChange={onCheckedChange}
+                className="mt-0.5"
+            />
+            <div className="min-w-0">
+                <Label htmlFor={id} className="text-[15px] font-bold">
+                    {label}
+                </Label>
+                {hint && (
+                    <p className="mt-0.5 text-[14px] text-muted-foreground">
+                        {hint}
+                    </p>
+                )}
+                {error && (
+                    <p className="mt-1 text-[13px] font-bold text-destructive">
+                        {error}
+                    </p>
+                )}
+            </div>
+        </div>
     );
 }
+
+/** Settings pages share the admin page heading. */
+export const AdminSettingsPageHead = AdminPageHead;
 
 interface SettingsContext {
     draft: AdminConfig;
@@ -206,19 +235,17 @@ export function AdminSettingsLayout({ children }: { children: ReactNode }) {
                 {children}
             </AdminSettingsContext.Provider>
 
-            <div className="sticky bottom-0 -mx-4 mt-2 border-t border-border bg-background/85 px-4 py-3 backdrop-blur-md sm:-mx-0 sm:px-0">
-                <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-[12.5px] text-muted-foreground">
+            {/* Sits above the phone's bottom nav, which is fixed and about 64px tall. */}
+            <div className="sticky bottom-[76px] z-20 mt-1 rounded-[20px] border-[1.5px] border-border bg-card py-2.5 pr-2.5 pl-4 md:bottom-4">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <p className="text-[14px] text-muted-foreground">
                         {saved ? (
-                            <span className="flex items-center gap-1.5 text-foreground">
-                                <CheckCircle
-                                    weight="fill"
-                                    className="size-3.5 text-primary"
-                                />{' '}
-                                Saved. The workspace picks it up immediately.
+                            <span className="flex items-center gap-1.5 font-bold text-mint">
+                                <CheckCircle weight="fill" className="size-4" />
+                                Saved. It applies right away.
                             </span>
                         ) : showErrors && invalid && badSection ? (
-                            <span className="text-destructive">
+                            <span className="font-bold text-destructive">
                                 Fix {Object.keys(errors).length} field
                                 {Object.keys(errors).length === 1
                                     ? ''
@@ -231,7 +258,9 @@ export function AdminSettingsLayout({ children }: { children: ReactNode }) {
                                 </Link>
                             </span>
                         ) : dirty ? (
-                            'Unsaved changes'
+                            <span className="font-bold text-lamp">
+                                Unsaved changes
+                            </span>
                         ) : (
                             'No changes'
                         )}

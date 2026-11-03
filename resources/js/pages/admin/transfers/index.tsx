@@ -17,7 +17,7 @@ import {
 import type { SortingState } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { AdminLayout } from '@/components/admin-layout';
+import { AdminLayout, AdminPageHead, Tag } from '@/components/admin-layout';
 import { AppProviders } from '@/components/app-providers';
 import { useConfirm } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table';
@@ -54,7 +54,6 @@ import {
     transferExpiresAt,
 } from '@/lib/transfer-state';
 import type { TransferSession } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
 
 type Only = 'all' | 'running' | 'past';
@@ -65,20 +64,13 @@ function sessionSize(session: TransferSession): number {
 
 function StateChip({ live, mine }: { live: boolean; mine: boolean }) {
     if (!live) {
-        return (
-            <span className="text-[12.5px] text-muted-foreground">Ended</span>
-        );
+        return <Tag tone="muted">Ended</Tag>;
     }
 
     return (
-        <span className="inline-flex items-center gap-1.5 text-[12.5px]">
-            <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-            Running
-            {mine && (
-                <span className="font-mono text-[10.5px] text-muted-foreground">
-                    this device
-                </span>
-            )}
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+            <Tag tone="mint">Running</Tag>
+            {mine && <Tag tone="lavender">This device</Tag>}
         </span>
     );
 }
@@ -221,12 +213,12 @@ function AdminTransfersRoute({
                     return live && session.code === liveCode ? (
                         <Link
                             to={`/transfer/${session.code}`}
-                            className="font-mono text-[12.5px] hover:underline"
+                            className="font-mono text-[14px] hover:underline"
                         >
                             {session.code}
                         </Link>
                     ) : (
-                        <span className="font-mono text-[12.5px]">
+                        <span className="font-mono text-[14px]">
                             {session.code}
                         </span>
                     );
@@ -246,11 +238,11 @@ function AdminTransfersRoute({
                 id: 'devices',
                 header: 'Devices',
                 cell: ({ row }) => (
-                    <span className="flex items-center gap-1.5">
-                        <span className="font-mono text-[11.5px]">
+                    <span className="flex max-w-[18rem] items-center gap-2">
+                        <span className="font-bold tabular-nums">
                             {row.original.participants.length}
                         </span>
-                        <span className="hidden truncate text-[12px] text-muted-foreground lg:inline">
+                        <span className="hidden truncate text-[14px] text-muted-foreground lg:inline">
                             {row.original.participants
                                 .map((p) => p.label)
                                 .join(', ')}
@@ -269,15 +261,17 @@ function AdminTransfersRoute({
                     // "nothing was ever shared" when the truth is "nothing is left".
                     if (isTransferExpired(session, windowMs, now)) {
                         return (
-                            <span className="font-mono text-[11.5px] text-muted-foreground">
-                                —
+                            <span className="text-[14px] text-muted-foreground">
+                                Cleared
                             </span>
                         );
                     }
 
                     return (
-                        <span className="font-mono text-[11.5px]">
-                            {session.items.length}
+                        <span className="text-[14px] whitespace-nowrap">
+                            <span className="font-bold tabular-nums">
+                                {session.items.length}
+                            </span>
                             <span className="text-muted-foreground">
                                 {' '}
                                 · {formatBytes(sessionSize(session))}
@@ -289,7 +283,7 @@ function AdminTransfersRoute({
             col.accessor('createdAt', {
                 header: 'Started',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
+                    <span className="text-[14px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue(), now)}
                     </span>
                 ),
@@ -298,7 +292,7 @@ function AdminTransfersRoute({
             col.accessor('lastActivityAt', {
                 header: 'Last activity',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
+                    <span className="text-[14px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue(), now)}
                     </span>
                 ),
@@ -315,17 +309,13 @@ function AdminTransfersRoute({
                         const session = row.original;
 
                         if (isTransferExpired(session, windowMs, now)) {
-                            return (
-                                <span className="font-mono text-[11.5px] text-muted-foreground">
-                                    —
-                                </span>
-                            );
+                            return null;
                         }
 
                         return (
                             <Countdown
                                 target={transferExpiresAt(session, windowMs)}
-                                className="text-[11.5px]"
+                                className="text-[14px] text-lamp"
                             />
                         );
                     },
@@ -429,42 +419,42 @@ function AdminTransfersRoute({
     return (
         <>
             <div className="flex flex-col gap-5">
-                <header>
-                    <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
-                        Transfer sessions
-                    </h2>
-                    <p className="mt-1.5 flex max-w-[62ch] flex-wrap items-center gap-x-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                        {running === 0
-                            ? 'Nothing is running right now.'
-                            : `${running} ${running === 1 ? 'session is' : 'sessions are'} running.`}{' '}
-                        Each one ends after{' '}
-                        {Math.round(windowMs / (60 * 60 * 1000))} h without
-                        activity, which you set in{' '}
-                        <Link
-                            to="/admin/settings/transfer"
-                            className="text-foreground hover:underline"
-                        >
-                            Site settings
-                        </Link>
-                        .
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
-                                    type="button"
-                                    aria-label="Why there are no account names here"
-                                    className="text-muted-foreground transition-colors hover:text-foreground"
-                                >
-                                    <Info className="size-3.5" />
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-[38ch]">
-                                A Transfer Session needs no account, so there is
-                                nobody to name. Devices identify themselves with
-                                a label and nothing else.
-                            </TooltipContent>
-                        </Tooltip>
-                    </p>
-                </header>
+                <AdminPageHead
+                    title="Transfer sessions"
+                    description={
+                        <>
+                            {running === 0
+                                ? 'Nothing is running right now.'
+                                : `${running} running.`}{' '}
+                            Each ends after{' '}
+                            {Math.round(windowMs / (60 * 60 * 1000))} h without
+                            activity, set in{' '}
+                            <Link
+                                to="/admin/settings/transfer"
+                                className="font-bold text-foreground hover:underline"
+                            >
+                                Settings
+                            </Link>
+                            .{' '}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        type="button"
+                                        aria-label="Why there are no account names here"
+                                        className="inline-flex translate-y-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                                    >
+                                        <Info className="size-4" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[38ch]">
+                                    A Transfer Session needs no account, so
+                                    there is nobody to name. Devices only have a
+                                    label.
+                                </TooltipContent>
+                            </Tooltip>
+                        </>
+                    }
+                />
 
                 <DataTable
                     table={table}
@@ -493,12 +483,12 @@ function AdminTransfersRoute({
                                         session.code === liveCode ? (
                                             <Link
                                                 to={`/transfer/${session.code}`}
-                                                className="font-mono text-[13px]"
+                                                className="font-mono text-[15px]"
                                             >
                                                 {session.code}
                                             </Link>
                                         ) : (
-                                            <span className="font-mono text-[13px]">
+                                            <span className="font-mono text-[15px]">
                                                 {session.code}
                                             </span>
                                         )}
@@ -507,42 +497,35 @@ function AdminTransfersRoute({
                                             mine={session.code === liveCode}
                                         />
                                     </div>
-                                    <p className="mt-1 truncate text-[12px] text-muted-foreground">
-                                        {session.participants
-                                            .map((p) => p.label)
-                                            .join(', ')}
-                                    </p>
-                                    <p className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[11px] text-muted-foreground">
+                                    <p className="mt-1 truncate text-[13px] text-muted-foreground">
+                                        {session.participants.length}{' '}
+                                        {session.participants.length === 1
+                                            ? 'device'
+                                            : 'devices'}{' '}
+                                        ·{' '}
                                         {running ? (
                                             <>
-                                                <span>
-                                                    {session.items.length} ·{' '}
-                                                    {formatBytes(
-                                                        sessionSize(session),
-                                                    )}
-                                                </span>
-                                                <span
-                                                    aria-hidden
-                                                    className="text-border-strong"
-                                                >
-                                                    ·
-                                                </span>
+                                                {session.items.length} items ·{' '}
+                                                {formatBytes(
+                                                    sessionSize(session),
+                                                )}{' '}
+                                                ·{' '}
                                                 <Countdown
                                                     target={transferExpiresAt(
                                                         session,
                                                         windowMs,
                                                     )}
-                                                    className="text-[11px]"
+                                                    className="text-[13px] text-lamp"
                                                 />
                                             </>
                                         ) : (
-                                            <span>
+                                            <>
                                                 ended{' '}
                                                 {relativeTime(
                                                     session.lastActivityAt,
                                                     now,
                                                 )}
-                                            </span>
+                                            </>
                                         )}
                                     </p>
                                 </div>
@@ -625,7 +608,7 @@ function AdminTransfersRoute({
                             >
                                 <SelectTrigger
                                     aria-label="Filter sessions"
-                                    className="w-[10.5rem] text-[13px]"
+                                    className="w-[10.5rem] max-sm:w-full"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
@@ -652,19 +635,15 @@ function AdminTransfersRoute({
                     }
                     empty={
                         <>
-                            <p className="text-[14px] font-medium">
+                            <p className="text-[17px] font-bold">
                                 {only === 'running'
                                     ? 'Nothing is running'
                                     : 'No sessions match that'}
                             </p>
-                            <p
-                                className={cn(
-                                    'mx-auto mt-1.5 max-w-[44ch] text-[13px] leading-relaxed text-muted-foreground',
-                                )}
-                            >
+                            <p className="text-muted-foreground">
                                 {only === 'running'
-                                    ? 'A session appears here the moment any device opens one, with no account needed.'
-                                    : 'Try a shorter search, or switch the filter back to All sessions.'}
+                                    ? 'A session shows up here as soon as a device opens one.'
+                                    : 'Try a shorter search, or show all sessions.'}
                             </p>
                         </>
                     }

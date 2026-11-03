@@ -1,8 +1,12 @@
 # Docker deployment
 
-The official image is designed for a single app container behind a TLS-terminating reverse proxy. That container supervises Nginx, PHP-FPM, the default and malware-scan queue workers, and the Laravel scheduler. MariaDB and optional ClamAV remain separate services.
+The official image is designed for a single app container behind a TLS-terminating reverse proxy. That container supervises Nginx, PHP-FPM, the default and malware-scan queue workers, the Laravel scheduler, and Laravel Reverb. MariaDB and optional ClamAV remain separate services.
 
 The repository and GHCR package remain private during development. The commands below become usable without registry authentication after the first image has been published and the GHCR package visibility has been changed to public.
+
+## Live Transfer Sessions
+
+Reverb runs inside the container on `127.0.0.1:6001` and gives Transfer Sessions live updates and presence. Nginx forwards `/app` and `/apps` to it, so browsers use the same origin as the app and no extra port is needed. Your reverse proxy must pass WebSocket upgrades (`Upgrade` and `Connection` headers) for those paths. The Reverb keys are derived from `APP_KEY`; set `REVERB_APP_KEY`, `REVERB_APP_SECRET` and `REVERB_APP_ID` only to override them. If WebSockets cannot get through, devices fall back to checking every 10 seconds.
 
 ## Start an installation
 

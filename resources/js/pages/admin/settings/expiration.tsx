@@ -1,13 +1,12 @@
-import { AdminLayout } from '@/components/admin-layout';
+import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
     AdminSettingsPageHead,
+    AdminSettingsSwitch,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -15,44 +14,77 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { EXPIRATION_LABEL, EXPIRATION_ORDER } from '@/lib/format';
 import type { ExpirationKey } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
+/** Several windows can be on at once, so each chip toggles on its own. Pressed chips are lamplight. */
 function ExpirationChoices({
     value,
     onChange,
-    idPrefix,
+    label,
 }: {
     value: ExpirationKey[];
     onChange: (next: ExpirationKey[]) => void;
-    idPrefix: string;
+    label: string;
 }) {
     return (
-        <div className="flex flex-wrap gap-x-5 gap-y-2.5">
-            {EXPIRATION_ORDER.map((key) => (
-                <label
-                    key={key}
-                    htmlFor={`${idPrefix}-${key}`}
-                    className="flex cursor-pointer items-center gap-2 text-[13px]"
-                >
-                    <Checkbox
-                        id={`${idPrefix}-${key}`}
-                        checked={value.includes(key)}
-                        onCheckedChange={(checked) =>
+        <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
+            {EXPIRATION_ORDER.map((key) => {
+                const on = value.includes(key);
+
+                return (
+                    <button
+                        key={key}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() =>
                             onChange(
-                                checked === true
-                                    ? EXPIRATION_ORDER.filter(
+                                on
+                                    ? value.filter((k) => k !== key)
+                                    : EXPIRATION_ORDER.filter(
                                           (k) => k === key || value.includes(k),
-                                      )
-                                    : value.filter((k) => k !== key),
+                                      ),
                             )
                         }
-                    />
-                    {EXPIRATION_LABEL[key]}
-                </label>
-            ))}
+                        className={cn(
+                            'rounded-[13px] border-[1.5px] px-3 py-1.5 text-[14px] font-bold transition-[transform,color,border-color] duration-200 ease-bounce',
+                            on
+                                ? '-translate-y-px border-lamp bg-lamp text-warn-foreground'
+                                : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground',
+                        )}
+                    >
+                        {EXPIRATION_LABEL[key]}
+                    </button>
+                );
+            })}
         </div>
+    );
+}
+
+function DefaultSelect({
+    value,
+    onChange,
+}: {
+    value: ExpirationKey;
+    onChange: (next: ExpirationKey) => void;
+}) {
+    return (
+        <Select
+            value={value}
+            onValueChange={(next) => onChange(next as ExpirationKey)}
+        >
+            <SelectTrigger className="w-full sm:w-[12rem]">
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                {EXPIRATION_ORDER.map((key) => (
+                    <SelectItem key={key} value={key}>
+                        {EXPIRATION_LABEL[key]}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
     );
 }
 
@@ -63,16 +95,17 @@ function ExpirationContent() {
         <>
             <AdminSettingsPageHead
                 title="Expiration"
-                description="Guests and Members can be offered different windows. Whatever you pick here is what the Drop Workspace shows."
+                description="The windows the Drop Workspace offers. Guests and Members can get different ones."
             />
-            <div className="grid gap-6 sm:grid-cols-2">
-                <div className="flex flex-col gap-5">
+            <div className="grid gap-5 xl:grid-cols-2">
+                <AdminCard className="grid content-start gap-5">
+                    <h3 className="text-[17px] font-bold">Guests</h3>
                     <AdminSettingsField
-                        label="Choices Guests get"
+                        label="Choices"
                         error={shown('guestExpirations')}
                     >
                         <ExpirationChoices
-                            idPrefix="guest"
+                            label="Choices Guests get"
                             value={draft.guestExpirations}
                             onChange={(next) =>
                                 setDraft({ guestExpirations: next })
@@ -80,39 +113,35 @@ function ExpirationContent() {
                         />
                     </AdminSettingsField>
                     <AdminSettingsField
-                        label="Default for Guests"
+                        label="Default"
                         error={shown('guestDefaultExpiration')}
                     >
-                        <Select
+                        <DefaultSelect
                             value={draft.guestDefaultExpiration}
-                            onValueChange={(value) =>
-                                setDraft({
-                                    guestDefaultExpiration:
-                                        value as ExpirationKey,
-                                })
+                            onChange={(next) =>
+                                setDraft({ guestDefaultExpiration: next })
                             }
-                        >
-                            <SelectTrigger className="w-full sm:w-[12rem]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {EXPIRATION_ORDER.map((key) => (
-                                    <SelectItem key={key} value={key}>
-                                        {EXPIRATION_LABEL[key]}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        />
                     </AdminSettingsField>
-                </div>
+                    <AdminSettingsSwitch
+                        id="guest-password"
+                        label="Guests may set a password"
+                        hint="Members always can."
+                        checked={draft.guestPasswordProtection}
+                        onCheckedChange={(checked) =>
+                            setDraft({ guestPasswordProtection: checked })
+                        }
+                    />
+                </AdminCard>
 
-                <div className="flex flex-col gap-5">
+                <AdminCard className="grid content-start gap-5">
+                    <h3 className="text-[17px] font-bold">Members</h3>
                     <AdminSettingsField
-                        label="Choices Members get"
+                        label="Choices"
                         error={shown('memberExpirations')}
                     >
                         <ExpirationChoices
-                            idPrefix="member"
+                            label="Choices Members get"
                             value={draft.memberExpirations}
                             onChange={(next) =>
                                 setDraft({ memberExpirations: next })
@@ -120,49 +149,17 @@ function ExpirationContent() {
                         />
                     </AdminSettingsField>
                     <AdminSettingsField
-                        label="Default for Members"
+                        label="Default"
                         error={shown('memberDefaultExpiration')}
                     >
-                        <Select
+                        <DefaultSelect
                             value={draft.memberDefaultExpiration}
-                            onValueChange={(value) =>
-                                setDraft({
-                                    memberDefaultExpiration:
-                                        value as ExpirationKey,
-                                })
+                            onChange={(next) =>
+                                setDraft({ memberDefaultExpiration: next })
                             }
-                        >
-                            <SelectTrigger className="w-full sm:w-[12rem]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {EXPIRATION_ORDER.map((key) => (
-                                    <SelectItem key={key} value={key}>
-                                        {EXPIRATION_LABEL[key]}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        />
                     </AdminSettingsField>
-                </div>
-            </div>
-
-            <div className="flex items-start gap-3 border-t border-border pt-4">
-                <Switch
-                    id="guest-password"
-                    checked={draft.guestPasswordProtection}
-                    onCheckedChange={(checked) =>
-                        setDraft({ guestPasswordProtection: checked })
-                    }
-                />
-                <div>
-                    <Label htmlFor="guest-password" className="text-[13px]">
-                        Guests may password protect a share
-                    </Label>
-                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                        Members always can.
-                    </p>
-                </div>
+                </AdminCard>
             </div>
         </>
     );

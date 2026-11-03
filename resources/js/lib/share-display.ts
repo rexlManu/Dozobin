@@ -36,16 +36,14 @@ export function typeChip(share: Share): string {
     }
 
     if (share.pasteType === 'markdown') {
-        return 'MARKDOWN';
+        return 'Markdown';
     }
 
     if (share.pasteType === 'code') {
-        return (
-            LANGUAGES.find((l) => l.id === share.language)?.label ?? 'CODE'
-        ).toUpperCase();
+        return LANGUAGES.find((l) => l.id === share.language)?.label ?? 'Code';
     }
 
-    return 'TEXT';
+    return 'Text';
 }
 
 export function sharePath(share: Share): string {

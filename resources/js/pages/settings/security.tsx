@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { AppProviders } from '@/components/app-providers';
 import { useConfirm } from '@/components/confirm-dialog';
-import { SettingsLayout, SettingsPageHead } from '@/components/settings-layout';
+import { SettingsCard, SettingsLayout } from '@/components/settings-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,10 +31,9 @@ function SecurityContent() {
 
     return (
         <>
-            <SettingsPageHead title="Security" />
-            <div className="flex flex-col gap-6">
+            <SettingsCard title="Change password">
                 <form
-                    className="flex flex-col gap-3"
+                    className="flex flex-col gap-4"
                     onSubmit={(event) => {
                         event.preventDefault();
 
@@ -84,8 +83,7 @@ function SecurityContent() {
                         );
                     }}
                 >
-                    <p className="text-[13px] font-medium">Change password</p>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-3">
                         {(
                             [
                                 ['current', 'Current'],
@@ -94,10 +92,7 @@ function SecurityContent() {
                             ] as const
                         ).map(([key, label]) => (
                             <div key={key} className="flex flex-col gap-2">
-                                <Label
-                                    htmlFor={`password-${key}`}
-                                    className="text-[12.5px]"
-                                >
+                                <Label htmlFor={`password-${key}`}>
                                     {label}
                                 </Label>
                                 <Input
@@ -125,10 +120,13 @@ function SecurityContent() {
                         ))}
                     </div>
                     {passwordError && (
-                        <p className="flex items-start gap-1.5 text-[12.5px] text-destructive">
+                        <p
+                            role="alert"
+                            className="flex items-start gap-2 text-[14px] font-bold text-destructive"
+                        >
                             <WarningCircle
                                 weight="fill"
-                                className="mt-px size-3.5 shrink-0"
+                                className="mt-0.5 size-4 shrink-0"
                             />
                             {passwordError}
                         </p>
@@ -136,43 +134,45 @@ function SecurityContent() {
                     <div className="flex items-center gap-3">
                         <Button
                             type="submit"
-                            size="sm"
                             disabled={!passwords.current || !passwords.next}
                         >
                             Update password
                         </Button>
                         {passwordSaved && (
-                            <span className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-                                <CheckCircle
-                                    weight="fill"
-                                    className="size-3.5 text-primary"
-                                />{' '}
+                            <span className="flex items-center gap-1.5 font-bold text-mint">
+                                <CheckCircle weight="fill" className="size-4" />
                                 Updated
                             </span>
                         )}
                     </div>
                 </form>
+            </SettingsCard>
 
-                <div>
-                    <p className="text-[13px] font-medium">
-                        Active login sessions
+            <SettingsCard
+                title="Login sessions"
+                description="Browsers that are signed in to this account."
+            >
+                {account.sessions.length === 0 ? (
+                    <p className="rounded-[20px] bg-sunken px-4 py-3 text-muted-foreground">
+                        No login sessions to show.
                     </p>
-                    <ul className="mt-2.5 divide-y divide-border overflow-hidden rounded-lg border border-border">
+                ) : (
+                    <ul className="grid gap-1.5">
                         {account.sessions.map((session) => (
                             <li
                                 key={session.id}
-                                className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
+                                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] bg-sunken py-3 pr-3 pl-4"
                             >
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-[13px] font-medium">
+                                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-bold">
                                         {session.device}
                                         {session.current && (
-                                            <span className="ml-2 rounded-sm bg-primary-soft px-1.5 py-0.5 font-mono text-[10px] tracking-[0.06em] text-foreground uppercase">
-                                                this device
+                                            <span className="rounded-[10px] bg-primary-soft px-2 py-0.5 text-[13px] font-bold text-primary">
+                                                This device
                                             </span>
                                         )}
                                     </p>
-                                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                                    <p className="mt-0.5 text-[14px] text-muted-foreground">
                                         {session.browser} · {session.location} ·{' '}
                                         {session.current
                                             ? 'active now'
@@ -214,21 +214,17 @@ function SecurityContent() {
                             </li>
                         ))}
                     </ul>
-                </div>
+                )}
+            </SettingsCard>
 
-                <div className="rounded-lg border border-destructive/30 bg-destructive-soft/50 px-4 py-3.5">
-                    <p className="text-[13px] font-medium text-destructive">
-                        Delete this account
-                    </p>
-                    <p className="mt-1 max-w-[58ch] text-[12.5px] leading-relaxed text-muted-foreground">
-                        Every Share in the Library goes with it and every URL
-                        stops resolving. Transfer Sessions are unaffected
-                        because they never belonged to an account.
-                    </p>
+            <SettingsCard
+                danger
+                title="Delete this account"
+                description="Every File Share and Paste in your Library goes with it, and their Share URLs stop working. Transfer Sessions are not affected."
+            >
+                <div>
                     <Button
                         variant="danger"
-                        size="sm"
-                        className="mt-3"
                         onClick={async () => {
                             const ok = await confirm({
                                 title: 'Delete the account?',
@@ -247,7 +243,7 @@ function SecurityContent() {
                         Delete account
                     </Button>
                 </div>
-            </div>
+            </SettingsCard>
             {dialog}
         </>
     );

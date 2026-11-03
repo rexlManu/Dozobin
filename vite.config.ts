@@ -9,7 +9,7 @@ const ddevPrimaryUrl = process.env.DDEV_PRIMARY_URL_WITHOUT_PORT;
 const ddevHostname = process.env.DDEV_HOSTNAME;
 const isDdev = ddevPrimaryUrl !== undefined && ddevHostname !== undefined;
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
@@ -24,6 +24,7 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
+            command: command === 'serve' && !isDdev ? 'lerd php artisan wayfinder:generate' : undefined,
         }),
     ],
     ...(isDdev && {
@@ -42,4 +43,4 @@ export default defineConfig({
             },
         },
     }),
-});
+}));

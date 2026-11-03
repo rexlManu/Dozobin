@@ -1,5 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
+import { Meter, Tag } from '@/components/admin-layout';
 import { useConfirm } from '@/components/confirm-dialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import {
@@ -9,7 +10,6 @@ import {
 } from '@/components/ui/tooltip';
 import { formatBytes, relativeTime } from '@/lib/format';
 import type { Account, AccountStatus, Share } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
 
 type GuardReason = 'self' | 'last-admin' | 'missing';
@@ -21,17 +21,10 @@ const GUARD_COPY: Record<GuardReason, string> = {
 };
 
 export function RoleChip({ role }: { role: Account['role'] }) {
-    return (
-        <span
-            className={cn(
-                'inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[11px] font-medium',
-                role === 'admin'
-                    ? 'border-transparent bg-foreground text-background'
-                    : 'border-border text-muted-foreground',
-            )}
-        >
-            {role === 'admin' ? 'Admin' : 'Member'}
-        </span>
+    return role === 'admin' ? (
+        <Tag tone="lavender">Admin</Tag>
+    ) : (
+        <Tag tone="muted">Member</Tag>
     );
 }
 
@@ -43,22 +36,20 @@ export function StatusChip({
     now: number;
 }) {
     if (account.status === 'active') {
-        return (
-            <span className="text-[12.5px] text-muted-foreground">Active</span>
-        );
+        return <Tag tone="mint">Active</Tag>;
     }
 
     return (
-        <span
+        <Tag
+            tone="danger"
             title={
                 account.suspendedAt
                     ? `Suspended ${relativeTime(account.suspendedAt, now)}`
                     : undefined
             }
-            className="inline-flex items-center rounded-sm bg-destructive-soft px-1.5 py-0.5 text-[11px] font-medium text-destructive"
         >
             Suspended
-        </span>
+        </Tag>
     );
 }
 
@@ -67,26 +58,17 @@ export function UsageBar({ account }: { account: Account }) {
     const ratio = unlimited
         ? 0
         : Math.min(1, account.storageUsed / account.storageLimit);
-    const tight = ratio > 0.9;
 
     return (
-        <div className="flex min-w-[8rem] flex-col gap-1">
-            <span className="font-mono text-[11.5px] whitespace-nowrap">
+        <div className="flex min-w-[8.5rem] flex-col gap-1.5 text-left">
+            <span className="text-[13px] font-bold whitespace-nowrap">
                 {formatBytes(account.storageUsed)}
-                <span className="text-muted-foreground">
-                    {' / '}
+                <span className="font-medium text-muted-foreground">
+                    {' of '}
                     {unlimited ? 'no limit' : formatBytes(account.storageLimit)}
                 </span>
             </span>
-            <span className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
-                <span
-                    className={cn(
-                        'block h-full rounded-full',
-                        tight ? 'bg-destructive' : 'bg-foreground/40',
-                    )}
-                    style={{ width: `${Math.max(2, ratio * 100)}%` }}
-                />
-            </span>
+            <Meter ratio={ratio} full={ratio > 0.9} />
         </div>
     );
 }

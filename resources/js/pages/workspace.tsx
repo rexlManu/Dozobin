@@ -1,15 +1,23 @@
 import { router, usePage } from '@inertiajs/react';
 import { TextAlignLeft, UploadSimple } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import { AppProviders } from '@/components/app-providers';
 import { AppShell } from '@/components/app-shell';
-import { DropCanvas } from '@/components/dropzone';
+import { Dozo } from '@/components/dozo';
+import { DropZone } from '@/components/dropzone';
+import { NightSky } from '@/components/night-sky';
 import { PasteComposer, PasteTruths } from '@/components/paste-composer';
 import { ShareOptions } from '@/components/share-options';
 import { Button } from '@/components/ui/button';
 import { UploadQueue } from '@/components/upload-queue';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
-import { resolvePaste } from '@/lib/detect';
+import { LANGUAGES, resolvePaste } from '@/lib/detect';
 import { formatBytes } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import type { Account, ExpirationKey, PasteType } from '@/lib/types';
@@ -18,6 +26,27 @@ import type { SharedPageProps } from '@/types';
 
 type Mode = 'files' | 'paste';
 
+const noSubscription = () => () => {};
+
+function localGreeting(): string {
+    const hour = new Date().getHours();
+
+    return hour < 5
+        ? 'Still up?'
+        : hour < 11
+          ? 'Good morning.'
+          : hour < 17
+            ? 'Good afternoon.'
+            : hour < 22
+              ? 'Good evening.'
+              : 'Still up?';
+}
+
+/** Greeting for the visitor's local hour. The server render says "Hello." so hydration matches. */
+function useGreeting(): string {
+    return useSyncExternalStore(noSubscription, localGreeting, () => 'Hello.');
+}
+
 function ModeSwitch({
     mode,
     onMode,
@@ -25,23 +54,15 @@ function ModeSwitch({
     mode: Mode;
     onMode: (mode: Mode) => void;
 }) {
-    const options: {
-        id: Mode;
-        label: string;
-        icon: React.ComponentType<{ className?: string }>;
-    }[] = [
+    const options = [
         { id: 'files', label: 'Files', icon: UploadSimple },
-        { id: 'paste', label: 'Paste', icon: TextAlignLeft },
-    ];
+        { id: 'paste', label: 'Text', icon: TextAlignLeft },
+    ] as const;
 
     return (
-        // Plain buttons rather than a tablist: an ARIA tablist promises arrow-key
-        // navigation, and two buttons in the tab order is the honest behaviour here.
-        // A segment, not underlined text, so it reads as a control rather than as a
-        // third navigation destination next to Drop and Transfer.
         <div
             aria-label="What to share"
-            className="inline-flex rounded-md bg-muted p-0.5"
+            className="inline-flex gap-1 justify-self-start rounded-[16px] bg-sunken p-1"
         >
             {options.map((option) => (
                 <button
@@ -50,13 +71,13 @@ function ModeSwitch({
                     aria-pressed={mode === option.id}
                     onClick={() => onMode(option.id)}
                     className={cn(
-                        'inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors',
+                        'inline-flex items-center gap-1.5 rounded-[12px] px-4 py-2 font-bold transition-colors',
                         mode === option.id
-                            ? 'bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.07)]'
+                            ? 'bg-lavender text-night'
                             : 'text-muted-foreground hover:text-foreground',
                     )}
                 >
-                    <option.icon className="size-3.5" />
+                    <option.icon className="size-4" />
                     {option.label}
                 </button>
             ))}
@@ -71,24 +92,19 @@ function StorageMeter({ account }: { account: Account }) {
     return (
         <Link
             to="/settings/storage"
-            className="group flex items-center gap-2.5 rounded-md px-1 py-1 text-[12px] transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-2 hover:text-foreground"
         >
-            <span className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+            <span className="h-2 w-20 overflow-hidden rounded-full bg-sunken">
                 <span
                     className={cn(
                         'block h-full rounded-full',
-                        tight ? 'bg-destructive' : 'bg-primary',
+                        tight ? 'bg-destructive' : 'bg-lamp',
                     )}
                     style={{ width: `${Math.max(3, ratio * 100)}%` }}
                 />
             </span>
-            <span
-                className={cn(
-                    'font-mono',
-                    tight ? 'text-destructive' : 'text-muted-foreground',
-                )}
-            >
-                {formatBytes(account.storageUsed)} /{' '}
+            <span className={cn(tight && 'text-destructive')}>
+                {formatBytes(account.storageUsed)} of{' '}
                 {formatBytes(account.storageLimit)}
             </span>
         </Link>
@@ -96,69 +112,30 @@ function StorageMeter({ account }: { account: Account }) {
 }
 
 function Blocked({ suspended }: { suspended: boolean }) {
-    if (suspended) {
-        return (
-            <div className="flex h-full flex-col items-center justify-center bg-sunken px-6 text-center">
-                <h1 className="text-lg font-medium tracking-[-0.015em]">
-                    This account is suspended
-                </h1>
-                <p className="mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
-                    The administrator of this installation has paused it, so
-                    nothing new can be shared. Everything already shared keeps
-                    resolving until it expires.
-                </p>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex h-full flex-col items-center justify-center bg-sunken px-6 text-center">
-            <h1 className="text-lg font-medium tracking-[-0.015em]">
-                This installation keeps sharing to Members
-            </h1>
-            <p className="mx-auto mt-2 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
-                Guest sharing is switched off in the administrator settings.
-                Transfer Sessions still work without an account.
+        <section className="relative grid justify-items-center gap-3 rounded-[28px] border-[1.5px] border-border bg-card px-6 py-10 text-center">
+            <Dozo size={96} mood="sleep" />
+            <h2 className="text-[24px] font-bold">
+                {suspended
+                    ? 'This account is paused'
+                    : 'Sharing here is for Members'}
+            </h2>
+            <p className="max-w-[46ch] text-muted-foreground">
+                {suspended
+                    ? 'The administrator paused this account, so nothing new can be shared. Your existing shares keep working until they expire.'
+                    : 'The administrator turned off sharing for Guests. Transfer Sessions still work without an account.'}
             </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-                <Button asChild>
-                    <Link to="/signin">Sign in</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                    <Link to="/transfer">Open a Transfer Session</Link>
-                </Button>
-            </div>
-        </div>
-    );
-}
-
-/**
- * The readout along the bottom of the canvas. Deliberately not a bar: no rule,
- * no fill, nothing to separate it from the surface. It sits on the canvas the
- * way a HUD sits on a viewfinder, so the window still reads as one surface.
- */
-function Hud({
-    truths,
-    children,
-}: {
-    truths: React.ReactNode;
-    children?: React.ReactNode;
-}) {
-    return (
-        /*
-      One row on a desktop, two stacked bands on a phone.
-      `flex-1` resolves its basis to 0, so on a narrow viewport the readout was
-      crushed to a 40px column that spilled 135px of wrapped text straight
-      through the controls. Stacking below `sm` gives each band the full rail:
-      the readout reads as a line again, and the acts land in the thumb zone
-      just above the tab bar.
-    */
-        <div className="rail flex shrink-0 flex-col gap-2.5 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-3">
-            <div className="min-w-0 sm:flex-1">{truths}</div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-                {children}
-            </div>
-        </div>
+            {!suspended && (
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                    <Button asChild>
+                        <Link to="/signin">Sign in</Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                        <Link to="/transfer">Start a Transfer Session</Link>
+                    </Button>
+                </div>
+            )}
+        </section>
     );
 }
 
@@ -172,6 +149,7 @@ function WorkspaceRoute() {
         null,
     );
     const [pasteHint, setPasteHint] = useState<string | null>(null);
+    const greeting = useGreeting();
     const { auth, config } = usePage<SharedPageProps>().props;
     const account = auth.user;
     const isGuest = account === null;
@@ -186,7 +164,6 @@ function WorkspaceRoute() {
             ? account.defaultExpiration
             : configuredDefault;
     const uploads = useUploadQueue();
-    const queued = uploads.queue.length;
 
     const [options, setOptions] = useState<{
         expiration: ExpirationKey;
@@ -200,9 +177,34 @@ function WorkspaceRoute() {
     const resolvedOptions = allowed.includes(options.expiration)
         ? options
         : { ...options, expiration: defaultExpiration };
+    const waitingForPassword = resolvedOptions.password === '';
+    const sendPassword = resolvedOptions.password || null;
 
-    // A clipboard screenshot is the third way in, alongside the drag and the
-    // picker. It listens on the window because that is where the paste lands.
+    // Files start uploading as soon as they land. The one exception: a password
+    // was switched on but not typed yet, so the rows wait for "Send N files".
+    const started = useRef(new Set<string>());
+    const { queue, startUpload } = uploads;
+
+    useEffect(() => {
+        if (waitingForPassword) {
+            return;
+        }
+
+        for (const item of queue) {
+            if (item.status === 'queued' && !started.current.has(item.id)) {
+                started.current.add(item.id);
+                startUpload(item.id, resolvedOptions.expiration, sendPassword);
+            }
+        }
+    }, [
+        queue,
+        startUpload,
+        waitingForPassword,
+        resolvedOptions.expiration,
+        sendPassword,
+    ]);
+
+    // A clipboard screenshot is the third way in, next to the drag and the picker.
     useEffect(() => {
         if (mode !== 'files') {
             return;
@@ -219,7 +221,7 @@ function WorkspaceRoute() {
             }
 
             const files = Array.from(event.clipboardData?.files ?? []).filter(
-                (f) => f.type.startsWith('image/'),
+                (file) => file.type.startsWith('image/'),
             );
 
             if (files.length === 0) {
@@ -244,7 +246,7 @@ function WorkspaceRoute() {
                 ),
             );
             setPasteHint(
-                `Picked up ${files.length} image${files.length > 1 ? 's' : ''} from the clipboard`,
+                `Got ${files.length} image${files.length > 1 ? 's' : ''} from the clipboard`,
             );
             window.setTimeout(() => setPasteHint(null), 3000);
         };
@@ -257,181 +259,179 @@ function WorkspaceRoute() {
         () => resolvePaste(body, typeOverride, languageOverride),
         [body, typeOverride, languageOverride],
     );
+    const detected =
+        resolved.pasteType === 'code'
+            ? (LANGUAGES.find((language) => language.id === resolved.language)
+                  ?.label ?? 'code')
+            : resolved.pasteType === 'markdown'
+              ? 'Markdown'
+              : 'plain text';
 
     const suspended = account?.status === 'suspended';
     const blocked = suspended || (isGuest && !config.guestSharing);
-
-    // A machine truth, so it belongs on the HUD next to the other ones. The Guest
-    // note it used to sit beside now lives in the share settings, next to the
-    // choice it qualifies.
-    const meter = account ? <StorageMeter account={account} /> : null;
-
-    const uploadTruths = useMemo(() => {
-        // An allow-list is worth stating up front, because it is restrictive and you
-        // cannot guess it. A block-list is not: it is a short tail of things nobody
-        // shares anyway, and the upload already explains itself if one is refused.
-        const allowedTypes =
-            config.fileTypeMode === 'allow' ? config.fileTypeList : [];
-
-        return [
-            `Max ${config.maxUploadMb} MB per file`,
-            allowedTypes.length > 0
-                ? `Allowed: ${allowedTypes.map((e) => `.${e}`).join(' ')}`
-                : null,
-        ].filter((truth): truth is string => truth !== null);
-    }, [config]);
+    const allowedTypes =
+        config.fileTypeMode === 'allow' ? config.fileTypeList : [];
 
     return (
-        <AppShell
-            surface="canvas"
-            headerExtra={
-                blocked ? undefined : (
-                    <ModeSwitch
-                        mode={mode}
-                        onMode={(next) => {
-                            setMode(next);
-                        }}
-                    />
-                )
-            }
-        >
-            {blocked ? (
-                <Blocked suspended={suspended} />
-            ) : mode === 'files' ? (
-                <DropCanvas
-                    onFiles={uploads.enqueue}
-                    idle={queued === 0}
-                    tray={
-                        queued > 0 ? (
-                            <UploadQueue
-                                expiration={resolvedOptions.expiration}
-                                password={resolvedOptions.password || null}
-                                queue={uploads.queue}
-                                shares={uploads.shares}
-                                onStart={uploads.startUpload}
-                                onRetry={uploads.retryUpload}
-                                onRemove={uploads.removeUpload}
-                                onClear={uploads.clearQueue}
-                            />
-                        ) : null
-                    }
-                    bar={
-                        <Hud
-                            truths={
-                                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] text-muted-foreground">
-                                    {uploadTruths.map((truth, index) => (
-                                        <span
-                                            key={truth}
-                                            className="flex items-center gap-2.5"
-                                        >
-                                            {index > 0 && (
-                                                <span
-                                                    aria-hidden
-                                                    className="text-border-strong"
-                                                >
-                                                    ·
-                                                </span>
-                                            )}
-                                            {truth}
-                                        </span>
-                                    ))}
-                                    {/* The separator travels with the text it precedes, so a
-                        wrap never strands a middot at the end of a line. */}
-                                    <span className="flex items-center gap-2.5">
-                                        <span
-                                            aria-hidden
-                                            className="text-border-strong"
-                                        >
-                                            ·
-                                        </span>
+        <AppShell overlay>
+            <div className="relative h-[300px] overflow-hidden sm:h-[340px]">
+                <NightSky />
+                <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-background"
+                />
+                <div className="rail relative pt-[92px] sm:pt-[108px]">
+                    <p className="font-bold text-lamp">
+                        <span lang="ja" className="mr-1.5 text-primary">
+                            どうぞ
+                        </span>
+                        {greeting}
+                    </p>
+                    <h1 className="mt-1.5 max-w-[16ch] text-[34px] leading-[1.08] font-bold text-balance sm:text-[clamp(34px,4.6vw,58px)]">
+                        What are we sending today?
+                    </h1>
+                </div>
+            </div>
+
+            <div className="rail relative z-10 -mt-16 pb-20">
+                {blocked ? (
+                    <Blocked suspended={suspended} />
+                ) : (
+                    <>
+                        <section className="relative grid gap-[18px] rounded-[28px] border-[1.5px] border-border bg-card p-[18px] pt-[22px] sm:p-[26px] sm:pt-[22px]">
+                            <div
+                                aria-hidden
+                                className="absolute -top-[70px] right-4 flex flex-row-reverse items-end gap-2.5 sm:-top-[78px] sm:right-10"
+                            >
+                                <Dozo
+                                    size={92}
+                                    mood={mode === 'files' ? 'calm' : 'happy'}
+                                />
+                                <span className="mb-[52px] hidden rounded-[18px_18px_4px_18px] bg-foreground px-3.5 py-2 text-[14px] font-bold whitespace-nowrap text-night sm:block">
+                                    {mode === 'files'
+                                        ? 'Every file gets its own link.'
+                                        : `Looks like ${detected}.`}
+                                </span>
+                            </div>
+
+                            <ModeSwitch mode={mode} onMode={setMode} />
+
+                            {mode === 'files' ? (
+                                <DropZone
+                                    onFiles={uploads.enqueue}
+                                    hint={
                                         <span
                                             aria-live="polite"
                                             className={cn(
-                                                pasteHint ? 'text-primary' : '',
+                                                pasteHint &&
+                                                    'font-bold text-lamp',
                                             )}
                                         >
                                             {pasteHint ??
-                                                'Ctrl+V pastes a screenshot'}
+                                                [
+                                                    'Ctrl V pastes a screenshot',
+                                                    `up to ${config.maxUploadMb} MB each`,
+                                                    allowedTypes.length > 0
+                                                        ? `only ${allowedTypes.map((ext) => `.${ext}`).join(' ')}`
+                                                        : null,
+                                                    config.malwareScanningEnabled
+                                                        ? 'scanned for malware'
+                                                        : null,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' · ')}
                                         </span>
-                                    </span>
-                                    {meter}
-                                </span>
-                            }
-                        >
-                            <ShareOptions
-                                value={resolvedOptions}
-                                onChange={setOptions}
-                                allowed={allowed}
-                                canProtect={
-                                    !isGuest || config.guestPasswordProtection
-                                }
-                                isGuest={isGuest}
-                            />
-                        </Hud>
-                    }
-                />
-            ) : (
-                <div className="flex h-full flex-col">
-                    <div className="min-h-0 flex-1">
-                        <PasteComposer
-                            body={body}
-                            onBody={(value) => {
-                                setBody(value);
-                            }}
-                            typeOverride={typeOverride}
-                            onTypeOverride={setTypeOverride}
-                            languageOverride={languageOverride}
-                            onLanguageOverride={setLanguageOverride}
-                            resolved={resolved}
-                            dock={
-                                <Hud
-                                    truths={
-                                        <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                    }
+                                />
+                            ) : (
+                                <PasteComposer
+                                    body={body}
+                                    onBody={setBody}
+                                    typeOverride={typeOverride}
+                                    onTypeOverride={setTypeOverride}
+                                    languageOverride={languageOverride}
+                                    onLanguageOverride={setLanguageOverride}
+                                    resolved={resolved}
+                                    dock={
+                                        <div className="flex flex-wrap items-center gap-3 px-5 pt-1 pb-4">
                                             <PasteTruths
                                                 body={body}
                                                 typeOverride={typeOverride}
                                                 resolved={resolved}
                                             />
-                                            {meter}
-                                        </span>
+                                            <Button
+                                                className="ml-auto max-sm:w-full"
+                                                disabled={
+                                                    body.trim().length === 0 ||
+                                                    waitingForPassword
+                                                }
+                                                onClick={() => {
+                                                    router.post(
+                                                        '/shares/pastes',
+                                                        {
+                                                            body,
+                                                            paste_type:
+                                                                resolved.pasteType,
+                                                            language:
+                                                                resolved.language,
+                                                            expiration:
+                                                                resolvedOptions.expiration,
+                                                            password:
+                                                                sendPassword,
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                Create link
+                                            </Button>
+                                        </div>
                                     }
-                                >
-                                    <ShareOptions
-                                        value={resolvedOptions}
-                                        onChange={setOptions}
-                                        allowed={allowed}
-                                        canProtect={
-                                            !isGuest ||
-                                            config.guestPasswordProtection
-                                        }
-                                        isGuest={isGuest}
-                                    />
-                                    {/* Takes the rest of the row once the options wrap onto their
-                      own line, so the act is never a small target on a phone. */}
-                                    <Button
-                                        className="max-sm:flex-1"
-                                        disabled={body.trim().length === 0}
-                                        onClick={() => {
-                                            router.post('/shares/pastes', {
-                                                body,
-                                                paste_type: resolved.pasteType,
-                                                language: resolved.language,
-                                                expiration:
-                                                    resolvedOptions.expiration,
-                                                password:
-                                                    resolvedOptions.password ||
-                                                    null,
-                                            });
-                                        }}
-                                    >
-                                        Create paste
-                                    </Button>
-                                </Hud>
-                            }
+                                />
+                            )}
+
+                            <ShareOptions
+                                value={resolvedOptions}
+                                onChange={setOptions}
+                                allowed={allowed}
+                                known={config.memberExpirations}
+                                canProtect={
+                                    !isGuest || config.guestPasswordProtection
+                                }
+                            />
+
+                            {(isGuest || account) && (
+                                <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+                                    {account ? (
+                                        <StorageMeter account={account} />
+                                    ) : (
+                                        <span>
+                                            Sending as a Guest.{' '}
+                                            <Link
+                                                to="/signin"
+                                                className="font-bold text-foreground underline decoration-border-strong underline-offset-4"
+                                            >
+                                                Sign in
+                                            </Link>{' '}
+                                            to keep a Library.
+                                        </span>
+                                    )}
+                                </p>
+                            )}
+                        </section>
+
+                        <UploadQueue
+                            expiration={resolvedOptions.expiration}
+                            password={sendPassword}
+                            queue={uploads.queue}
+                            shares={uploads.shares}
+                            onStart={uploads.startUpload}
+                            onRetry={uploads.retryUpload}
+                            onRemove={uploads.removeUpload}
+                            onClear={uploads.clearQueue}
                         />
-                    </div>
-                </div>
-            )}
+                    </>
+                )}
+            </div>
         </AppShell>
     );
 }

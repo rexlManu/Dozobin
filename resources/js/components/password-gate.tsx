@@ -1,10 +1,11 @@
-import { LockKey, WarningCircle } from '@phosphor-icons/react';
+import { WarningCircle } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { ExpiryLabel } from '@/components/expiry';
+import { StateNote } from '@/components/state-note';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
+/** Asks for a share's password. Shows nothing about the contents until it matches. */
 export function PasswordGate({
     kind,
     expiresAt,
@@ -17,26 +18,18 @@ export function PasswordGate({
     const [value, setValue] = useState('');
     const [attempts, setAttempts] = useState(0);
     const [wrong, setWrong] = useState(false);
-
-    const noun = kind === 'file' ? 'File Share' : 'Paste';
     const throttled = attempts >= 3;
 
     return (
-        <div className="mx-auto w-full max-w-[26rem] px-4 py-16 sm:py-24">
-            <div className="flex size-11 items-center justify-center rounded-lg border border-border bg-card">
-                <LockKey className="size-5 text-muted-foreground" />
-            </div>
-            <h1 className="mt-5 text-xl font-medium tracking-[-0.02em]">
-                This {noun} is protected
-            </h1>
-            <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
-                Whoever created it set a password. Nothing about the contents is
-                shown until the password matches, not the filename and not the
-                size.
+        <StateNote
+            mood={wrong ? 'wow' : 'calm'}
+            title={`This ${kind === 'file' ? 'file' : 'text'} is locked`}
+        >
+            <p className="text-muted-foreground">
+                The sender added a password. Ask them for it, then type it here.
             </p>
-
             <form
-                className="mt-6 flex flex-col gap-3"
+                className="grid w-full gap-3 text-left"
                 onSubmit={async (event) => {
                     event.preventDefault();
 
@@ -45,51 +38,48 @@ export function PasswordGate({
                     }
 
                     setWrong(true);
-                    setAttempts((n) => n + 1);
+                    setAttempts((count) => count + 1);
                 }}
             >
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="share-password">Password</Label>
-                    <Input
-                        id="share-password"
-                        type="password"
-                        autoFocus
-                        autoComplete="off"
-                        aria-invalid={wrong}
-                        aria-describedby={
-                            wrong ? 'share-password-error' : undefined
-                        }
-                        value={value}
-                        onChange={(event) => {
-                            setValue(event.target.value);
-                            setWrong(false);
-                        }}
-                    />
-                    {wrong && (
-                        <p
-                            id="share-password-error"
-                            className="flex items-start gap-1.5 text-[12.5px] text-destructive"
-                        >
-                            <WarningCircle
-                                weight="fill"
-                                className="mt-px size-3.5 shrink-0"
-                            />
-                            <span>
-                                {throttled
-                                    ? 'Still no match. After a few more tries this installation makes you wait a minute between attempts.'
-                                    : 'That password does not match. Check for a trailing space.'}
-                            </span>
-                        </p>
-                    )}
-                </div>
+                <label htmlFor="share-password" className="sr-only">
+                    Password
+                </label>
+                <Input
+                    id="share-password"
+                    type="password"
+                    autoFocus
+                    autoComplete="off"
+                    placeholder="Password"
+                    aria-invalid={wrong}
+                    aria-describedby={
+                        wrong ? 'share-password-error' : undefined
+                    }
+                    className="h-12 text-[18px] md:text-[18px]"
+                    value={value}
+                    onChange={(event) => {
+                        setValue(event.target.value);
+                        setWrong(false);
+                    }}
+                />
+                {wrong && (
+                    <p
+                        id="share-password-error"
+                        className="flex items-start gap-1.5 font-bold text-destructive"
+                    >
+                        <WarningCircle
+                            weight="fill"
+                            className="mt-0.5 size-4 shrink-0"
+                        />
+                        {throttled
+                            ? 'Still not right. After a few more tries you have to wait a minute.'
+                            : 'That password did not fit. Check for a space at the end.'}
+                    </p>
+                )}
                 <Button type="submit" size="lg" disabled={value.length === 0}>
-                    Unlock
+                    Open
                 </Button>
             </form>
-
-            <div className="mt-6 border-t border-border pt-4 text-[12px]">
-                <ExpiryLabel expiresAt={expiresAt} />
-            </div>
-        </div>
+            <ExpiryLabel expiresAt={expiresAt} className="text-[13px]" />
+        </StateNote>
     );
 }

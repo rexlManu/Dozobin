@@ -44,12 +44,11 @@ export function PasteComposer({
     const canPreview = resolved.pasteType !== 'text' && body.trim().length > 0;
 
     return (
-        // The window is the editor: no border, no radius, no page behind it.
-        <div className="flex h-full flex-col bg-card">
-            {/* The rule spans the window; only its contents sit on the rail. */}
-            <div className="shrink-0 border-b border-border">
-                <div className="rail flex h-11 flex-wrap items-center gap-x-3 gap-y-2">
-                    <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+        // A sheet of lined paper inside the Send card.
+        <div className="flex flex-col overflow-hidden rounded-[24px] bg-sunken">
+            <div className="shrink-0 px-3 pt-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className="flex items-center gap-1 rounded-[14px] bg-background/60 p-1">
                         {(['write', 'preview'] as const).map((option) => (
                             <button
                                 key={option}
@@ -58,9 +57,9 @@ export function PasteComposer({
                                 disabled={option === 'preview' && !canPreview}
                                 onClick={() => setView(option)}
                                 className={cn(
-                                    'rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium capitalize transition-colors disabled:opacity-40',
+                                    'rounded-[10px] px-3 py-1 text-[13px] font-bold capitalize transition-colors disabled:opacity-40',
                                     view === option
-                                        ? 'bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06)]'
+                                        ? 'bg-lavender text-night'
                                         : 'text-muted-foreground hover:text-foreground',
                                 )}
                             >
@@ -140,22 +139,22 @@ export function PasteComposer({
             {/* The canvas bleeds, but the text column stays on the rail: code set to
           the full width of a 1440px window is unreadable. */}
             {view === 'write' ? (
-                <div className="min-h-0 flex-1">
-                    <div className="rail h-full">
+                <div>
+                    <div className="px-5">
                         <Textarea
                             value={body}
                             onChange={(event) => onBody(event.target.value)}
                             spellCheck={false}
                             placeholder={
-                                'Paste or type anything.\n\nMarkdown and source code are picked up on their own, and you can override the guess above.\n\nA Paste has no title. The body is the whole thing.'
+                                'Paste or type anything. No title needed.'
                             }
-                            className="h-full resize-none rounded-none border-0 bg-transparent px-0 py-5 font-mono text-[13px] leading-[1.65] shadow-none focus-visible:ring-0 md:text-[13px] dark:bg-transparent"
+                            className="min-h-[260px] resize-y rounded-none border-0 bg-transparent bg-[repeating-linear-gradient(transparent_0_23px,rgb(185_168_255/0.08)_23px_24px)] bg-local px-0 py-4 font-mono text-[14px] leading-[24px] shadow-none focus-visible:ring-0 md:text-[14px]"
                         />
                     </div>
                 </div>
             ) : (
-                <div className="min-h-0 flex-1 scrollbar-slim overflow-auto">
-                    <div className="rail py-5">
+                <div className="max-h-[520px] scrollbar-slim overflow-auto">
+                    <div className="px-5 py-4">
                         {resolved.pasteType === 'markdown' ? (
                             <MarkdownView body={body} />
                         ) : (
@@ -174,8 +173,8 @@ export function PasteComposer({
 }
 
 /**
- * What the editor currently holds, in the mono register the system reserves for
- * machine truths. Sits on the left of the status bar, opposite the controls.
+ * What the editor currently holds, as quiet metadata. Sits on the left of the
+ * status bar, opposite the controls.
  */
 export function PasteTruths({
     body,
@@ -190,7 +189,7 @@ export function PasteTruths({
     const lines = body === '' ? 0 : body.split('\n').length;
 
     return (
-        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
             <span>
                 {lines} {lines === 1 ? 'line' : 'lines'} · {body.length} chars
             </span>

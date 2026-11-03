@@ -51,6 +51,16 @@ class TransferSession extends Model
         return $this->hasMany(TransferActivity::class);
     }
 
+    /** The device's participant row, when that browser joined and has not left. */
+    public function activeParticipant(mixed $browserId): ?TransferParticipant
+    {
+        if (! is_string($browserId) || $browserId === '') {
+            return null;
+        }
+
+        return $this->participants()->where('browser_id', $browserId)->whereNull('left_at')->first();
+    }
+
     public function hasExpired(): bool
     {
         return $this->expired_at !== null || $this->expires_at->isPast();

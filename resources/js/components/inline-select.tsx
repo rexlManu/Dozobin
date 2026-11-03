@@ -47,7 +47,7 @@ export function InlineSelect<T extends string>({
             aria-label={label}
             disabled={Boolean(disabledReason)}
             className={cn(
-                'h-auto w-fit gap-1 rounded-sm border-transparent bg-transparent px-1.5 py-1 text-[13px] dark:bg-transparent',
+                '-mx-1.5 h-auto w-fit gap-1 rounded-sm border-transparent bg-transparent px-1.5 py-1 text-[13px] dark:bg-transparent',
                 'hover:bg-muted dark:hover:bg-muted',
                 'data-[state=open]:border-border data-[state=open]:bg-muted',
                 'disabled:opacity-100 disabled:hover:bg-transparent dark:disabled:hover:bg-transparent',

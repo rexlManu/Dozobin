@@ -150,6 +150,8 @@ export interface Participant {
     device: string;
     joinedAt: number;
     self: boolean;
+    /** Left on that device. Kept so its items still show who sent them. */
+    left: boolean;
 }
 
 export interface ActivityEntry {

@@ -54,10 +54,19 @@ export function formatBytes(bytes: number): string {
     return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
-/** "in 3 days" / "4 minutes ago" without pulling in a date library. */
+/**
+ * "in 3 days" / "4 minutes ago" without pulling in a date library. Anything
+ * within 45 seconds reads "just now", which also hides small clock differences
+ * between the server and the browser.
+ */
 export function relativeTime(target: number, now: number): string {
     const diff = target - now;
     const abs = Math.abs(diff);
+
+    if (abs < 45_000) {
+        return 'just now';
+    }
+
     const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
     const steps: [number, Intl.RelativeTimeFormatUnit][] = [
         [DAY * 365, 'year'],
@@ -109,6 +118,15 @@ export function isExpiringSoon(expiresAt: number | null, now: number): boolean {
     }
 
     return expiresAt - now < 2 * HOUR;
+}
+
+/** Avatar fallback letters: "Ines Mori" reads "IM", a single name reads "I". */
+export function initials(name: string): string {
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    const first = words.at(0)?.at(0) ?? '';
+    const last = words.length > 1 ? (words.at(-1)?.at(0) ?? '') : '';
+
+    return (first + last).toUpperCase();
 }
 
 export function fileExtension(filename: string): string {
