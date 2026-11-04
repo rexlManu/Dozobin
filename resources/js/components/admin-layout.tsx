@@ -3,7 +3,7 @@ import { ArrowUpRight, X } from '@phosphor-icons/react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
-import { PillNav, isUnder } from '@/components/pill-nav';
+import { PillNav } from '@/components/pill-nav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
@@ -22,16 +22,6 @@ const NAV = [
         match: '/admin/settings',
         label: 'Settings',
     },
-];
-
-const SETTINGS_NAV = [
-    { to: '/admin/settings/access', label: 'Access' },
-    { to: '/admin/settings/expiration', label: 'Expiration' },
-    { to: '/admin/settings/limits', label: 'Limits' },
-    { to: '/admin/settings/file-types', label: 'File types' },
-    { to: '/admin/settings/transfer', label: 'Transfer sessions' },
-    { to: '/admin/settings/housekeeping', label: 'Housekeeping' },
-    { to: '/admin/settings/system', label: 'System' },
 ];
 
 export type TagTone = 'mint' | 'lavender' | 'lamp' | 'danger' | 'muted';
@@ -197,13 +187,13 @@ function UpdateNotice() {
 
 /**
  * Frame for every admin page: the title and section pills in the sky, then
- * the update notice and, on settings pages, a row of settings tabs. The nav sits on top
- * rather than in a sidebar so wide tables get the full rail.
+ * the update notice. The nav sits on top rather than in a sidebar so wide
+ * tables get the full rail. Settings pages add their own menu
+ * (`AdminSettingsFrame`).
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
     const path = usePage().url.split('?')[0];
     const openReports = usePage<SharedPageProps>().props.openReports;
-    const inSettings = isUnder(path, '/admin/settings');
 
     return (
         <AppShell
@@ -226,15 +216,6 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         >
             <div className="rail grid gap-5 pb-10">
                 <UpdateNotice />
-
-                {inSettings && (
-                    <PillNav
-                        label="Settings"
-                        items={SETTINGS_NAV}
-                        path={path}
-                        track
-                    />
-                )}
 
                 <div className="flex min-w-0 flex-col gap-5">{children}</div>
             </div>

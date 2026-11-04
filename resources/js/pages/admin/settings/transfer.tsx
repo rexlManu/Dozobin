@@ -2,7 +2,6 @@ import { AdminCard, AdminLayout, Tag } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
-    AdminSettingsPageHead,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
@@ -20,10 +19,6 @@ function TransferContent({ transfer }: { transfer: TransferSession | null }) {
 
     return (
         <>
-            <AdminSettingsPageHead
-                title="Transfer sessions"
-                description="A Transfer Session has no owner and no Library, so only time ends it."
-            />
             <AdminCard className="grid gap-6">
                 <AdminSettingsField
                     label="Inactivity window"
@@ -84,7 +79,7 @@ export default function TransferPage({
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminSettingsLayout>
+                <AdminSettingsLayout section="transfer">
                     <TransferContent transfer={transfer} />
                 </AdminSettingsLayout>
             </AdminLayout>

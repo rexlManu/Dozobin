@@ -3,7 +3,6 @@ import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
-    AdminSettingsPageHead,
     AdminSettingsSwitch,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
@@ -20,10 +19,6 @@ function AccessContent() {
 
     return (
         <>
-            <AdminSettingsPageHead
-                title="Access"
-                description="Who can put something on this installation."
-            />
             <AdminCard className="grid gap-7">
                 <AdminSettingsSwitch
                     id="guest-sharing"
@@ -110,7 +105,7 @@ export default function AccessPage() {
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminSettingsLayout>
+                <AdminSettingsLayout section="access">
                     <AccessContent />
                 </AdminSettingsLayout>
             </AdminLayout>

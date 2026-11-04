@@ -7,6 +7,7 @@ import {
     AdminPageHead,
     Tag,
 } from '@/components/admin-layout';
+import { AdminSettingsFrame } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -99,8 +100,8 @@ function VersionStatus({ update }: { update: UpdateStatus }) {
     return (
         <>
             <AdminPageHead
-                title="System"
-                description="Build and release status. Your deployment platform installs updates, never Dōzobin itself."
+                title="Release"
+                description="Your deployment platform installs updates, never Dōzobin itself."
                 action={
                     update.updateAvailable &&
                     update.releaseUrl !== null && (
@@ -254,16 +255,19 @@ export default function SystemPage() {
     return (
         <AppProviders>
             <AdminLayout>
-                <div className="flex flex-col gap-8">
-                    {update === null ? (
-                        <p className="text-muted-foreground">
-                            Release status is available to administrators only.
-                        </p>
-                    ) : (
-                        <VersionStatus update={update} />
-                    )}
-                    <TrackingCodeSetting encoded={trackingCodeBase64} />
-                </div>
+                <AdminSettingsFrame current="system">
+                    <div className="flex flex-col gap-8">
+                        {update === null ? (
+                            <p className="text-muted-foreground">
+                                Release status is available to administrators
+                                only.
+                            </p>
+                        ) : (
+                            <VersionStatus update={update} />
+                        )}
+                        <TrackingCodeSetting encoded={trackingCodeBase64} />
+                    </div>
+                </AdminSettingsFrame>
             </AdminLayout>
         </AppProviders>
     );

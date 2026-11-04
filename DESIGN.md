@@ -132,6 +132,7 @@ Type steps in use: 12, 13, 14, 15 (body), 16, 18, 20, 22, 24, 26, 28, 30, 32 px 
 - The header floats over the sky and turns solid only after the page scrolls.
 - Transfer Session on desktop: the live state and "2 of 3 devices here" sit in the sky; below it, a 300px device column and a flexible log fill the rest of the viewport. On a phone the column stacks on top and the code panel folds behind "Add a device".
 - Settings and Administration share one frame: the title and a row of section pills (`components/pill-nav.tsx`) in the head, cards on the full rail below. No side nav.
+- Admin settings (`components/admin-settings-layout.tsx`): one grouped menu card on the left (Sharing, Transfer Sessions, Upkeep). Each item has an icon, its name and a live one-line summary of its value, plus an amber dot for unsaved or a coral dot for invalid changes. On a phone the menu folds into one section picker. The save bar shows only when there is something to save, and unsaved edits survive moving between settings pages.
 - Every page ends with the city, then the footer (`components/site-footer.tsx`): it starts in the color of the building bases, so the page ends on solid ground. It links Terms of Service, Privacy Policy and Report content; on a share page the report link carries that Share URL.
 - Legal pages (`components/legal-document.tsx`): the title in the sky, one card of numbered sections, 46rem wide for reading.
 - Library and admin lists are tables on desktop and two-line rows on a phone. No card grids for lists.

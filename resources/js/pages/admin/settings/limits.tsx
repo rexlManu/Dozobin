@@ -2,7 +2,6 @@ import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
-    AdminSettingsPageHead,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
@@ -14,10 +13,6 @@ function LimitsContent() {
 
     return (
         <>
-            <AdminSettingsPageHead
-                title="Limits"
-                description="Quotas apply to Members. Guest shares belong to no account, so they count against nothing."
-            />
             <AdminCard className="grid gap-6 sm:grid-cols-2">
                 <AdminSettingsField
                     label="Default Member storage quota"
@@ -85,7 +80,7 @@ export default function LimitsPage() {
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminSettingsLayout>
+                <AdminSettingsLayout section="limits">
                     <LimitsContent />
                 </AdminSettingsLayout>
             </AdminLayout>

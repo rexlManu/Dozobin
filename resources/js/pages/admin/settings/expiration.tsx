@@ -2,7 +2,6 @@ import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
-    AdminSettingsPageHead,
     AdminSettingsSwitch,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
@@ -93,10 +92,6 @@ function ExpirationContent() {
 
     return (
         <>
-            <AdminSettingsPageHead
-                title="Expiration"
-                description="The windows the Drop Workspace offers. Guests and Members can get different ones."
-            />
             <div className="grid gap-5 xl:grid-cols-2">
                 <AdminCard className="grid content-start gap-5">
                     <h3 className="text-[17px] font-bold">Guests</h3>
@@ -169,7 +164,7 @@ export default function ExpirationPage() {
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminSettingsLayout>
+                <AdminSettingsLayout section="expiration">
                     <ExpirationContent />
                 </AdminSettingsLayout>
             </AdminLayout>

@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsLayout,
-    AdminSettingsPageHead,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
 import { AppProviders } from '@/components/app-providers';
@@ -23,10 +22,6 @@ function FileTypesContent() {
 
     return (
         <>
-            <AdminSettingsPageHead
-                title="File types"
-                description="Block some extensions, or accept only the ones you name."
-            />
             <AdminCard className="grid gap-5">
                 <div
                     role="group"
@@ -126,7 +121,7 @@ export default function FileTypesPage() {
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminSettingsLayout>
+                <AdminSettingsLayout section="file-types">
                     <FileTypesContent />
                 </AdminSettingsLayout>
             </AdminLayout>

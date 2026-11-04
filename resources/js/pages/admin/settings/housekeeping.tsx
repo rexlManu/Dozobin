@@ -5,7 +5,6 @@ import { AdminCard, AdminLayout } from '@/components/admin-layout';
 import {
     AdminSettingsField,
     AdminSettingsLayout,
-    AdminSettingsPageHead,
     AdminSettingsSwitch,
     useAdminSettings,
 } from '@/components/admin-settings-layout';
@@ -85,11 +84,6 @@ function HousekeepingContent({ shares }: { shares: Share[] }) {
 
     return (
         <>
-            <AdminSettingsPageHead
-                title="Housekeeping"
-                description="How expired payloads leave storage, and whether ClamAV checks File Shares. Share records stay after cleanup."
-            />
-
             <AdminCard className="grid gap-7 sm:grid-cols-2">
                 <AdminSettingsField
                     label="Expired payload grace period"
@@ -184,7 +178,7 @@ export default function HousekeepingPage({ shares }: { shares: Share[] }) {
     return (
         <AppProviders>
             <AdminLayout>
-                <AdminSettingsLayout>
+                <AdminSettingsLayout section="housekeeping">
                     <HousekeepingContent shares={shares} />
                 </AdminSettingsLayout>
             </AdminLayout>
