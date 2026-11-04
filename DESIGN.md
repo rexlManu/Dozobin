@@ -101,7 +101,7 @@ The world was chosen over seven other directions (waybill, poster, contact sheet
 - A painted night sky behind every page, indigo panels, one soft border weight (1.5px).
 - Sakura for the one main action on a screen; lamplight for time and pressed choices; lavender for focus, live state and active tabs; mint for success; coral for danger.
 - Zen Maru Gothic everywhere, bold for anything you act on; Fragment Mono only for machine strings.
-- Authored art only: SVG for Dozo and sparkles, a canvas painting for the sky and the city. No stock imagery, no copied characters.
+- Authored art only: SVG for Dozo and sparkles, a painted sky and city rendered once to still images. No stock imagery, no copied characters.
 - Motion is short and runs once: a soft pop on arrival, a small lift on hover. Nothing loops.
 
 ## Colors
@@ -153,7 +153,7 @@ Radii grow with size: chips 13px, inputs 14px, buttons 16px, list rows 20px, car
 - **Rows**: `bg-card`, 20px radius, 44px icon blob, name, one muted meta line, a status tag, actions on the right.
 - **Status tag**: tinted background plus colored text (`bg-mint-soft text-mint` and so on).
 - **Dozo** (`components/dozo.tsx`): moods `happy`, `calm`, `wow`, `sleep`. Use it for welcome, empty states, locked or expired states, and as each device's avatar (body color per device). At most one large Dozo per screen.
-- **Night sky** (`components/night-sky.tsx`, painters in `lib/night-paint.ts`): `NightSky` (fixed, behind the page) and `NightCity` (last in the page) in `AppShell`, the auth pages and the installer. Both are canvases painted once per size with a seeded random, so the picture is the same on every load; they repaint only after a resize, never per frame. `Sparkle` is the online marker.
+- **Night sky** (`components/night-sky.tsx`): `NightSky` (fixed, behind the page) and `NightCity` (last in the page, tiles sideways) in `AppShell`, the auth pages and the installer. Both are still WebP images (`.night-sky`, `.night-city` in `app.css`), so the browser paints nothing at runtime. The art is drawn by `lib/night-paint.ts`; after changing it, run `resources/images/night/render.mjs` to make the images again. A wide sky loads on landscape screens and a tall one on phones. `Sparkle` is the online marker.
 - **Compose bar** (Transfer Session): one rounded panel with an attach button, a text field that grows with its content, and a sakura Send button.
 - **Toast**: white bubble with night text, bold.
 - **Dialog**: panel card with a 26px radius, roomy padding.

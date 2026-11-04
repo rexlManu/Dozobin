@@ -234,6 +234,28 @@
         @apply mx-auto w-full max-w-[68rem] px-4 sm:px-7;
     }
 
+    /*
+      The Long night art: still images painted once from lib/night-paint.ts by
+      resources/images/night/render.mjs. The browser downloads only the sky
+      that fits the screen shape, and paints nothing itself.
+    */
+    .night-sky {
+        background: #070616 url('../images/night/sky-wide.webp') center top /
+            cover no-repeat;
+    }
+
+    @media (max-aspect-ratio: 4/5) {
+        .night-sky {
+            background-image: url('../images/night/sky-tall.webp');
+        }
+    }
+
+    /* The city tiles sideways, so it fits any width without scaling. */
+    .night-city {
+        background: url('../images/night/city.webp') center bottom / auto 100%
+            repeat-x;
+    }
+
     /* The header spans wider than the content, like a window frame. */
     .rail-wide {
         @apply w-full px-4 sm:px-7;

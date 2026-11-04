@@ -1,7 +1,8 @@
 /*
-  Painters for the Long night scene. Each one draws a full static picture
-  into a 2D canvas context, in CSS pixels (the caller scales for the device
-  pixel ratio). They run once per size, never per frame.
+  Painters for the Long night art. The app does not run them: render.mjs in
+  resources/images/night paints them once into the WebP files the page loads.
+  Each one draws a full static picture into a 2D canvas context, in CSS
+  pixels (the caller scales for the pixel ratio).
 */
 
 type Random = () => number;
@@ -94,7 +95,7 @@ function moon(
     ctx.globalCompositeOperation = 'source-over';
 
     // The dark part of the disc, faintly lit by the earth.
-    ctx.fillStyle = 'rgba(20, 17, 52, 0.3)';
+    ctx.fillStyle = 'rgba(20, 17, 52, 0.14)';
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
@@ -559,7 +560,7 @@ function roofDetail(
         ctx.lineTo(tx + 7, top - 19);
         ctx.lineTo(tx + 15, top - 14);
         ctx.fill();
-    } else if (pick < 0.42) {
+    } else if (pick < 0.32) {
         const ax = x + between(random, 0.2, 0.8) * width;
         const tall = between(random, 18, 38);
         ctx.fillRect(ax, top - tall, 1.5, tall);
@@ -575,11 +576,80 @@ function roofDetail(
     }
 }
 
+/** One building with its windows and rooftop clutter. Its own seed keeps every copy identical. */
+function building(
+    ctx: CanvasRenderingContext2D,
+    layer: Layer,
+    seed: number,
+    x: number,
+    buildingWidth: number,
+    buildingHeight: number,
+    height: number,
+    facesRight: boolean,
+) {
+    const random = seeded(seed);
+    const top = height - buildingHeight;
+    const shade = ctx.createLinearGradient(0, top, 0, height);
+    shade.addColorStop(0, layer.roof);
+    shade.addColorStop(0.6, layer.fill);
+    ctx.fillStyle = shade;
+    ctx.fillRect(x, top, buildingWidth, buildingHeight);
+    rimLight(ctx, x, top, buildingWidth, buildingHeight, facesRight, layer.rim);
+
+    if (layer.details) {
+        roofDetail(ctx, random, x, top, buildingWidth, layer.roof);
+    }
+
+    const [stepX, stepY] = layer.window.step;
+    const columns = Math.floor((buildingWidth - 8) / stepX);
+    const rows = Math.floor((buildingHeight - 12) / stepY);
+    const left = x + (buildingWidth - columns * stepX) / 2 + 1;
+    // Some buildings are mostly dark, some mostly awake. Now and then a
+    // whole floor is lit, like an office working late.
+    const awake = layer.lit * between(random, 0.2, 2.2);
+
+    for (let row = 0; row < rows; row++) {
+        const floorLit = random() < awake * 0.18;
+        const floorTint =
+            WINDOW_TINTS[Math.floor(random() * WINDOW_TINTS.length)];
+
+        for (let column = 0; column < columns; column++) {
+            if (random() > (floorLit ? 0.85 : awake)) {
+                continue;
+            }
+
+            const wx = left + column * stepX;
+            const wy = top + 10 + row * stepY;
+            const alpha = layer.windowAlpha * between(random, 0.55, 1);
+            const tint = floorLit
+                ? floorTint
+                : WINDOW_TINTS[Math.floor(random() * WINDOW_TINTS.length)];
+
+            if (layer.glow > 0) {
+                ctx.globalCompositeOperation = 'lighter';
+                softDot(
+                    ctx,
+                    wx + layer.window.width / 2,
+                    wy + layer.window.height / 2,
+                    layer.window.width * 3,
+                    tint,
+                    layer.glow,
+                );
+                ctx.globalCompositeOperation = 'source-over';
+            }
+
+            ctx.fillStyle = rgba(tint, alpha);
+            ctx.fillRect(wx, wy, layer.window.width, layer.window.height);
+        }
+    }
+}
+
 /**
  * The city at the bottom of the page: three rows of buildings, the far ones
  * hazy and tall, the near ones dark with lit windows and rooftop clutter.
  * Edges that face the moon catch its light. The canvas stays clear above the
- * rooftops, so the sky shows through.
+ * rooftops, so the sky shows through. The picture tiles seamlessly: anything
+ * that crosses the right edge is drawn again from the left edge.
  */
 export function paintCity(
     ctx: CanvasRenderingContext2D,
@@ -590,7 +660,8 @@ export function paintCity(
 
     LAYERS.forEach((layer, depth) => {
         const random = seeded(layer.seed);
-        let x = -between(random, 0, 40);
+        let x = 0;
+        let index = 0;
 
         while (x < width) {
             const buildingWidth = between(random, ...layer.widths);
@@ -601,76 +672,30 @@ export function paintCity(
             }
 
             const buildingHeight = between(random, ...layer.heights);
-            const top = height - buildingHeight;
-            const shade = ctx.createLinearGradient(0, top, 0, height);
-            shade.addColorStop(0, layer.roof);
-            shade.addColorStop(0.6, layer.fill);
-            ctx.fillStyle = shade;
-            ctx.fillRect(x, top, buildingWidth, buildingHeight);
-            rimLight(
+            const seed = layer.seed * 1000 + index++;
+            const facesRight = x + buildingWidth / 2 < moon;
+            building(
                 ctx,
+                layer,
+                seed,
                 x,
-                top,
                 buildingWidth,
                 buildingHeight,
-                x + buildingWidth / 2 < moon,
-                layer.rim,
+                height,
+                facesRight,
             );
 
-            if (layer.details) {
-                roofDetail(ctx, random, x, top, buildingWidth, layer.roof);
-            }
-
-            const [stepX, stepY] = layer.window.step;
-            const columns = Math.floor((buildingWidth - 8) / stepX);
-            const rows = Math.floor((buildingHeight - 12) / stepY);
-            const left = x + (buildingWidth - columns * stepX) / 2 + 1;
-            // Some buildings are mostly dark, some mostly awake. Now and then a
-            // whole floor is lit, like an office working late.
-            const awake = layer.lit * between(random, 0.2, 2.2);
-
-            for (let row = 0; row < rows; row++) {
-                const floorLit = random() < awake * 0.18;
-                const tint =
-                    WINDOW_TINTS[Math.floor(random() * WINDOW_TINTS.length)];
-
-                for (let column = 0; column < columns; column++) {
-                    if (random() > (floorLit ? 0.85 : awake)) {
-                        continue;
-                    }
-
-                    const wx = left + column * stepX;
-                    const wy = top + 10 + row * stepY;
-                    const alpha = layer.windowAlpha * between(random, 0.55, 1);
-
-                    if (layer.glow > 0) {
-                        ctx.globalCompositeOperation = 'lighter';
-                        softDot(
-                            ctx,
-                            wx + layer.window.width / 2,
-                            wy + layer.window.height / 2,
-                            layer.window.width * 3,
-                            tint,
-                            layer.glow,
-                        );
-                        ctx.globalCompositeOperation = 'source-over';
-                    }
-
-                    ctx.fillStyle = rgba(
-                        floorLit
-                            ? tint
-                            : WINDOW_TINTS[
-                                  Math.floor(random() * WINDOW_TINTS.length)
-                              ],
-                        alpha,
-                    );
-                    ctx.fillRect(
-                        wx,
-                        wy,
-                        layer.window.width,
-                        layer.window.height,
-                    );
-                }
+            if (x + buildingWidth > width) {
+                building(
+                    ctx,
+                    layer,
+                    seed,
+                    x - width,
+                    buildingWidth,
+                    buildingHeight,
+                    height,
+                    facesRight,
+                );
             }
 
             x += buildingWidth + (depth === 2 ? between(random, 0, 6) : 0);
@@ -712,18 +737,16 @@ export function paintCity(
         x < width;
         x += between(random, 60, 140)
     ) {
-        ctx.save();
-        ctx.translate(x, height + 4);
-        ctx.scale(2.2, 1);
-        softDot(
-            ctx,
-            0,
-            0,
-            between(random, 18, 34),
-            LAMP,
-            between(random, 0.05, 0.12),
-        );
-        ctx.restore();
+        const radius = between(random, 18, 34);
+        const alpha = between(random, 0.05, 0.12);
+
+        for (const copy of [x - width, x, x + width]) {
+            ctx.save();
+            ctx.translate(copy, height + 4);
+            ctx.scale(2.2, 1);
+            softDot(ctx, 0, 0, radius, LAMP, alpha);
+            ctx.restore();
+        }
     }
 
     ctx.globalCompositeOperation = 'source-over';
