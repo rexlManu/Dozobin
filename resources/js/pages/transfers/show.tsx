@@ -497,7 +497,12 @@ function TransferSessionRoute({
     const windowMs =
         usePage<SharedPageProps>().props.config.transferWindowHours * HOUR;
     const { confirm, dialog } = useConfirm();
-    const { status, online } = useTransferLive(transfer.code, realtime);
+    const expired = isTransferExpired(transfer, windowMs, now);
+    const { status, online } = useTransferLive(
+        transfer.code,
+        realtime,
+        !expired,
+    );
     const [preview, setPreview] = useState<TransferItem | null>(null);
     const [sending, setSending] = useState(0);
     const [showCode, setShowCode] = useState(transfer.participants.length <= 1);
@@ -592,7 +597,7 @@ function TransferSessionRoute({
         };
     }, [addFiles]);
 
-    if (isTransferExpired(transfer, windowMs, now)) {
+    if (expired) {
         return (
             <AppShell>
                 <SessionNote mood="sleep" title="This session tidied itself up">

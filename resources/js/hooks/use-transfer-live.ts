@@ -48,17 +48,23 @@ export type LiveStatus = 'live' | 'connecting' | 'offline';
  *
  * A push only says "something changed"; the page then reloads the session
  * through the normal authorized request. Presence tells which devices have the
- * session open right now. Without a socket (Reverb off or unreachable) the page
- * falls back to a slow poll, so it still converges.
+ * session open right now. The page counts as live only once the socket is
+ * connected and the session channel is joined; until then (Reverb off,
+ * unreachable, or the channel refused) it falls back to a slow poll, so it
+ * still converges. An expired session (`active` false) does neither.
  */
-export function useTransferLive(code: string, realtimeKey: string | null) {
+export function useTransferLive(
+    code: string,
+    realtimeKey: string | null,
+    active: boolean,
+) {
     const [status, setStatus] = useState<LiveStatus>(
         realtimeKey ? 'connecting' : 'offline',
     );
     const [online, setOnline] = useState<ReadonlySet<string>>(new Set());
 
     useEffect(() => {
-        if (realtimeKey === null) {
+        if (realtimeKey === null || !active) {
             return;
         }
 
@@ -66,21 +72,19 @@ export function useTransferLive(code: string, realtimeKey: string | null) {
         const name = `transfer.${code}`;
         const refresh = () => router.reload({ only: ['transfer'] });
         let wasDown = false;
+        let joined = false;
 
         const apply = (next: ConnectionStatus) => {
             if (next === 'connected') {
-                setStatus('live');
-
-                // Catch up on anything missed while the socket was down.
-                if (wasDown) {
-                    wasDown = false;
-                    refresh();
-                }
+                // Live only after the channel join succeeds (see `subscribed`).
+                setStatus(joined ? 'live' : 'connecting');
 
                 return;
             }
 
+            // The socket resubscribes after a reconnect; wait for that again.
             wasDown = true;
+            joined = false;
             setStatus(
                 next === 'connecting' || next === 'reconnecting'
                     ? 'connecting'
@@ -93,6 +97,21 @@ export function useTransferLive(code: string, realtimeKey: string | null) {
 
         client
             .join(name)
+            .subscribed(() => {
+                joined = true;
+                setStatus('live');
+
+                // Catch up on anything missed while the socket was down.
+                if (wasDown) {
+                    wasDown = false;
+                    refresh();
+                }
+            })
+            .error(() => {
+                // The channel was refused: keep polling instead.
+                joined = false;
+                setStatus('offline');
+            })
             .here((members: Member[]) =>
                 setOnline(new Set(members.map((member) => String(member.id)))),
             )
@@ -113,10 +132,10 @@ export function useTransferLive(code: string, realtimeKey: string | null) {
             stopWatching();
             client.leave(name);
         };
-    }, [code, realtimeKey]);
+    }, [code, realtimeKey, active]);
 
     useEffect(() => {
-        if (status === 'live') {
+        if (status === 'live' || !active) {
             return;
         }
 
@@ -126,7 +145,7 @@ export function useTransferLive(code: string, realtimeKey: string | null) {
         );
 
         return () => window.clearInterval(timer);
-    }, [status]);
+    }, [status, active]);
 
     return { status, online };
 }
