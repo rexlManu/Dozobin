@@ -10,6 +10,8 @@ import type {
 export interface SharedPageProps extends PageProps {
     name: string;
     serverNow: number;
+    /** The public GitHub repository of this build. */
+    sourceUrl: string;
     auth: {
         user: Account | null;
         impersonator: Account | null;

@@ -21,6 +21,15 @@ it('shares one server clock snapshot with every Inertia page', function (): void
     }
 });
 
+it('shares the source repository link for the footer', function (): void {
+    config(['dozobin.release.repository' => 'example/fork']);
+
+    $this->get('/signin')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sourceUrl', 'https://github.com/example/fork'));
+});
+
 it('renders public pages as dedicated Inertia components', function (string $uri, string $component): void {
     $this->get($uri)
         ->assertOk()

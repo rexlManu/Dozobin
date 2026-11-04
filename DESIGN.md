@@ -131,6 +131,8 @@ Type steps in use: 12, 13, 14, 15 (body), 16, 18, 20, 22, 24, 26, 28, 30, 32 px 
 - The page title goes in `AppShell head`: a block of 300px on a phone and 340px from `sm` at the top of the page. The page body starts 64px above the end of that block, at the same place on every page.
 - The header floats over the sky and turns solid only after the page scrolls.
 - Transfer Session on desktop: the live state and "2 of 3 devices here" sit in the sky; below it, a 300px device column and a flexible log fill the rest of the viewport. On a phone the column stacks on top and the code panel folds behind "Add a device".
+- Settings and Administration share one frame: the title and a row of section pills (`components/pill-nav.tsx`) in the head, cards on the full rail below. No side nav.
+- Every app page ends with the city, then the footer (`components/site-footer.tsx`): it starts in the color of the building bases, so the page ends on solid ground. Links follow the visitor's role.
 - Library and admin lists are tables on desktop and two-line rows on a phone. No card grids for lists.
 - Phones get a bottom nav with soft tiles; everything works at 390px with no sideways scroll.
 
@@ -147,7 +149,11 @@ Radii grow with size: chips 13px, inputs 14px, buttons 16px, list rows 20px, car
 ## Components
 
 - **Button** (`components/ui/button.tsx`): bold label, inner bottom edge, lifts 1px on hover with a bouncy ease. `default` is sakura; `outline` is the soft raised panel; `secondary` is lavender; `ghost` and `link` are muted.
-- **Chips** (`components/chips.tsx`): small single choices (expiry, password, filters). Pressed chip is lamplight.
+- **Chips** (`components/chips.tsx`): small single choices (expiry, password, filters), 36px tall. Pressed chip is lamplight. A field in a chip row (the share password) takes the same 36px height and 13px radius.
+- **Fields**: inputs, text areas and select triggers share one look: 40px tall, 14px radius, `bg-sunken`, 1.5px `border-input`, a stronger border on hover, and a lavender border with a soft lavender ring on focus. Text is 15px at weight 500.
+- **Outline button**: flat `bg-sunken` with a 1.5px border. No inner shadow, so it never shows a double edge.
+- **Account menu**: avatar, name, email and an Admin tag at the top; bold items with muted icons; Sign out last, in muted text.
+- Everything you can press shows a pointer cursor (base rule in `app.css`).
 - **Segment** (Files / Text, tabs): raised track with a lavender active pill.
 - **Cards**: `bg-card`, 1.5px `border-border`, 28px radius, 26px padding.
 - **Rows**: `bg-card`, 20px radius, 44px icon blob, name, one muted meta line, a status tag, actions on the right.

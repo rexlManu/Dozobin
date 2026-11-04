@@ -1,7 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
-import { NavLink } from '@/lib/navigation';
+import { PillNav } from '@/components/pill-nav';
 import { cn } from '@/lib/utils';
 
 // Yoru has one theme, so Appearance is left out of the nav. Its page and route
@@ -79,48 +79,26 @@ export function SettingsCard({
     );
 }
 
+/**
+ * Frame for every settings page: the title and section pills in the sky, the
+ * same way Administration does it, then the page's cards on the full rail.
+ */
 export function SettingsLayout({ children }: { children: ReactNode }) {
-    const pathname = usePage().url.split('?')[0];
+    const path = usePage().url.split('?')[0];
 
     return (
         <AppShell
             head={
-                <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
-                    Settings
-                </h1>
+                <div className="grid gap-4">
+                    <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
+                        Settings
+                    </h1>
+                    <PillNav label="Settings" items={SECTIONS} path={path} />
+                </div>
             }
         >
-            <div className="rail pb-10">
-                <div className="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
-                    <nav
-                        aria-label="Settings"
-                        className="flex flex-wrap gap-1.5 lg:sticky lg:top-24 lg:flex-col lg:flex-nowrap lg:gap-1 lg:self-start"
-                    >
-                        {SECTIONS.map((section) => (
-                            <NavLink
-                                key={section.to}
-                                to={section.to}
-                                aria-current={
-                                    pathname === section.to ? 'page' : undefined
-                                }
-                                className={({ isActive }) =>
-                                    cn(
-                                        'rounded-[14px] px-3.5 py-2 font-bold whitespace-nowrap transition-colors',
-                                        isActive
-                                            ? 'bg-lavender text-night'
-                                            : 'text-muted-foreground hover:bg-sunken hover:text-foreground',
-                                    )
-                                }
-                            >
-                                {section.label}
-                            </NavLink>
-                        ))}
-                    </nav>
-
-                    <div className="flex min-w-0 flex-col gap-5">
-                        {children}
-                    </div>
-                </div>
+            <div className="rail flex min-w-0 flex-col gap-5 pb-10">
+                {children}
             </div>
         </AppShell>
     );

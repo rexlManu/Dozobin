@@ -57,6 +57,8 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'serverNow' => now()->getTimestampMs(),
+            // The public source of this build, linked from the footer.
+            'sourceUrl' => 'https://github.com/'.config('dozobin.release.repository'),
             'auth' => [
                 'user' => fn () => $user === null
                     ? null

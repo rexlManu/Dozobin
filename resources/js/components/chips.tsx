@@ -39,7 +39,7 @@ export function ChipGroup<T extends string>({
                     title={option.disabledReason}
                     onClick={() => onChange(option.value)}
                     className={cn(
-                        'rounded-[13px] border-[1.5px] px-3 py-1.5 text-[14px] font-bold transition-[transform,color,border-color] duration-200 ease-bounce disabled:cursor-not-allowed disabled:opacity-35',
+                        'inline-flex h-9 items-center rounded-[13px] border-[1.5px] px-3.5 text-[14px] font-bold transition-[transform,color,border-color] duration-200 ease-bounce disabled:cursor-not-allowed disabled:opacity-35',
                         value === option.value
                             ? '-translate-y-px border-lamp bg-lamp text-warn-foreground'
                             : 'border-border text-muted-foreground enabled:hover:border-border-strong enabled:hover:text-foreground',

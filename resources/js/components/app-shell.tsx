@@ -10,13 +10,13 @@ import {
 } from '@phosphor-icons/react';
 import { Wordmark } from '@/components/brand';
 import { NightCity, NightSky } from '@/components/night-sky';
+import { SiteFooter } from '@/components/site-footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -78,7 +78,7 @@ function AccountMenu() {
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
-                    className="flex items-center gap-2 rounded-[14px] bg-white/8 py-1 pr-3.5 pl-1 font-bold transition-colors hover:bg-white/12"
+                    className="flex items-center gap-2 rounded-[14px] bg-white/8 py-1 pr-3.5 pl-1 font-bold transition-colors hover:bg-white/12 aria-expanded:bg-white/12"
                 >
                     <Avatar className="size-7">
                         <AvatarImage src={account.avatarSrc} alt="" />
@@ -91,13 +91,26 @@ function AccountMenu() {
                     </span>
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuLabel className="flex flex-col gap-0.5">
-                    <span>{account.name}</span>
-                    <span className="text-[12px] font-normal text-muted-foreground">
-                        {account.email}
-                    </span>
-                </DropdownMenuLabel>
+            <DropdownMenuContent align="end" sideOffset={8} className="w-72">
+                <div className="flex items-center gap-3 px-2.5 pt-2 pb-2.5">
+                    <Avatar className="size-11">
+                        <AvatarImage src={account.avatarSrc} alt="" />
+                        <AvatarFallback className="text-[14px]">
+                            {initials(account.name)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold">{account.name}</p>
+                        <p className="truncate text-[13px] text-muted-foreground">
+                            {account.email}
+                        </p>
+                    </div>
+                    {account.role === 'admin' && (
+                        <span className="rounded-[9px] bg-lavender-soft px-2 py-0.5 text-[12px] font-bold text-lavender">
+                            Admin
+                        </span>
+                    )}
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate('/library')}>
                     <Stack /> Library
@@ -107,11 +120,12 @@ function AccountMenu() {
                 </DropdownMenuItem>
                 {account.role === 'admin' && (
                     <DropdownMenuItem onSelect={() => navigate('/admin')}>
-                        <Wrench /> Installation admin
+                        <Wrench /> Administration
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                    className="text-muted-foreground"
                     onSelect={() => {
                         router.post('/logout');
                     }}
@@ -254,6 +268,7 @@ export function AppShell({
             </main>
 
             <NightCity />
+            {variant === 'app' && <SiteFooter />}
 
             {showNav && (
                 <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-flow-col gap-1 bg-background/95 px-2 pt-1.5 backdrop-blur-md md:hidden">

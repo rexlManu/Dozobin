@@ -96,7 +96,7 @@ export function ShareOptions({
                                 type={reveal ? 'text' : 'password'}
                                 autoComplete="new-password"
                                 placeholder="Password for the recipient"
-                                className="pr-11"
+                                className="h-9 rounded-[13px] pr-10 text-[14px] md:text-[14px]"
                                 value={value.password ?? ''}
                                 onChange={(event) =>
                                     onChange({
@@ -108,8 +108,8 @@ export function ShareOptions({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon-sm"
-                                className="absolute top-1/2 right-1 -translate-y-1/2 hover:-translate-y-1/2"
+                                size="icon-xs"
+                                className="absolute top-1/2 right-1 -translate-y-1/2 hover:-translate-y-1/2 active:-translate-y-1/2"
                                 aria-label={
                                     reveal ? 'Hide password' : 'Show password'
                                 }
