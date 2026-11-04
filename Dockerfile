@@ -53,7 +53,7 @@ WORKDIR /app
 COPY . .
 COPY --from=vendor /var/www/html/vendor /app/vendor
 RUN corepack enable \
-    && corepack prepare pnpm@10.33.2 --activate \
+    && corepack prepare pnpm@10.34.9 --activate \
     && pnpm install --frozen-lockfile \
     && pnpm run build
 
