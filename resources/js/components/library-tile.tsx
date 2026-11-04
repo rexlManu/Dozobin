@@ -42,7 +42,7 @@ function Face({
         return (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-destructive">
                 <CloudSlash weight="thin" className="size-8" />
-                <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase">
+                <span className="text-[12.5px] font-bold">
                     {isShareExpired(share, now) ? 'Expired' : 'Missing'}
                 </span>
             </div>
@@ -53,7 +53,7 @@ function Face({
     // whole thing, so the first lines are the truest preview available.
     if (share.kind === 'paste') {
         return (
-            <pre className="h-full overflow-hidden px-3 py-2.5 font-mono text-[10px] leading-[1.6] whitespace-pre-wrap text-muted-foreground">
+            <pre className="h-full overflow-hidden px-3 py-2.5 font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-muted-foreground">
                 {share.body.split('\n').slice(0, 10).join('\n') ||
                     'Empty paste'}
             </pre>
@@ -69,7 +69,7 @@ function Face({
                 src={src}
                 alt=""
                 loading="lazy"
-                className="size-full bg-[repeating-conic-gradient(var(--muted)_0%_25%,transparent_0%_50%)] bg-[length:14px_14px] object-cover"
+                className="size-full bg-[repeating-conic-gradient(#1d1736_0%_25%,transparent_0%_50%)] bg-[length:14px_14px] object-cover"
             />
         );
     }
@@ -94,7 +94,7 @@ function Face({
                     />
                 )}
                 <span className="absolute inset-0 grid place-items-center">
-                    <span className="flex size-9 items-center justify-center rounded-full border border-border-strong bg-background/85 backdrop-blur-sm">
+                    <span className="flex size-9 items-center justify-center rounded-full bg-foreground text-night">
                         <Play weight="fill" className="size-3.5" />
                     </span>
                 </span>
@@ -110,7 +110,7 @@ function Face({
                 filename={share.filename}
                 className="size-7"
             />
-            <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase">
+            <span className="text-[12.5px] font-bold">
                 {fileExtension(share.filename) ||
                     share.mime.split('/')[1] ||
                     'file'}
@@ -142,39 +142,37 @@ export function LibraryTile({
     return (
         <li
             className={cn(
-                'group relative overflow-hidden rounded-lg border transition-colors',
+                'group relative overflow-hidden rounded-[24px] border-[1.5px] p-2 transition-[transform,border-color] duration-200 ease-bounce hover:-translate-y-0.5',
                 selected
-                    ? 'border-primary bg-primary-soft/30'
+                    ? 'border-lavender bg-accent'
                     : 'border-border bg-card hover:border-border-strong',
             )}
         >
             <Link
                 to={path}
-                className="block aspect-[4/3] bg-sunken"
+                className="block aspect-[4/3] overflow-hidden rounded-[18px] bg-sunken"
                 aria-label={label}
             >
                 <Face share={share} broken={broken} now={now} />
             </Link>
 
-            <div className="flex items-start gap-1.5 border-t border-border px-2.5 py-2">
+            <div className="flex items-start gap-1.5 px-1.5 pt-2 pb-0.5">
                 <div className="min-w-0 flex-1">
                     <p
                         className={cn(
-                            'flex items-center gap-1.5 truncate text-[12.5px] font-medium',
-                            share.kind === 'paste' &&
-                                'font-mono text-[11.5px] font-normal',
+                            'flex items-center gap-1.5 truncate font-bold',
                         )}
                     >
                         <span className="truncate">{label}</span>
                         {share.password && (
-                            <LockKey className="size-3 shrink-0 text-muted-foreground" />
+                            <LockKey className="size-3.5 shrink-0 text-lavender" />
                         )}
                     </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[10.5px] text-muted-foreground">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-muted-foreground">
                         <span className="truncate">{meta}</span>
                         <ExpiryLabel
                             expiresAt={share.expiresAt}
-                            className="text-[10.5px]"
+                            className="text-[12.5px]"
                             prefix=""
                         />
                     </p>

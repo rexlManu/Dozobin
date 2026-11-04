@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Data\DeviceDescription;
 use App\Models\Share;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -56,21 +57,10 @@ final class UserResource extends JsonResource
             ->map(fn (object $session): array => [
                 'id' => (string) $session->id,
                 'device' => str_contains((string) $session->user_agent, 'Mobile') ? 'Phone' : 'Computer',
-                'browser' => $this->browser((string) $session->user_agent),
+                'browser' => DeviceDescription::fromUserAgent($session->user_agent)->browser,
                 'location' => (string) ($session->ip_address ?: 'Unknown'),
                 'lastSeenAt' => (int) $session->last_activity * 1000,
                 'current' => hash_equals($request->session()->getId(), (string) $session->id),
             ])->all());
-    }
-
-    private function browser(string $agent): string
-    {
-        return match (true) {
-            str_contains($agent, 'Firefox') => 'Firefox',
-            str_contains($agent, 'Edg/') => 'Edge',
-            str_contains($agent, 'Chrome') => 'Chrome',
-            str_contains($agent, 'Safari') => 'Safari',
-            default => 'Browser',
-        };
     }
 }

@@ -8,6 +8,7 @@ use App\Actions\Transfers\FindCurrentTransferSessionAction;
 use App\Actions\Transfers\JoinTransferSessionAction;
 use App\Actions\Transfers\ResolveTransferParticipantAction;
 use App\Actions\Transfers\TouchTransferSessionAction;
+use App\Events\TransferSessionChanged;
 use App\Http\Requests\JoinTransferSessionRequest;
 use App\Http\Requests\TouchTransferSessionRequest;
 use App\Http\Resources\TransferSessionResource;
@@ -71,11 +72,29 @@ final class TransferController extends Controller
             return Inertia::render('transfers/show', ['transfer' => $expired]);
         }
 
-        $session = $join->handle($request, $transferSession->access_code);
+        // A live update is a partial reload. It reads the state without counting as Session Activity,
+        // so a pushed change never triggers another push.
+        $isLiveUpdate = $request->hasHeader('X-Inertia-Partial-Data')
+            && $transferSession->activeParticipant($request->session()->get('transfer_browser_id')) !== null;
+        $session = $isLiveUpdate
+            ? $transferSession->load(['items.participant', 'participants', 'activities'])
+            : $join->handle($request, $transferSession->access_code);
 
         return Inertia::render('transfers/show', [
             'transfer' => fn () => (new TransferSessionResource($session))->resolve($request),
+            'realtime' => $this->realtimeKey(),
         ]);
+    }
+
+    /** Public Reverb app key for the browser, or null when live updates are off and devices poll instead. */
+    private function realtimeKey(): ?string
+    {
+        if (config('broadcasting.default') !== 'reverb') {
+            return null;
+        }
+        $key = config('broadcasting.connections.reverb.key');
+
+        return is_string($key) && $key !== '' ? $key : null;
     }
 
     public function touch(
@@ -103,6 +122,7 @@ final class TransferController extends Controller
             'actor' => $participant->label,
             'description' => 'left on this device',
         ]);
+        TransferSessionChanged::dispatch($transferSession->access_code);
 
         return $request->expectsJson()
             ? response()->json(status: 204)

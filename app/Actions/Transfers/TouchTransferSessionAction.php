@@ -2,6 +2,7 @@
 
 namespace App\Actions\Transfers;
 
+use App\Events\TransferSessionChanged;
 use App\Models\InstallationSetting;
 use App\Models\TransferParticipant;
 use App\Models\TransferSession;
@@ -28,5 +29,7 @@ final class TouchTransferSessionAction
                 'description' => $description,
             ]);
         }
+
+        TransferSessionChanged::dispatch($session->access_code);
     }
 }

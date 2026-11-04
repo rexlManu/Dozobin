@@ -24,22 +24,32 @@ function Verdict({
     const Icon = ok ? CheckCircle : WarningCircle;
 
     return (
-        <div className="flex items-start gap-2.5 py-2">
+        <li className="flex items-start gap-3 rounded-[18px] bg-sunken px-4 py-3">
             <Icon
                 weight="fill"
                 aria-hidden
                 className={cn(
-                    'mt-px size-4 shrink-0',
-                    ok ? 'text-primary' : 'text-destructive',
+                    'mt-0.5 size-5 shrink-0',
+                    ok ? 'text-mint' : 'text-destructive',
                 )}
             />
-            <div className="min-w-0">
-                <p className="text-[13px]">{label}</p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+            <div className="min-w-0 flex-1">
+                <p className="font-bold">{label}</p>
+                <p className="mt-0.5 text-[14px] text-muted-foreground">
                     {detail}
                 </p>
             </div>
-        </div>
+            <span
+                className={cn(
+                    'shrink-0 rounded-[10px] px-2 py-0.5 text-[13px] font-bold',
+                    ok
+                        ? 'bg-mint-soft text-mint'
+                        : 'bg-destructive-soft text-destructive',
+                )}
+            >
+                {ok ? 'Met' : 'Not met'}
+            </span>
+        </li>
     );
 }
 
@@ -54,40 +64,47 @@ function ConnectionCard({ database }: { database: InstallDatabaseStatus }) {
             : `${database.host}:${database.port ?? ''} · ${database.database}`;
 
     return (
-        <div className="rounded-lg border border-border bg-card">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3">
+        <div className="rounded-[20px] bg-sunken p-4">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 {database.connected ? (
                     <CheckCircle
                         weight="fill"
                         aria-hidden
-                        className="size-4 text-primary"
+                        className="size-5 text-mint"
                     />
                 ) : (
                     <XCircle
                         weight="fill"
                         aria-hidden
-                        className="size-4 text-destructive"
+                        className="size-5 text-destructive"
                     />
                 )}
-                <p className="text-[13px] font-medium">
+                <p
+                    className={cn(
+                        'font-bold',
+                        database.connected ? 'text-mint' : 'text-destructive',
+                    )}
+                >
                     {database.connected
                         ? 'Connected'
                         : 'No connection to the database'}
                 </p>
-                <p className="ml-auto font-mono text-[11.5px] text-muted-foreground">
+                <p className="ml-auto font-mono text-[13px] text-muted-foreground">
                     {database.driver}
                 </p>
             </div>
 
-            <dl className="grid gap-x-6 gap-y-2 px-4 py-3 font-mono text-[11.5px] sm:grid-cols-[6rem_minmax(0,1fr)]">
-                <dt className="text-muted-foreground">target</dt>
-                <dd className="break-all">{target || '—'}</dd>
-                <dt className="text-muted-foreground">connection</dt>
-                <dd>{database.connection}</dd>
-                <dt className="text-muted-foreground">schema</dt>
+            <dl className="mt-3 grid gap-x-6 gap-y-2 text-[14px] sm:grid-cols-[7rem_minmax(0,1fr)]">
+                <dt className="label-meta">Target</dt>
+                <dd className="font-mono text-[13px] break-all">
+                    {target || 'Not set'}
+                </dd>
+                <dt className="label-meta">Connection</dt>
+                <dd className="font-mono text-[13px]">{database.connection}</dd>
+                <dt className="label-meta">Schema</dt>
                 <dd>
                     {database.migrated
-                        ? 'up to date'
+                        ? 'Up to date'
                         : `${database.pendingMigrations.length} migration${
                               database.pendingMigrations.length === 1 ? '' : 's'
                           } outstanding`}
@@ -95,7 +112,7 @@ function ConnectionCard({ database }: { database: InstallDatabaseStatus }) {
             </dl>
 
             {database.error !== null && (
-                <p className="border-t border-border bg-sunken px-4 py-3 font-mono text-[11.5px] leading-relaxed break-all text-destructive">
+                <p className="mt-3 rounded-[14px] bg-background px-3.5 py-3 font-mono text-[13px] leading-relaxed break-all text-destructive">
                     {database.error}
                 </p>
             )}
@@ -125,16 +142,16 @@ function DatabaseContent({
         <InstallShell
             step="database"
             title="Check the environment"
-            intro="Dōzobin reads its database credentials from the environment it was started with. Nothing on this page writes to that environment, so a failure here is fixed in your compose file or .env and then rechecked."
+            intro="Dōzobin reads the database credentials from its environment. This page changes nothing there, so fix a failure in your compose file or .env and check again."
         >
             <ConnectionCard database={database} />
 
             {failure !== undefined && (
-                <p className="flex items-start gap-1.5 text-[12.5px] text-destructive">
+                <p className="flex items-start gap-2 text-[14px] font-bold text-destructive">
                     <WarningCircle
                         weight="fill"
                         aria-hidden
-                        className="mt-px size-3.5 shrink-0"
+                        className="mt-0.5 size-4 shrink-0"
                     />
                     {failure}
                 </p>
@@ -143,13 +160,11 @@ function DatabaseContent({
             <div className="flex flex-wrap items-center gap-2">
                 <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => form.get('/install/database')}
                 >
                     <ArrowClockwise /> Check again
                 </Button>
                 <Button
-                    size="sm"
                     disabled={!database.connected || blocked || form.processing}
                     onClick={() =>
                         form.post('/install/database', {
@@ -167,9 +182,9 @@ function DatabaseContent({
                 </Button>
             </div>
 
-            <div className="border-t border-border pt-3">
-                <p className="label-mono">Requirements</p>
-                <div className="mt-1.5 divide-y divide-border">
+            <section>
+                <h2 className="text-[18px] font-bold">Requirements</h2>
+                <ul className="mt-3 grid gap-1.5">
                     {requirements.map((check) => (
                         <Verdict
                             key={check.label}
@@ -178,8 +193,8 @@ function DatabaseContent({
                             detail={check.detail}
                         />
                     ))}
-                </div>
-            </div>
+                </ul>
+            </section>
         </InstallShell>
     );
 }

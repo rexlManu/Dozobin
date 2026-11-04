@@ -11,7 +11,13 @@ import {
 import type { SortingState } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { AdminLayout } from '@/components/admin-layout';
+import {
+    AdminLayout,
+    AdminPageHead,
+    Meter,
+    Tag,
+} from '@/components/admin-layout';
+import type { TagTone } from '@/components/admin-layout';
 import { AppProviders } from '@/components/app-providers';
 import { useConfirm } from '@/components/confirm-dialog';
 import { CopyButton } from '@/components/copy-button';
@@ -46,7 +52,6 @@ import { useNow } from '@/hooks/use-now';
 import { relativeTime } from '@/lib/format';
 import { Link } from '@/lib/navigation';
 import type { InviteCode, InviteCodeStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
 
 interface InvitesPageProps extends SharedPageProps {
@@ -70,70 +75,44 @@ const STATUS_FILTERS: [StatusFilter, string][] = [
     ['revoked', 'Revoked'],
 ];
 
-/**
- * Live reads as a state, the other three as a label: an invite that still works
- * is the only one an administrator can act on, and revoked is the only one that
- * somebody chose rather than the clock or the counter.
- */
-function StatusChip({ status }: { status: InviteCodeStatus }) {
-    if (status === 'active') {
-        return (
-            <span className="inline-flex items-center gap-1.5 text-[12.5px]">
-                <span
-                    aria-hidden
-                    className="size-1.5 rounded-full bg-primary"
-                />
-                Active
-            </span>
-        );
-    }
+const STATUS_TONE: Record<InviteCodeStatus, TagTone> = {
+    active: 'mint',
+    expired: 'lamp',
+    exhausted: 'muted',
+    revoked: 'danger',
+};
 
-    return (
-        <span
-            className={cn(
-                'inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium',
-                status === 'revoked'
-                    ? 'bg-destructive-soft text-destructive'
-                    : 'border border-border text-muted-foreground',
-            )}
-        >
-            {STATUS_LABEL[status]}
-        </span>
-    );
+function StatusChip({ status }: { status: InviteCodeStatus }) {
+    return <Tag tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Tag>;
 }
 
 /** The same meter the Users table uses for a quota, since it answers the same question. */
 function UsesBar({ invite }: { invite: InviteCode }) {
     if (invite.maxUses === null) {
         return (
-            <span className="font-mono text-[11.5px] whitespace-nowrap">
+            <span className="text-[14px] font-bold whitespace-nowrap">
                 {invite.uses}
-                <span className="text-muted-foreground"> / no limit</span>
+                <span className="font-medium text-muted-foreground">
+                    {' '}
+                    of no limit
+                </span>
             </span>
         );
     }
 
-    const ratio = Math.min(1, invite.uses / invite.maxUses);
-    const spent = invite.uses >= invite.maxUses;
-
     return (
-        <div className="flex min-w-[6rem] flex-col gap-1">
-            <span className="font-mono text-[11.5px] whitespace-nowrap">
+        <div className="flex min-w-[6.5rem] flex-col gap-1.5">
+            <span className="text-[14px] font-bold whitespace-nowrap">
                 {invite.uses}
-                <span className="text-muted-foreground">
-                    {' / '}
+                <span className="font-medium text-muted-foreground">
+                    {' of '}
                     {invite.maxUses}
                 </span>
             </span>
-            <span className="h-[3px] w-full overflow-hidden rounded-full bg-muted">
-                <span
-                    className={cn(
-                        'block h-full rounded-full',
-                        spent ? 'bg-destructive' : 'bg-foreground/40',
-                    )}
-                    style={{ width: `${Math.max(2, ratio * 100)}%` }}
-                />
-            </span>
+            <Meter
+                ratio={Math.min(1, invite.uses / invite.maxUses)}
+                full={invite.uses >= invite.maxUses}
+            />
         </div>
     );
 }
@@ -225,7 +204,7 @@ function CreateInviteDialog() {
                             min={1}
                             max={1_000_000}
                             inputMode="numeric"
-                            className="font-mono"
+
                             value={form.data.max_uses}
                             placeholder="No limit"
                             aria-invalid={Boolean(form.errors.max_uses)}
@@ -363,10 +342,10 @@ function InvitesContent() {
                 header: 'Invite',
                 cell: ({ row }) => (
                     <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium">
+                        <p className="truncate font-bold">
                             {row.original.name}
                         </p>
-                        <p className="truncate font-mono text-[11px] text-muted-foreground">
+                        <p className="truncate font-mono text-[13px] text-muted-foreground">
                             {row.original.code}
                         </p>
                     </div>
@@ -397,7 +376,7 @@ function InvitesContent() {
                     cell: ({ row }) => (
                         <ExpiryLabel
                             expiresAt={row.original.expiresAt}
-                            className="text-[11.5px]"
+                            className="text-[14px] whitespace-nowrap"
                         />
                     ),
                     meta: { className: 'hidden sm:table-cell' },
@@ -406,7 +385,7 @@ function InvitesContent() {
             col.accessor('createdAt', {
                 header: 'Created',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
+                    <span className="text-[14px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue(), now)}
                     </span>
                 ),
@@ -416,7 +395,7 @@ function InvitesContent() {
                 id: 'actions',
                 header: '',
                 cell: ({ row }) => rowActions(row.original),
-                meta: { className: 'w-10' },
+                meta: { className: 'w-10 whitespace-nowrap' },
             }),
         ];
     }, [now, rowActions]);
@@ -452,43 +431,35 @@ function InvitesContent() {
 
     return (
         <>
-            <header>
-                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-                    <div className="min-w-0">
-                        <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
-                            Invite codes
-                        </h2>
-                        <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
-                            {active === 0
-                                ? 'No invite is accepting registrations right now.'
-                                : `${active} ${active === 1 ? 'invite is' : 'invites are'} accepting registrations.`}{' '}
-                            Each link can stop after a set number of accounts,
-                            at a set time, or when you revoke it.
-                        </p>
-                    </div>
-                    <CreateInviteDialog />
-                </div>
+            <AdminPageHead
+                title="Invites"
+                description={
+                    active === 0
+                        ? 'No invite accepts registrations right now.'
+                        : `${active} ${active === 1 ? 'invite accepts' : 'invites accept'} registrations.`
+                }
+                action={<CreateInviteDialog />}
+            />
 
-                {!registrationEnabled && (
-                    <p className="mt-3 flex max-w-[62ch] items-start gap-1.5 text-[12.5px] leading-relaxed text-warn">
-                        <WarningCircle
-                            weight="fill"
-                            className="mt-px size-3.5 shrink-0"
-                        />
-                        <span>
-                            Registration is {config.registration}, so these
-                            links let nobody in. Switch it to Invite only under{' '}
-                            <Link
-                                to="/admin/settings/access"
-                                className="underline underline-offset-4"
-                            >
-                                Access
-                            </Link>{' '}
-                            before sharing one.
-                        </span>
-                    </p>
-                )}
-            </header>
+            {!registrationEnabled && (
+                <p className="flex items-start gap-2.5 rounded-[20px] bg-warn-soft px-4 py-3 text-lamp">
+                    <WarningCircle
+                        weight="fill"
+                        className="mt-0.5 size-[18px] shrink-0"
+                    />
+                    <span>
+                        Registration is {config.registration}, so these links
+                        let nobody in. Set it to Invite only under{' '}
+                        <Link
+                            to="/admin/settings/access"
+                            className="font-bold underline underline-offset-4"
+                        >
+                            Access
+                        </Link>{' '}
+                        first.
+                    </span>
+                </p>
+            )}
 
             <DataTable
                 table={table}
@@ -497,27 +468,27 @@ function InvitesContent() {
                     const invite = row.original;
 
                     return (
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-center gap-3">
                             <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                                    <p className="text-[13.5px] font-medium">
+                                    <p className="min-w-0 truncate font-bold">
                                         {invite.name}
                                     </p>
                                     <StatusChip status={invite.status} />
                                 </div>
-                                <p className="mt-1 font-mono text-[12px] break-all">
-                                    {invite.code}
-                                </p>
-                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <UsesBar invite={invite} />
+                                <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+                                    <span className="font-mono">
+                                        {invite.code}
+                                    </span>{' '}
+                                    · {invite.uses}
+                                    {invite.maxUses === null
+                                        ? ' used'
+                                        : ` of ${invite.maxUses} used`}{' '}
+                                    ·{' '}
                                     <ExpiryLabel
                                         expiresAt={invite.expiresAt}
-                                        className="text-[11px]"
+                                        className="text-[13px]"
                                     />
-                                </div>
-                                <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                                    created{' '}
-                                    {relativeTime(invite.createdAt, now)}
                                 </p>
                             </div>
                             {rowActions(invite)}
@@ -547,7 +518,7 @@ function InvitesContent() {
                                 </Button>
                             )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 max-sm:w-full">
                             <Select
                                 value={statusOnly}
                                 onValueChange={(v) =>
@@ -556,7 +527,7 @@ function InvitesContent() {
                             >
                                 <SelectTrigger
                                     aria-label="Filter by status"
-                                    className="w-[10rem] text-[13px]"
+                                    className="w-[10rem] max-sm:min-w-0 max-sm:flex-1"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
@@ -585,15 +556,15 @@ function InvitesContent() {
                 }
                 empty={
                     <>
-                        <p className="text-[14px] font-medium">
+                        <p className="text-[17px] font-bold">
                             {narrowed
                                 ? 'No invites match that'
-                                : 'No invite codes yet'}
+                                : 'No invites yet'}
                         </p>
-                        <p className="mx-auto mt-1.5 max-w-[44ch] text-[13px] leading-relaxed text-muted-foreground">
+                        <p className="text-muted-foreground">
                             {narrowed
-                                ? 'Try a shorter search, or switch the filter back to Any status.'
-                                : 'Use New invite when you are ready to let someone register.'}
+                                ? 'Try a shorter search, or show any status.'
+                                : 'Use New invite to let someone register.'}
                         </p>
                     </>
                 }

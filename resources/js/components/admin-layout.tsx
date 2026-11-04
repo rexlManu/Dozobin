@@ -3,56 +3,123 @@ import { ArrowUpRight, X } from '@phosphor-icons/react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { PillNav } from '@/components/pill-nav';
 import { Button } from '@/components/ui/button';
-import { NavLink } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
 
+/** Top-level sections. `match` is the path prefix that marks the pill active. */
 const NAV = [
-    { to: '/admin/users', label: 'Users' },
-    { to: '/admin/invites', label: 'Invites' },
-    { to: '/admin/uploads', label: 'Uploads' },
-    // "Sessions" rather than "Transfer sessions", because Site settings already
-    // has an item by that name and two identical labels in one sidebar is a
-    // coin toss. The page's own heading says the full thing.
-    { to: '/admin/sessions', label: 'Sessions' },
+    { to: '/admin/users', match: '/admin/users', label: 'Users' },
+    { to: '/admin/invites', match: '/admin/invites', label: 'Invites' },
+    { to: '/admin/uploads', match: '/admin/uploads', label: 'Uploads' },
+    // "Sessions" rather than "Transfer sessions", because Settings already has
+    // a tab by that name. The page's own heading says the full thing.
+    { to: '/admin/sessions', match: '/admin/sessions', label: 'Sessions' },
+    { to: '/admin/reports', match: '/admin/reports', label: 'Reports' },
+    {
+        to: '/admin/settings/access',
+        match: '/admin/settings',
+        label: 'Settings',
+    },
 ];
 
-const SETTINGS_NAV = [
-    { to: '/admin/settings/access', label: 'Access' },
-    { to: '/admin/settings/expiration', label: 'Expiration' },
-    { to: '/admin/settings/limits', label: 'Limits' },
-    { to: '/admin/settings/file-types', label: 'File types' },
-    { to: '/admin/settings/transfer', label: 'Transfer sessions' },
-    { to: '/admin/settings/housekeeping', label: 'Housekeeping' },
-    { to: '/admin/settings/system', label: 'System' },
-];
+export type TagTone = 'mint' | 'lavender' | 'lamp' | 'danger' | 'muted';
 
-function NavItem({ to, label }: { to: string; label: string }) {
+const TAG_TONE: Record<TagTone, string> = {
+    mint: 'bg-mint-soft text-mint',
+    lavender: 'bg-lavender-soft text-lavender',
+    lamp: 'bg-warn-soft text-lamp',
+    danger: 'bg-destructive-soft text-destructive',
+    muted: 'bg-sunken text-muted-foreground',
+};
+
+/**
+ * A status said in a word on a tinted fill, so state never rests on color
+ * alone. Used by every admin table: account status, invite state, scans.
+ */
+export function Tag({
+    tone,
+    title,
+    className,
+    children,
+}: {
+    tone: TagTone;
+    title?: string;
+    className?: string;
+    children: ReactNode;
+}) {
     return (
-        <NavLink
-            to={to}
-            className={({ isActive }) =>
-                cn(
-                    'relative shrink-0 px-2.5 py-2 text-[13px] transition-colors lg:py-1.5',
-                    isActive
-                        ? 'font-medium text-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                )
-            }
-        >
-            {({ isActive }) => (
-                <>
-                    {isActive && (
-                        <span
-                            aria-hidden
-                            className="absolute inset-x-2 -bottom-px h-[1.5px] bg-foreground lg:inset-x-auto lg:inset-y-1 lg:-left-px lg:h-auto lg:w-[1.5px]"
-                        />
-                    )}
-                    {label}
-                </>
+        <span
+            title={title}
+            className={cn(
+                'inline-flex items-center gap-1 rounded-[10px] px-2.5 py-0.5 text-[13px] font-bold whitespace-nowrap',
+                TAG_TONE[tone],
+                className,
             )}
-        </NavLink>
+        >
+            {children}
+        </span>
+    );
+}
+
+/** A soft meter for "used of allowed": quota on users, uses on invites. */
+export function Meter({ ratio, full }: { ratio: number; full: boolean }) {
+    return (
+        <span className="block h-2 w-full overflow-hidden rounded-full bg-sunken">
+            <span
+                className={cn(
+                    'block h-full rounded-full',
+                    full ? 'bg-destructive' : 'bg-lamp',
+                )}
+                style={{ width: `${Math.max(3, ratio * 100)}%` }}
+            />
+        </span>
+    );
+}
+
+/** The bold heading at the top of each admin page, with an optional action on the right. */
+export function AdminPageHead({
+    title,
+    description,
+    action,
+}: {
+    title: ReactNode;
+    description?: ReactNode;
+    action?: ReactNode;
+}) {
+    return (
+        <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0">
+                <h2 className="text-[22px] font-bold">{title}</h2>
+                {description && (
+                    <p className="mt-1 max-w-[62ch] text-muted-foreground">
+                        {description}
+                    </p>
+                )}
+            </div>
+            {action}
+        </header>
+    );
+}
+
+/** The panel that holds a form or a block of facts. */
+export function AdminCard({
+    className,
+    children,
+}: {
+    className?: string;
+    children: ReactNode;
+}) {
+    return (
+        <section
+            className={cn(
+                'rounded-[28px] border-[1.5px] border-border bg-card p-5 sm:p-[26px]',
+                className,
+            )}
+        >
+            {children}
+        </section>
     );
 }
 
@@ -71,14 +138,15 @@ function UpdateNotice() {
     }
 
     return (
-        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-border py-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] bg-lavender-soft py-2.5 pr-2.5 pl-4">
             <ArrowUpRight
                 aria-hidden
-                className="size-4 shrink-0 text-primary"
+                weight="bold"
+                className="size-4 shrink-0 text-lavender"
             />
-            <p className="min-w-0 text-[13px]">
-                <span className="font-medium">
-                    Dōzobin {update.latestVersion} is available.
+            <p className="min-w-0">
+                <span className="font-bold">
+                    Dōzobin {update.latestVersion} is out.
                 </span>{' '}
                 <span className="text-muted-foreground">
                     This server runs {update.currentVersion}.
@@ -88,7 +156,7 @@ function UpdateNotice() {
                 href={update.releaseUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[12.5px] font-medium underline underline-offset-4 hover:text-foreground"
+                className="font-bold text-lavender underline underline-offset-4"
             >
                 View release
             </a>
@@ -117,39 +185,39 @@ function UpdateNotice() {
     );
 }
 
+/**
+ * Frame for every admin page: the title and section pills in the sky, then
+ * the update notice. The nav sits on top rather than in a sidebar so wide
+ * tables get the full rail. Settings pages add their own menu
+ * (`AdminSettingsFrame`).
+ */
 export function AdminLayout({ children }: { children: ReactNode }) {
+    const path = usePage().url.split('?')[0];
+    const openReports = usePage<SharedPageProps>().props.openReports;
+
     return (
-        <AppShell>
-            <div className="rail py-6 sm:py-8">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h1 className="text-xl font-medium tracking-[-0.02em]">
+        <AppShell
+            head={
+                <div className="grid gap-4">
+                    <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
                         Administration
                     </h1>
-                    <p className="font-mono text-[11.5px] text-muted-foreground">
-                        applies to everyone on this server
-                    </p>
+                    <PillNav
+                        label="Administration"
+                        items={NAV.map((item) =>
+                            item.to === '/admin/reports'
+                                ? { ...item, badge: openReports ?? 0 }
+                                : item,
+                        )}
+                        path={path}
+                    />
                 </div>
-
+            }
+        >
+            <div className="rail grid gap-5 pb-10">
                 <UpdateNotice />
 
-                <div className="mt-6 grid gap-7 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
-                    <nav className="-mx-4 flex scrollbar-slim gap-1 overflow-x-auto border-b border-border px-4 lg:sticky lg:top-20 lg:mx-0 lg:flex-col lg:gap-0.5 lg:self-start lg:overflow-visible lg:border-b-0 lg:border-l lg:px-0">
-                        {NAV.map((item) => (
-                            <NavItem key={item.to} {...item} />
-                        ))}
-                        <span aria-hidden className="hidden h-3 lg:block" />
-                        <p className="label-mono shrink-0 self-center px-2.5 py-2 lg:self-start lg:py-1">
-                            Site settings
-                        </p>
-                        {SETTINGS_NAV.map((item) => (
-                            <NavItem key={item.to} {...item} />
-                        ))}
-                    </nav>
-
-                    <div className="flex min-w-0 flex-col gap-5">
-                        {children}
-                    </div>
-                </div>
+                <div className="flex min-w-0 flex-col gap-5">{children}</div>
             </div>
         </AppShell>
     );

@@ -11,6 +11,7 @@ import type {
     RowData,
     Table as TableInstance,
 } from '@tanstack/react-table';
+import { Dozo } from '@/components/dozo';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -26,10 +27,10 @@ declare module '@tanstack/react-table' {
 /**
  * Chrome only. Each route owns its own `useReactTable` call next to its columns,
  * because the columns are where the domain lives; what repeats between tables is
- * the frame, the sortable head, the selection takeover and the pager.
+ * the soft row frame, the sortable head, the selection bar and the pager.
  *
- * Deliberately not built on `ui/table.tsx` — its shadcn defaults (text-sm, p-2)
- * fight this type scale, and the row treatment here matches the Library exactly.
+ * Rows are separate panels (`border-separate` with a row gap), so a desktop
+ * table reads like the upload rows on the Send page while staying a real table.
  */
 export function DataTable<T>({
     table,
@@ -44,12 +45,11 @@ export function DataTable<T>({
     toolbar?: React.ReactNode;
     /** Actions shown once rows are selected. Replaces the column heads. */
     selectionBar?: React.ReactNode;
+    /** Short copy for an empty result. Dozo sits above it. */
     empty: React.ReactNode;
     /**
-     * An alternative body for the same rows. The table stays the model — every
-     * filter, sort and page still applies — and only the drawing changes, so
-     * switching views cannot show you a different set of shares than the columns
-     * would have.
+     * An alternative body for the same rows. The table stays the model, so every
+     * filter, sort and page still applies and only the drawing changes.
      */
     grid?: React.ReactNode;
     /** How one row draws below `md`, where a wide table cannot be read. */
@@ -67,16 +67,35 @@ export function DataTable<T>({
         .some((column) => column.id === 'select');
     const firstOnPage = total === 0 ? 0 : pageIndex * pageSize + 1;
     const lastOnPage = Math.min(total, (pageIndex + 1) * pageSize);
+    const selecting = selected > 0 && selectionBar !== undefined;
+
+    const selectionActions = (
+        <>
+            <span className="font-bold text-lavender">{selected} selected</span>
+            <div className="ml-auto flex items-center gap-2">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => table.resetRowSelection()}
+                >
+                    Clear
+                </Button>
+                {selectionBar}
+            </div>
+        </>
+    );
 
     /*
-    The head row of a bodyless layout. A column-head strip means nothing to a
-    stack of cards or a grid of tiles, but select-all and the bulk actions still
-    have to live somewhere, so they get their own band.
-  */
+      The head of a layout without column heads (phone rows, the tile grid).
+      Select-all and the bulk actions still need a home, so they get this band.
+    */
     const strip = (
-        <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
-            {/* Only where a row can actually be selected — otherwise it is a
-                control that reports on nothing. */}
+        <div
+            className={cn(
+                'flex min-h-11 flex-wrap items-center gap-3 rounded-[18px] px-3.5 py-1.5',
+                selecting && 'bg-lavender-soft',
+            )}
+        >
             {selectable && (
                 <Checkbox
                     aria-label="Select everything on this page"
@@ -86,24 +105,10 @@ export function DataTable<T>({
                     }
                 />
             )}
-            {selected > 0 && selectionBar ? (
-                <>
-                    <span className="text-[12.5px] font-medium">
-                        {selected} selected
-                    </span>
-                    <div className="ml-auto flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => table.resetRowSelection()}
-                        >
-                            Clear
-                        </Button>
-                        {selectionBar}
-                    </div>
-                </>
+            {selecting ? (
+                selectionActions
             ) : (
-                <span className="label-mono">
+                <span className="label-meta">
                     {total} {total === 1 ? unit : `${unit}s`}
                 </span>
             )}
@@ -114,226 +119,194 @@ export function DataTable<T>({
         <div className="flex flex-col gap-3">
             {toolbar}
 
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
-                {grid ? (
-                    <>
-                        {strip}
-                        {rows.length > 0 && (
-                            <div className="p-3 sm:p-4">{grid}</div>
+            {rows.length === 0 ? (
+                <div className="grid justify-items-center gap-1.5 rounded-[28px] border-[1.5px] border-border bg-card px-6 py-10 text-center">
+                    <Dozo size={72} mood="sleep" className="mb-2" />
+                    {empty}
+                </div>
+            ) : grid ? (
+                <div className="flex flex-col gap-2">
+                    {strip}
+                    {grid}
+                </div>
+            ) : (
+                <>
+                    {/*
+                      A phone cannot read a nine-column table. Below `md` the same
+                      rows redraw as soft rows: same instance, filters and page.
+                    */}
+                    {card && (
+                        <div className="flex flex-col gap-2 md:hidden">
+                            {strip}
+                            <ul className="flex flex-col gap-2">
+                                {rows.map((row) => (
+                                    <li
+                                        key={row.id}
+                                        className={cn(
+                                            'rounded-[20px] px-3.5 py-3 transition-colors',
+                                            row.getIsSelected()
+                                                ? 'bg-accent'
+                                                : 'bg-card',
+                                        )}
+                                    >
+                                        {card(row)}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    <div
+                        className={cn(
+                            'scrollbar-slim overflow-x-auto',
+                            card && 'hidden md:block',
                         )}
-                    </>
-                ) : (
-                    <>
-                        {/*
-          A phone cannot read a nine-column table; it can only scroll one
-          sideways, and the columns worth acting on are the ones off-screen.
-          So below `md` the same rows redraw as cards. Same table instance, same
-          filters, same page — only the shape of a row changes.
-        */}
-                        {card && (
-                            <div className="md:hidden">
-                                {strip}
-                                <ul className="divide-y divide-border">
-                                    {rows.map((row) => (
-                                        <li
-                                            key={row.id}
-                                            className={cn(
-                                                'px-3 py-3',
-                                                row.getIsSelected() &&
-                                                    'bg-primary-soft/40',
-                                            )}
+                    >
+                        <table className="w-full border-separate border-spacing-y-1.5 text-left">
+                            <thead>
+                                {selecting ? (
+                                    <tr>
+                                        <th
+                                            colSpan={
+                                                table.getVisibleLeafColumns()
+                                                    .length
+                                            }
+                                            className="rounded-[18px] bg-lavender-soft px-3.5 py-1.5 font-medium"
                                         >
-                                            {card(row)}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                        <div
-                            className={cn(
-                                'scrollbar-slim overflow-x-auto',
-                                card && 'hidden md:block',
-                            )}
-                        >
-                            <table className="w-full border-collapse text-left">
-                                <thead>
-                                    {selected > 0 && selectionBar ? (
-                                        <tr className="border-b border-border">
-                                            <th
-                                                colSpan={
-                                                    table.getAllLeafColumns()
-                                                        .length
-                                                }
-                                                className="px-3 py-2.5 sm:px-4"
-                                            >
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <span className="text-[12.5px] font-medium">
-                                                        {selected} selected
-                                                    </span>
-                                                    <div className="ml-auto flex items-center gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                table.resetRowSelection()
-                                                            }
-                                                        >
-                                                            Clear
-                                                        </Button>
-                                                        {selectionBar}
-                                                    </div>
-                                                </div>
-                                            </th>
-                                        </tr>
-                                    ) : (
-                                        table.getHeaderGroups().map((group) => (
-                                            <tr
-                                                key={group.id}
-                                                className="border-b border-border"
-                                            >
-                                                {group.headers.map((header) => {
-                                                    const sortable =
-                                                        header.column.getCanSort();
-                                                    const sorted =
-                                                        header.column.getIsSorted();
+                                            <div className="flex min-h-8 flex-wrap items-center gap-3">
+                                                {selectionActions}
+                                            </div>
+                                        </th>
+                                    </tr>
+                                ) : (
+                                    table.getHeaderGroups().map((group) => (
+                                        <tr key={group.id}>
+                                            {group.headers.map((header) => {
+                                                const sortable =
+                                                    header.column.getCanSort();
+                                                const sorted =
+                                                    header.column.getIsSorted();
 
-                                                    return (
-                                                        <th
-                                                            key={header.id}
-                                                            scope="col"
-                                                            className={cn(
-                                                                'label-mono px-3 py-2.5 font-normal whitespace-nowrap sm:px-4',
-                                                                header.column
-                                                                    .columnDef
-                                                                    .meta
-                                                                    ?.className,
-                                                            )}
-                                                        >
-                                                            {header.isPlaceholder ? null : sortable ? (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={header.column.getToggleSortingHandler()}
-                                                                    className="label-mono inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                                                                >
-                                                                    {flexRender(
-                                                                        header
-                                                                            .column
-                                                                            .columnDef
-                                                                            .header,
-                                                                        header.getContext(),
-                                                                    )}
-                                                                    {sorted ===
-                                                                    'asc' ? (
-                                                                        <CaretUp
-                                                                            weight="bold"
-                                                                            className="size-3 text-foreground"
-                                                                        />
-                                                                    ) : sorted ===
-                                                                      'desc' ? (
-                                                                        <CaretDown
-                                                                            weight="bold"
-                                                                            className="size-3 text-foreground"
-                                                                        />
-                                                                    ) : (
-                                                                        <CaretUpDown className="size-3 opacity-40" />
-                                                                    )}
-                                                                </button>
-                                                            ) : (
-                                                                flexRender(
+                                                return (
+                                                    <th
+                                                        key={header.id}
+                                                        scope="col"
+                                                        className={cn(
+                                                            'label-meta px-3 py-1.5 whitespace-nowrap first:pl-3.5',
+                                                            header.column
+                                                                .columnDef.meta
+                                                                ?.className,
+                                                        )}
+                                                    >
+                                                        {header.isPlaceholder ? null : sortable ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={header.column.getToggleSortingHandler()}
+                                                                className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                                                            >
+                                                                {flexRender(
                                                                     header
                                                                         .column
                                                                         .columnDef
                                                                         .header,
                                                                     header.getContext(),
-                                                                )
-                                                            )}
-                                                        </th>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))
-                                    )}
-                                </thead>
-
-                                <tbody className="divide-y divide-border">
-                                    {rows.map((row) => (
-                                        <tr
-                                            key={row.id}
-                                            data-state={
-                                                row.getIsSelected()
-                                                    ? 'selected'
-                                                    : undefined
-                                            }
-                                            className={cn(
-                                                'transition-colors',
-                                                row.getIsSelected()
-                                                    ? 'bg-primary-soft/40'
-                                                    : 'hover:bg-muted/50',
-                                            )}
-                                        >
-                                            {row
-                                                .getVisibleCells()
-                                                .map((cell) => (
-                                                    <td
-                                                        key={cell.id}
-                                                        className={cn(
-                                                            'px-3 py-2.5 align-middle sm:px-4',
-                                                            cell.column
-                                                                .columnDef.meta
-                                                                ?.className,
+                                                                )}
+                                                                {sorted ===
+                                                                'asc' ? (
+                                                                    <CaretUp
+                                                                        weight="bold"
+                                                                        className="size-3 text-lavender"
+                                                                    />
+                                                                ) : sorted ===
+                                                                  'desc' ? (
+                                                                    <CaretDown
+                                                                        weight="bold"
+                                                                        className="size-3 text-lavender"
+                                                                    />
+                                                                ) : (
+                                                                    <CaretUpDown className="size-3 opacity-40" />
+                                                                )}
+                                                            </button>
+                                                        ) : (
+                                                            flexRender(
+                                                                header.column
+                                                                    .columnDef
+                                                                    .header,
+                                                                header.getContext(),
+                                                            )
                                                         )}
-                                                    >
-                                                        {flexRender(
-                                                            cell.column
-                                                                .columnDef.cell,
-                                                            cell.getContext(),
-                                                        )}
-                                                    </td>
-                                                ))}
+                                                    </th>
+                                                );
+                                            })}
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </>
-                )}
+                                    ))
+                                )}
+                            </thead>
 
-                {rows.length === 0 && (
-                    <div className="px-6 py-14 text-center">{empty}</div>
-                )}
-
-                {/* A pager for one page is furniture, so it only appears when it works. */}
-                {pages > 1 && (
-                    <div className="flex items-center gap-3 border-t border-border px-3 py-2.5 sm:px-4">
-                        <p className="font-mono text-[11px] text-muted-foreground">
-                            Showing {firstOnPage}–{lastOnPage} of {total}
-                        </p>
-                        <div className="ml-auto flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Previous page"
-                                disabled={!table.getCanPreviousPage()}
-                                onClick={() => table.previousPage()}
-                            >
-                                <CaretLeft />
-                            </Button>
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                                {pageIndex + 1} / {pages}
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Next page"
-                                disabled={!table.getCanNextPage()}
-                                onClick={() => table.nextPage()}
-                            >
-                                <CaretRight />
-                            </Button>
-                        </div>
+                            <tbody>
+                                {rows.map((row) => (
+                                    <tr
+                                        key={row.id}
+                                        data-state={
+                                            row.getIsSelected()
+                                                ? 'selected'
+                                                : undefined
+                                        }
+                                        className="group"
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <td
+                                                key={cell.id}
+                                                className={cn(
+                                                    'bg-card px-3 py-2.5 align-middle transition-colors group-hover:bg-sunken group-data-[state=selected]:bg-accent first:rounded-l-[18px] first:pl-3.5 last:rounded-r-[18px]',
+                                                    cell.column.columnDef.meta
+                                                        ?.className,
+                                                )}
+                                            >
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext(),
+                                                )}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                )}
-            </div>
+                </>
+            )}
+
+            {/* A pager for one page is furniture, so it only appears when it works. */}
+            {pages > 1 && (
+                <div className="flex items-center gap-3 px-1">
+                    <p className="text-[13px] text-muted-foreground">
+                        {firstOnPage}–{lastOnPage} of {total}
+                    </p>
+                    <div className="ml-auto flex items-center gap-1">
+                        <Button
+                            variant="outline"
+                            size="icon-sm"
+                            aria-label="Previous page"
+                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.previousPage()}
+                        >
+                            <CaretLeft />
+                        </Button>
+                        <span className="px-1.5 text-[13px] font-bold tabular-nums">
+                            {pageIndex + 1} / {pages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="icon-sm"
+                            aria-label="Next page"
+                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.nextPage()}
+                        >
+                            <CaretRight />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

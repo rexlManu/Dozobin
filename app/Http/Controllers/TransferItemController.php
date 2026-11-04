@@ -54,8 +54,7 @@ final class TransferItemController extends Controller
     ): Response {
         $session = $transferItem->transferSession;
         abort_if($session->hasExpired(), 404);
-        $browserId = $request->session()->get('transfer_browser_id');
-        abort_unless(is_string($browserId) && $session->participants()->where('browser_id', $browserId)->whereNull('left_at')->exists(), 403);
+        abort_if($session->activeParticipant($request->session()->get('transfer_browser_id')) === null, 403);
         abort_if($transferItem->storage_path === null || ! $files->exists($transferItem->storage_path), 404);
 
         return $responses->inline(

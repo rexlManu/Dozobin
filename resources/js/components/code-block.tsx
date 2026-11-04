@@ -16,10 +16,8 @@ function getHighlighter(): Promise<HighlighterCore> {
             import('@shikijs/engine-javascript'),
         ]).then(([core, engine]) =>
             core.createHighlighterCore({
-                themes: [
-                    import('@shikijs/themes/vitesse-light'),
-                    import('@shikijs/themes/vitesse-dark'),
-                ],
+                // One pastel theme to match the single Yoru palette.
+                themes: [import('@shikijs/themes/catppuccin-mocha')],
                 langs: [
                     import('@shikijs/langs/typescript'),
                     import('@shikijs/langs/javascript'),
@@ -44,27 +42,6 @@ function getHighlighter(): Promise<HighlighterCore> {
     return highlighterPromise;
 }
 
-function useIsDark() {
-    const [dark, setDark] = useState(() =>
-        typeof document === 'undefined'
-            ? false
-            : document.documentElement.classList.contains('dark'),
-    );
-    useEffect(() => {
-        const observer = new MutationObserver(() =>
-            setDark(document.documentElement.classList.contains('dark')),
-        );
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['class'],
-        });
-
-        return () => observer.disconnect();
-    }, []);
-
-    return dark;
-}
-
 interface CodeBlockProps {
     code: string;
     language: string;
@@ -80,8 +57,7 @@ export function CodeBlock({
     wrap = false,
     className,
 }: CodeBlockProps) {
-    const dark = useIsDark();
-    const highlightKey = `${language}\u0000${dark ? 'dark' : 'light'}\u0000${code}`;
+    const highlightKey = `${language}\u0000${code}`;
     const [highlight, setHighlight] = useState<{
         key: string;
         html: string;
@@ -102,7 +78,7 @@ export function CodeBlock({
                     key: highlightKey,
                     html: highlighter.codeToHtml(code, {
                         lang: known ? language : 'text',
-                        theme: dark ? 'vitesse-dark' : 'vitesse-light',
+                        theme: 'catppuccin-mocha',
                     }),
                 });
             })
@@ -115,7 +91,7 @@ export function CodeBlock({
         return () => {
             active = false;
         };
-    }, [code, language, dark, highlightKey]);
+    }, [code, language, highlightKey]);
 
     const html = highlight?.key === highlightKey ? highlight.html : null;
 
@@ -126,14 +102,16 @@ export function CodeBlock({
     return (
         <div
             className={cn(
-                'relative flex text-[13px] leading-[1.65]',
+                // An absolute line height, so the smaller gutter numerals inherit
+                // the same 22px rows as the code instead of drifting up.
+                'relative flex text-[13px] leading-[1.375rem]',
                 className,
             )}
         >
             {showNumbers && (
                 <div
                     aria-hidden
-                    className="shrink-0 border-r border-border bg-sunken px-3 py-4 text-right font-mono text-[12px] text-muted-foreground/70 select-none"
+                    className="shrink-0 bg-sunken/60 px-3 py-4 text-right font-mono text-[12px] text-muted-foreground/70 select-none"
                 >
                     {lines.map((_, index) => (
                         <div key={index}>{index + 1}</div>

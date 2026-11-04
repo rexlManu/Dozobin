@@ -22,7 +22,7 @@ function AccountContent() {
         <InstallShell
             step="account"
             title="Create the administrator"
-            intro="This account owns Administration: every site setting, every Member, every upload on the server. It is the only account the installer creates, and this page closes as soon as it exists."
+            intro="This account runs Administration: every setting, every Member and every upload. The installer creates only this one account."
         >
             <form
                 onSubmit={(event) => {

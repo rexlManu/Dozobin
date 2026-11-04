@@ -62,7 +62,8 @@ export function ExpiryLabel({
             />
             <span>
                 {prefix}{' '}
-                <span className="font-mono">
+                {/* A ticking countdown needs fixed-width digits; a relative date does not. */}
+                <span className={cn(soon && 'tabular-nums')}>
                     {soon
                         ? `in ${countdown(expiresAt, now)}`
                         : relativeTime(expiresAt, now)}
@@ -87,7 +88,7 @@ export function Countdown({
     return (
         <span
             className={cn(
-                'font-mono tabular-nums',
+                'tabular-nums',
                 urgent ? 'text-destructive' : 'text-foreground',
                 className,
             )}

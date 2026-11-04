@@ -14,12 +14,18 @@ importers:
 
   .:
     dependencies:
-      '@fontsource-variable/ibm-plex-sans':
+      '@fontsource-variable/mona-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/fragment-mono':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/ibm-plex-mono':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/zen-maru-gothic':
+        specifier: ^5.3.1
+        version: 5.3.1
       '@inertiajs/react':
         specifier: ^3.0.0
         version: 3.6.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -68,12 +74,18 @@ importers:
       globals:
         specifier: ^17.9.0
         version: 17.9.0
+      laravel-echo:
+        specifier: ^2.6.3
+        version: 2.6.3(pusher-js@8.6.0)
       laravel-vite-plugin:
         specifier: ^3.1
         version: 3.1.3(vite@8.2.0(@types/node@26.1.2)(jiti@2.7.0))
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      pusher-js:
+        specifier: ^8.6.0
+        version: 8.6.0
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@19.2.8)
@@ -434,11 +446,17 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@fontsource-variable/ibm-plex-sans@5.3.0':
-    resolution: {integrity: sha512-agG8tXFEo0hD9+J7npa4vbbWult52eMLVaQ6WQRlhs/iCAojrMAoejru85W9HTVXHfyUj96KM7gp/KGAS87XaQ==}
+  '@fontsource-variable/mona-sans@5.3.0':
+    resolution: {integrity: sha512-PkxRB3KI4z9Gjpk7vVqgO3GMSyQuOIIj4TaRDbvbcDj8SzWwI38jvLTQxJM/cTRorhcT7h8qjcllR+qjRtM/Fg==}
+
+  '@fontsource/fragment-mono@5.3.0':
+    resolution: {integrity: sha512-vpOLZhWq7Z6wUPo1qMl16Y4yjQJiN0d9TXX2oUtiYXmqUrXU23Wuto73Knyak+osdlIuHz46srpBZb2pfhHCIA==}
 
   '@fontsource/ibm-plex-mono@5.3.0':
     resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
+
+  '@fontsource/zen-maru-gothic@5.3.1':
+    resolution: {integrity: sha512-DtDKg44WTu44VuUWIJq8oAdCMHkkKrlpUaYHPbBQQkr8eZUNUjdWtzTJM3QIVlYYqdUPZN0Oy2a20EbxPJnF/g==}
 
   '@hono/node-server@2.1.0':
     resolution: {integrity: sha512-XovyyCCnBzW+zKu+z/zq8hwNs4KOR5rEMAOxo2f40Q5xoOI37IMm6MIg2COOUtUApo0i6850MTBKH2u4QLGIqg==}
@@ -3012,6 +3030,18 @@ packages:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
 
+  laravel-echo@2.6.3:
+    resolution: {integrity: sha512-I5tIbxIIC0lJMCeAYlo/ywJ2Zacu5uL3iCOOZkbUjT42Tv0LrNXGqMPhENIyJBFJT6C6Xk5jYktSwO6GSINVBQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      pusher-js: '*'
+      socket.io-client: '*'
+    peerDependenciesMeta:
+      pusher-js:
+        optional: true
+      socket.io-client:
+        optional: true
+
   laravel-precognition@2.0.0:
     resolution: {integrity: sha512-dmA4HGc9m+TsVNsJs9/XQBI8u6j7coilN+qKkBuhuXQzH3HypwS/c5dFQ4UqUGjBbcxIM7zdk91kM/SRZwIvWQ==}
     peerDependencies:
@@ -3721,6 +3751,9 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  pusher-js@8.6.0:
+    resolution: {integrity: sha512-wShJPfCS/kYkCBVzVW67wa9cnQIgHTszEK2XHNrFkOgGruuGw081aERAxfRjfdFU+WcIt8x6dvbwkTW4iZuQ8Q==}
+
   qrcode.react@4.2.0:
     resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
     peerDependencies:
@@ -4180,6 +4213,9 @@ packages:
 
   tw-animate-css@1.4.0:
     resolution: {integrity: sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ==}
+
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -4839,9 +4875,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@fontsource-variable/ibm-plex-sans@5.3.0': {}
+  '@fontsource-variable/mona-sans@5.3.0': {}
+
+  '@fontsource/fragment-mono@5.3.0': {}
 
   '@fontsource/ibm-plex-mono@5.3.0': {}
+
+  '@fontsource/zen-maru-gothic@5.3.1': {}
 
   '@hono/node-server@2.1.0(hono@4.13.0)':
     dependencies:
@@ -7553,6 +7593,10 @@ snapshots:
 
   kleur@4.1.5: {}
 
+  laravel-echo@2.6.3(pusher-js@8.6.0):
+    optionalDependencies:
+      pusher-js: 8.6.0
+
   laravel-precognition@2.0.0:
     dependencies:
       es-toolkit: 1.50.0
@@ -8358,6 +8402,10 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  pusher-js@8.6.0:
+    dependencies:
+      tweetnacl: 1.0.3
+
   qrcode.react@4.2.0(react@19.2.8):
     dependencies:
       react: 19.2.8
@@ -8994,6 +9042,8 @@ snapshots:
   tslib@2.8.1: {}
 
   tw-animate-css@1.4.0: {}
+
+  tweetnacl@1.0.3: {}
 
   type-check@0.4.0:
     dependencies:

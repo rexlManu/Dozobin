@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\InstallationSettingController;
 use App\Http\Controllers\Admin\InviteCodeController;
 use App\Http\Controllers\Admin\MalwareScanController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Admin\TakedownRequestController as AdminTakedownRequestController;
 use App\Http\Controllers\Admin\TransferSessionController as AdminTransferSessionController;
 use App\Http\Controllers\Admin\UpdateNoticeController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Install\InstallationController;
 use App\Http\Controllers\Install\InstallPageController;
 use App\Http\Controllers\Page\AuthPageController;
 use App\Http\Controllers\Page\HomeController;
+use App\Http\Controllers\Page\LegalPageController;
 use App\Http\Controllers\Page\LibraryController;
 use App\Http\Controllers\Page\SettingsPageController;
 use App\Http\Controllers\PasswordResetLinkController;
@@ -27,8 +29,10 @@ use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\Seo\RobotsController;
 use App\Http\Controllers\Seo\SitemapController;
 use App\Http\Controllers\ShareController;
+use App\Http\Controllers\TakedownRequestController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\TransferItemController;
+use App\Http\Controllers\TransferSocketController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', RobotsController::class)->name('seo.robots');
@@ -50,6 +54,10 @@ Route::prefix('install')->name('install.')->group(function (): void {
 });
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/terms', [LegalPageController::class, 'terms'])->name('legal.terms');
+Route::get('/privacy', [LegalPageController::class, 'privacy'])->name('legal.privacy');
+Route::get('/takedown', [LegalPageController::class, 'takedown'])->name('takedown.create');
+Route::post('/takedown', [TakedownRequestController::class, 'store'])->middleware('throttle:5,1')->name('takedown.store');
 Route::get('/s/{share}', [PublicShareController::class, 'showFile'])->name('shares.show');
 Route::get('/p/{share}', [PublicShareController::class, 'showPaste'])->name('pastes.show');
 Route::get('/avatars/{user}', AvatarController::class)->name('avatars.show');
@@ -63,11 +71,12 @@ Route::post('/shares/pastes', [ShareController::class, 'storePaste'])->middlewar
 Route::get('/transfer', [TransferController::class, 'index'])->name('transfer.lobby');
 Route::post('/transfers', [TransferController::class, 'store'])->middleware('throttle:20,1')->name('transfers.store');
 Route::post('/transfers/join', [TransferController::class, 'join'])->middleware('throttle:30,1')->name('transfers.join');
+Route::post('/transfers/socket-auth', TransferSocketController::class)->middleware('throttle:60,1')->name('transfers.socket-auth');
 Route::get('/transfer/{transferSession}', [TransferController::class, 'show'])->name('transfers.show');
 Route::post('/transfers/{transferSession}/touch', [TransferController::class, 'touch'])->name('transfers.touch');
 Route::delete('/transfers/{transferSession}/leave', [TransferController::class, 'leave'])->name('transfers.leave');
 Route::post('/transfers/{transferSession}/items', [TransferItemController::class, 'store'])->name('transfer-items.store');
-Route::delete('/transfers/{transferSession}/items/{transferItem}', [TransferItemController::class, 'destroy'])->scopeBindings()->name('transfer-items.destroy');
+Route::delete('/transfers/{transferSession}/items/{transferItem}', [TransferItemController::class, 'destroy'])->name('transfer-items.destroy');
 Route::get('/transfer-items/{transferItem}/content', [TransferItemController::class, 'content'])->name('transfer-items.content');
 
 Route::middleware('guest')->group(function (): void {
@@ -110,6 +119,8 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('/users/{user}/uploads', [AdminPageController::class, 'userUploads'])->name('users.uploads');
     Route::get('/uploads', [AdminPageController::class, 'uploads'])->name('uploads.index');
     Route::get('/sessions', [AdminPageController::class, 'transfers'])->name('sessions.index');
+    Route::get('/reports', [AdminPageController::class, 'reports'])->name('reports.index');
+    Route::patch('/reports/{takedownRequest}', [AdminTakedownRequestController::class, 'update'])->name('reports.update');
     Route::get('/settings/access', [AdminPageController::class, 'access'])->name('settings.access');
     Route::get('/settings/expiration', [AdminPageController::class, 'expiration'])->name('settings.expiration');
     Route::get('/settings/limits', [AdminPageController::class, 'limits'])->name('settings.limits');

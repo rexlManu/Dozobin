@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AppProviders } from '@/components/app-providers';
 import { useConfirm } from '@/components/confirm-dialog';
 import { CopyButton } from '@/components/copy-button';
-import { SettingsLayout, SettingsPageHead } from '@/components/settings-layout';
+import { SettingsCard, SettingsLayout } from '@/components/settings-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,11 +30,10 @@ function TokensContent() {
 
     return (
         <>
-            <SettingsPageHead
+            <SettingsCard
                 title="API tokens"
-                description="A token stands in for the account when a program creates a File Share. The full secret is shown once, at creation."
-            />
-            <div className="flex flex-col gap-4">
+                description="A program uses a token to create File Shares for you. You see the full secret only once, when you create it."
+            >
                 <form
                     className="flex flex-wrap items-end gap-2"
                     onSubmit={(event) => {
@@ -70,113 +69,135 @@ function TokensContent() {
                     </Button>
                 </form>
 
-                <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-                    {account.tokens.map((token) => (
-                        <li key={token.id} className="px-3 py-3">
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                                <div className="min-w-0 flex-1">
-                                    <p
-                                        className={cn(
-                                            'text-[13px] font-medium',
-                                            token.revoked &&
-                                                'text-muted-foreground line-through',
-                                        )}
-                                    >
-                                        {token.name}
-                                    </p>
-                                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                                        created{' '}
-                                        {formatDateTime(token.createdAt)} ·{' '}
-                                        {token.revoked
-                                            ? 'revoked'
-                                            : token.lastUsedAt
-                                              ? `last used ${relativeTime(token.lastUsedAt, now)}`
-                                              : 'never used'}
-                                    </p>
-                                </div>
-                                {!token.revoked && (
-                                    <div className="flex items-center">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={async () => {
-                                                const ok = await confirm({
-                                                    title: 'Revoke this token?',
-                                                    description: (
-                                                        <>
-                                                            Anything using{' '}
-                                                            <span className="text-foreground">
-                                                                {token.name}
-                                                            </span>{' '}
-                                                            stops working
-                                                            immediately. Shares
-                                                            it already created
-                                                            stay.
-                                                        </>
-                                                    ),
-                                                    confirmLabel: 'Revoke',
-                                                });
-
-                                                if (ok) {
-                                                    router.delete(
-                                                        `/api-tokens/${token.id}`,
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            Revoke
-                                        </Button>
-                                    </div>
+                {account.tokens.length === 0 ? (
+                    <p className="rounded-[20px] bg-sunken px-4 py-3 text-muted-foreground">
+                        No tokens yet.
+                    </p>
+                ) : (
+                    <ul className="grid gap-1.5">
+                        {account.tokens.map((token) => (
+                            <li
+                                key={token.id}
+                                className={cn(
+                                    'rounded-[20px] bg-sunken py-3 pr-3 pl-4',
+                                    token.revoked && 'opacity-70',
                                 )}
-                            </div>
-
-                            <p className="mt-2 rounded-md border border-border bg-sunken px-2.5 py-1.5 font-mono text-[11.5px] break-all">
-                                {token.revoked
-                                    ? 'revoked'
-                                    : token.justCreated
-                                      ? hiddenSecrets.has(token.id)
-                                          ? maskApiToken(token.secret)
-                                          : token.secret
-                                      : token.secret}
-                            </p>
-
-                            {token.justCreated &&
-                                !hiddenSecrets.has(token.id) && (
-                                    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary-soft/40 px-2.5 py-2">
-                                        <p className="mr-auto text-[12px] text-foreground">
-                                            Copy it now. Dōzobin will not show
-                                            it again.
+                            >
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                            <span
+                                                className={cn(
+                                                    'font-bold break-all',
+                                                    token.revoked &&
+                                                        'text-muted-foreground line-through',
+                                                )}
+                                            >
+                                                {token.name}
+                                            </span>
+                                            {token.revoked && (
+                                                <span className="rounded-[10px] bg-destructive-soft px-2 py-0.5 text-[13px] font-bold text-destructive">
+                                                    Revoked
+                                                </span>
+                                            )}
                                         </p>
-                                        <CopyButton
-                                            value={token.secret}
-                                            size="sm"
-                                            label="Copy"
-                                        />
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                setHiddenSecrets((current) => {
-                                                    const next = new Set(
-                                                        current,
-                                                    );
-                                                    next.add(token.id);
-
-                                                    return next;
-                                                })
-                                            }
-                                        >
-                                            Hide
-                                        </Button>
+                                        <p className="mt-0.5 text-[14px] text-muted-foreground">
+                                            created{' '}
+                                            {formatDateTime(token.createdAt)} ·{' '}
+                                            {token.revoked
+                                                ? 'revoked'
+                                                : token.lastUsedAt
+                                                  ? `last used ${relativeTime(token.lastUsedAt, now)}`
+                                                  : 'never used'}
+                                        </p>
                                     </div>
+                                    {!token.revoked && (
+                                        <div className="flex items-center">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    const ok = await confirm({
+                                                        title: 'Revoke this token?',
+                                                        description: (
+                                                            <>
+                                                                Anything using{' '}
+                                                                <span className="text-foreground">
+                                                                    {token.name}
+                                                                </span>{' '}
+                                                                stops working
+                                                                immediately.
+                                                                Shares it
+                                                                already created
+                                                                stay.
+                                                            </>
+                                                        ),
+                                                        confirmLabel: 'Revoke',
+                                                    });
+
+                                                    if (ok) {
+                                                        router.delete(
+                                                            `/api-tokens/${token.id}`,
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                Revoke
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!token.revoked && (
+                                    <p className="mt-2.5 mr-1 rounded-[12px] bg-background px-3 py-2 font-mono text-[13px] break-all">
+                                        {token.justCreated &&
+                                        hiddenSecrets.has(token.id)
+                                            ? maskApiToken(token.secret)
+                                            : token.secret}
+                                    </p>
                                 )}
-                        </li>
-                    ))}
-                </ul>
-            </div>
+
+                                {token.justCreated &&
+                                    !hiddenSecrets.has(token.id) && (
+                                        <div className="mt-2 mr-1 flex flex-wrap items-center gap-2 rounded-[16px] bg-warn-soft py-2 pr-2 pl-3">
+                                            <p className="mr-auto text-[14px] font-bold text-lamp">
+                                                Copy it now. Dōzobin will not
+                                                show it again.
+                                            </p>
+                                            <CopyButton
+                                                value={token.secret}
+                                                size="sm"
+                                                label="Copy"
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setHiddenSecrets(
+                                                        (current) => {
+                                                            const next =
+                                                                new Set(
+                                                                    current,
+                                                                );
+                                                            next.add(token.id);
+
+                                                            return next;
+                                                        },
+                                                    )
+                                                }
+                                            >
+                                                Hide
+                                            </Button>
+                                        </div>
+                                    )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </SettingsCard>
             {dialog}
         </>
     );

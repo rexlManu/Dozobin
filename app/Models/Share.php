@@ -58,6 +58,12 @@ class Share extends Model
         return 'slug';
     }
 
+    /** The Share URL: `/p/` for a Paste, `/s/` for a File Share. */
+    public function url(): string
+    {
+        return route($this->kind === ShareKind::Paste ? 'pastes.show' : 'shares.show', $this);
+    }
+
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {

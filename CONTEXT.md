@@ -72,6 +72,10 @@ _Avoid_: Expired Share, deleted file
 A publicly accessible File Share for which malware scanning was enabled but produced no result. Administrators can see the failed-scan status, but scanner failure never blocks access.
 _Avoid_: Clean File Share, Blocked File Share
 
+**Takedown Request**:
+A report, sent by anyone through the public form, that a Share URL holds content that breaks the law or someone's rights. Administrators resolve it (optionally removing the share) or dismiss it. The request keeps the reported link even after the share is gone.
+_Avoid_: Abuse ticket, complaint, flag
+
 **Malware Scan**:
 An inspection of a File Share payload by a Scanner. A result may mark the File Share clean or blocked; a technical failure leaves it publicly accessible and records an administrator-visible failure.
 _Avoid_: Upload validation, synchronous scan

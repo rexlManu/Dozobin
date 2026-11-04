@@ -10,6 +10,8 @@ import type {
 export interface SharedPageProps extends PageProps {
     name: string;
     serverNow: number;
+    /** The public GitHub repository of this build. */
+    sourceUrl: string;
     auth: {
         user: Account | null;
         impersonator: Account | null;
@@ -20,6 +22,8 @@ export interface SharedPageProps extends PageProps {
         step: InstallStepKey;
     };
     update: UpdateStatus | null;
+    /** Open takedown reports, for administrators on admin pages. */
+    openReports: number | null;
     appearance: Appearance;
     seo: {
         description: string;

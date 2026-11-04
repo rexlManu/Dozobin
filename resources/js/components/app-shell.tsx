@@ -9,16 +9,19 @@ import {
     Wrench,
 } from '@phosphor-icons/react';
 import { Wordmark } from '@/components/brand';
+import { NightCity, NightSky } from '@/components/night-sky';
+import { SiteFooter } from '@/components/site-footer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useScrolled } from '@/hooks/use-scrolled';
+import { initials } from '@/lib/format';
 import { Link, NavLink, useLocation, useNavigate } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
@@ -26,11 +29,14 @@ import type { SharedPageProps } from '@/types';
 interface NavItem {
     to: string;
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{
+        className?: string;
+        weight?: 'regular' | 'fill';
+    }>;
 }
 
 function navItems(role: 'guest' | 'member' | 'admin'): NavItem[] {
-    const items: NavItem[] = [{ to: '/', label: 'Drop', icon: UploadSimple }];
+    const items: NavItem[] = [{ to: '/', label: 'Send', icon: UploadSimple }];
 
     if (role !== 'guest') {
         items.push({ to: '/library', label: 'Library', icon: Stack });
@@ -72,30 +78,39 @@ function AccountMenu() {
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
-                    className="flex items-center gap-2 rounded-md p-0.5 pr-2 transition-colors hover:bg-muted"
+                    className="flex items-center gap-2 rounded-[14px] bg-white/8 py-1 pr-3.5 pl-1 font-bold transition-colors hover:bg-white/12 aria-expanded:bg-white/12"
                 >
-                    <Avatar className="size-7 rounded-md">
-                        <AvatarImage
-                            src={account.avatarSrc}
-                            alt=""
-                            className="rounded-md"
-                        />
-                        <AvatarFallback className="rounded-md text-[11px]">
-                            {account.name.slice(0, 2)}
+                    <Avatar className="size-7">
+                        <AvatarImage src={account.avatarSrc} alt="" />
+                        <AvatarFallback className="text-[11px]">
+                            {initials(account.name)}
                         </AvatarFallback>
                     </Avatar>
-                    <span className="hidden text-[13px] font-medium sm:inline">
+                    <span className="hidden text-[14px] sm:inline">
                         {account.name.split(' ')[0]}
                     </span>
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuLabel className="flex flex-col gap-0.5">
-                    <span>{account.name}</span>
-                    <span className="font-mono text-[11px] font-normal text-muted-foreground">
-                        {account.email}
-                    </span>
-                </DropdownMenuLabel>
+            <DropdownMenuContent align="end" sideOffset={8} className="w-72">
+                <div className="flex items-center gap-3 px-2.5 pt-2 pb-2.5">
+                    <Avatar className="size-11">
+                        <AvatarImage src={account.avatarSrc} alt="" />
+                        <AvatarFallback className="text-[14px]">
+                            {initials(account.name)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold">{account.name}</p>
+                        <p className="truncate text-[13px] text-muted-foreground">
+                            {account.email}
+                        </p>
+                    </div>
+                    {account.role === 'admin' && (
+                        <span className="rounded-[9px] bg-lavender-soft px-2 py-0.5 text-[12px] font-bold text-lavender">
+                            Admin
+                        </span>
+                    )}
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate('/library')}>
                     <Stack /> Library
@@ -105,11 +120,12 @@ function AccountMenu() {
                 </DropdownMenuItem>
                 {account.role === 'admin' && (
                     <DropdownMenuItem onSelect={() => navigate('/admin')}>
-                        <Wrench /> Installation admin
+                        <Wrench /> Administration
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                    className="text-muted-foreground"
                     onSelect={() => {
                         router.post('/logout');
                     }}
@@ -135,7 +151,7 @@ function ImpersonationBanner() {
     }
 
     return (
-        <div className="shrink-0 border-b border-border bg-sunken">
+        <div className="relative z-40 shrink-0 bg-sunken">
             <div className="rail flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2">
                 <Eye
                     weight="fill"
@@ -145,7 +161,7 @@ function ImpersonationBanner() {
                     Viewing as{' '}
                     <span className="font-medium">{viewing.name}</span>
                 </p>
-                <p className="font-mono text-[11px] text-muted-foreground">
+                <p className="text-[12px] text-muted-foreground">
                     actions are applied as this account
                 </p>
                 <Button
@@ -163,20 +179,23 @@ function ImpersonationBanner() {
     );
 }
 
+/**
+ * The frame of every page. A night sky of one fixed height sits behind the top
+ * of the page, so switching pages never moves it. `head` (the page title)
+ * sits inside the sky, above the rooftops; the page body always starts where
+ * the rooftops meet the ground.
+ */
 export function AppShell({
     children,
     variant = 'app',
-    surface = 'page',
+    head,
     headerExtra,
 }: {
     children: React.ReactNode;
     variant?: 'app' | 'public';
-    /**
-     * "canvas" hands the whole window to the route: the page never scrolls, and
-     * the chrome sits in flow so the route can bleed to every edge between it.
-     */
-    surface?: 'page' | 'canvas';
-    /** Route-level controls that belong in the header rather than on the canvas. */
+    /** The page title block, drawn in the sky. */
+    head?: React.ReactNode;
+    /** Route-level controls that belong in the header rather than on the page. */
     headerExtra?: React.ReactNode;
 }) {
     const account = usePage<SharedPageProps>().props.auth.user;
@@ -184,102 +203,75 @@ export function AppShell({
     const { pathname } = useLocation();
     const items = navItems(role);
     const showNav = variant === 'app';
-    const canvas = surface === 'canvas';
+    const scrolled = useScrolled();
 
     return (
-        <div
-            className={cn(
-                'flex flex-col bg-background',
-                canvas ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]',
-            )}
-        >
-            <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
-                <div className="rail flex h-14 items-center gap-4">
-                    <Link to="/" className="rounded-md focus-visible:outline-2">
+        <div className="relative isolate flex min-h-[100dvh] flex-col">
+            <NightSky />
+
+            <header
+                className={cn(
+                    'sticky top-0 z-30 -mb-16 transition-colors duration-200',
+                    scrolled && 'bg-background/85 backdrop-blur-md',
+                )}
+            >
+                <ImpersonationBanner />
+                <div className="rail-wide flex h-16 items-center gap-5">
+                    <Link to="/" className="rounded-[14px]">
                         <Wordmark />
                     </Link>
 
                     {showNav && (
-                        <>
-                            <span
-                                aria-hidden
-                                className="hidden h-5 w-px bg-border md:block"
-                            />
-
-                            {/*
-                Labels marked by a hairline sitting on the header's own bottom
-                rule, not filled chips. The indicator is ink rather than yuzu:
-                the accent belongs to the act on the page, never to navigation.
-              */}
-                            <nav className="hidden h-full items-center gap-6 md:flex">
-                                {items.map((item) => (
-                                    <NavLink
-                                        key={item.to}
-                                        to={item.to}
-                                        end={item.to === '/'}
-                                        className={({ isActive }) =>
-                                            cn(
-                                                'relative flex h-full items-center text-[13px] font-medium transition-colors',
-                                                'after:absolute after:inset-x-0 after:-bottom-px after:h-[1.5px] after:transition-colors',
-                                                isActive
-                                                    ? 'text-foreground after:bg-foreground'
-                                                    : 'text-muted-foreground after:bg-transparent hover:text-foreground',
-                                            )
-                                        }
-                                    >
-                                        {item.label}
-                                    </NavLink>
-                                ))}
-                            </nav>
-                        </>
+                        <nav className="hidden items-center gap-1 md:flex">
+                            {items.map((item) => (
+                                <NavLink
+                                    key={item.to}
+                                    to={item.to}
+                                    end={item.to === '/'}
+                                    className={({ isActive }) =>
+                                        cn(
+                                            'rounded-[14px] px-3.5 py-1.5 text-[15px] font-bold transition-colors',
+                                            isActive
+                                                ? 'bg-foreground text-night'
+                                                : 'text-muted-foreground hover:text-foreground',
+                                        )
+                                    }
+                                >
+                                    {item.label}
+                                </NavLink>
+                            ))}
+                        </nav>
                     )}
 
-                    {headerExtra && (
-                        <>
-                            <span
-                                aria-hidden
-                                className="hidden h-5 w-px bg-border md:block"
-                            />
-                            {headerExtra}
-                        </>
-                    )}
+                    {headerExtra}
 
-                    <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+                    <div className="ml-auto flex shrink-0 items-center gap-2">
                         {variant === 'public' && (
                             <Button variant="ghost" size="sm" asChild>
                                 <Link to="/">Open Dōzobin</Link>
                             </Button>
                         )}
-                        {showNav && (
-                            <>
-                                <span
-                                    aria-hidden
-                                    className="h-5 w-px bg-border"
-                                />
-                                <AccountMenu />
-                            </>
-                        )}
+                        {showNav && <AccountMenu />}
                     </div>
                 </div>
             </header>
 
-            <ImpersonationBanner />
-
-            <main
-                className={cn('flex-1', canvas ? 'min-h-0' : 'pb-24 md:pb-0')}
-            >
-                {children}
+            <main className="flex-1">
+                <div className="h-[300px] sm:h-[340px]">
+                    {head && (
+                        <div className="rail pt-[88px] sm:pt-[100px]">
+                            {head}
+                        </div>
+                    )}
+                </div>
+                <div className="relative z-10 -mt-16">{children}</div>
             </main>
 
+            <NightCity />
+            <SiteFooter phoneNav={showNav} />
+
             {showNav && (
-                <nav
-                    className={cn(
-                        'pb-safe z-30 grid grid-flow-col border-t border-border bg-background/95 backdrop-blur-md md:hidden',
-                        // On a canvas the nav is a real row of the window, so nothing has to
-                        // reserve padding for it and the canvas can measure its own height.
-                        canvas ? 'shrink-0' : 'fixed inset-x-0 bottom-0',
-                    )}
-                >
+                <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-flow-col gap-1 bg-background/95 px-2 pt-1.5 backdrop-blur-md md:hidden">
                     {items.map((item) => {
                         const active =
                             item.to === '/'
@@ -290,21 +282,18 @@ export function AppShell({
                             <Link
                                 key={item.to}
                                 to={item.to}
+                                aria-current={active ? 'page' : undefined}
                                 className={cn(
-                                    'relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
+                                    'mb-1.5 flex flex-col items-center gap-0.5 rounded-[14px] py-1.5 text-[12px] font-bold transition-colors',
                                     active
-                                        ? 'text-foreground'
+                                        ? 'bg-sunken text-foreground'
                                         : 'text-muted-foreground',
                                 )}
                             >
-                                {/* The desktop indicator, mirrored onto this nav's own rule. */}
-                                {active && (
-                                    <span
-                                        aria-hidden
-                                        className="absolute inset-x-4 -top-px h-[1.5px] bg-foreground"
-                                    />
-                                )}
-                                <item.icon className="size-5" />
+                                <item.icon
+                                    weight={active ? 'fill' : 'regular'}
+                                    className="size-5"
+                                />
                                 {item.label}
                             </Link>
                         );

@@ -1,8 +1,13 @@
 import { router } from '@inertiajs/react';
-import { DownloadSimple, LockKey } from '@phosphor-icons/react';
+import {
+    DownloadSimple,
+    LockKeyOpen,
+    ShieldCheck,
+} from '@phosphor-icons/react';
 import { AppProviders } from '@/components/app-providers';
 import { AppShell } from '@/components/app-shell';
 import { CopyButton } from '@/components/copy-button';
+import { Dozo } from '@/components/dozo';
 import { ExpiryLabel } from '@/components/expiry';
 import { FileGlyph } from '@/components/file-glyph';
 import { FilePreview } from '@/components/file-preview';
@@ -16,7 +21,7 @@ import { mimeLabel } from '@/lib/detect';
 import { downloadSource } from '@/lib/download';
 import { formatBytes, formatDateTime, shareUrl } from '@/lib/format';
 import { isShareExpired } from '@/lib/share-state';
-import type { FileShare } from '@/lib/types';
+import type { FileShare, MalwareScanStatus } from '@/lib/types';
 
 function ShareViewRoute({
     share,
@@ -99,82 +104,82 @@ export default function SharePage({
     );
 }
 
+const SAFETY: Partial<
+    Record<MalwareScanStatus, { label: string; tone: string }>
+> = {
+    clean: { label: 'No threat found', tone: 'text-mint' },
+    pending: { label: 'Being checked now', tone: 'text-lavender' },
+    failed: { label: 'Could not be scanned', tone: 'text-lamp' },
+    skipped: { label: 'Not scanned', tone: 'text-muted-foreground' },
+};
+
 function FileShareBody({ share }: { share: FileShare }) {
     const url = shareUrl(share);
     const source = share.objectUrl ?? share.demoSrc;
+    const safety = share.malwareScan?.status
+        ? SAFETY[share.malwareScan.status]
+        : undefined;
 
     return (
-        <div className="rail py-6 sm:py-8">
-            <div className="flex flex-wrap items-start gap-3">
-                <div className="mt-1 text-muted-foreground">
-                    <FileGlyph
-                        mime={share.mime}
-                        filename={share.filename}
-                        className="size-5"
-                    />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <h1 className="text-lg font-medium tracking-[-0.015em] break-all sm:text-xl">
-                        {share.filename}
-                    </h1>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11.5px] text-muted-foreground">
-                        <span>{mimeLabel(share.mime, share.filename)}</span>
-                        <span>{formatBytes(share.size)}</span>
-                        {share.password && (
-                            <span className="inline-flex items-center gap-1 text-foreground">
-                                <LockKey className="size-3.5" /> unlocked here
-                            </span>
-                        )}
-                    </p>
-                </div>
-            </div>
+        <div className="rail grid gap-6 pt-4 pb-20 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <FilePreview share={share} />
 
-            <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
-                <FilePreview share={share} />
-
-                <aside className="lg:sticky lg:top-20 lg:self-start">
-                    <div className="flex flex-col gap-2">
-                        <Button
-                            size="lg"
-                            onClick={() =>
-                                downloadSource(source, share.filename)
-                            }
-                        >
-                            <DownloadSimple /> Download
-                        </Button>
-                        <CopyButton value={url} size="lg" className="w-full" />
-                    </div>
-
-                    <dl className="mt-5 divide-y divide-border border-t border-border">
-                        <ShareMetaRow label="Type">
-                            {mimeLabel(share.mime, share.filename)}
-                        </ShareMetaRow>
-                        <ShareMetaRow label="Size">
-                            <span className="font-mono">
-                                {formatBytes(share.size)}
-                            </span>
-                        </ShareMetaRow>
-                        <ShareMetaRow label="Created">
-                            {formatDateTime(share.createdAt)}
-                        </ShareMetaRow>
-                        <ShareMetaRow label="Expires">
-                            <ExpiryLabel
-                                expiresAt={share.expiresAt}
-                                prefix=""
-                                className="text-[12.5px]"
+            <section className="grid gap-4 rounded-[28px] border-[1.5px] border-border bg-card p-6 lg:sticky lg:top-20">
+                <p className="flex items-center gap-2.5 text-muted-foreground">
+                    <Dozo size={56} mood="happy" />
+                    Someone sent you a file.
+                </p>
+                <h1 className="flex items-start gap-2 text-[24px] leading-tight font-bold [overflow-wrap:anywhere]">
+                    {share.filename}
+                </h1>
+                <dl className="border-y-[1.5px] border-dashed border-border py-3">
+                    <ShareMetaRow label="Size">
+                        {formatBytes(share.size)}
+                    </ShareMetaRow>
+                    <ShareMetaRow label="Type">
+                        <span className="inline-flex items-center gap-1.5">
+                            <FileGlyph
+                                mime={share.mime}
+                                filename={share.filename}
+                                className="size-4"
                             />
+                            {mimeLabel(share.mime, share.filename)}
+                        </span>
+                    </ShareMetaRow>
+                    <ShareMetaRow label="Sent">
+                        {formatDateTime(share.createdAt)}
+                    </ShareMetaRow>
+                    <ShareMetaRow label="Link stays">
+                        <ExpiryLabel expiresAt={share.expiresAt} prefix="" />
+                    </ShareMetaRow>
+                    {safety && (
+                        <ShareMetaRow label="Safety">
+                            <span
+                                className={`inline-flex items-center gap-1.5 font-bold ${safety.tone}`}
+                            >
+                                <ShieldCheck className="size-4" />{' '}
+                                {safety.label}
+                            </span>
                         </ShareMetaRow>
-                        <ShareMetaRow label="Opened">
-                            <span className="font-mono">{share.views}×</span>
+                    )}
+                    {share.password && (
+                        <ShareMetaRow label="Password">
+                            <span className="inline-flex items-center gap-1.5">
+                                <LockKeyOpen className="size-4" /> Unlocked here
+                            </span>
                         </ShareMetaRow>
-                    </dl>
-
-                    <p className="mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
-                        Unlisted. Anyone holding this URL can open it, and
-                        Dōzobin does not list or index it anywhere.
-                    </p>
-                </aside>
-            </div>
+                    )}
+                </dl>
+                <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={() => downloadSource(source, share.filename)}
+                >
+                    <DownloadSimple weight="bold" /> Download ·{' '}
+                    {formatBytes(share.size)}
+                </Button>
+                <CopyButton value={url} variant="ghost" className="w-full" />
+            </section>
         </div>
     );
 }

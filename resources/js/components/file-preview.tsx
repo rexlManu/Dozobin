@@ -14,7 +14,7 @@ function Frame({
 }) {
     return (
         <div
-            className={`overflow-hidden rounded-xl border border-border bg-sunken ${className}`}
+            className={`overflow-hidden rounded-[28px] border-[1.5px] border-border bg-sunken ${className}`}
         >
             {children}
         </div>
@@ -24,7 +24,7 @@ function Frame({
 /** Shown when a seeded sample has no bytes behind it. */
 function NoBytesNote() {
     return (
-        <p className="border-t border-border bg-card px-4 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
+        <p className="bg-card px-5 py-3 text-[13px] text-muted-foreground">
             This is a seeded sample, so there is no file behind it. Drop a real
             file into the workspace to see this preview with actual content.
         </p>
@@ -49,14 +49,14 @@ function TextPreview({ src }: { src: string }) {
 
     if (failed) {
         return (
-            <div className="px-4 py-6 text-[13px] text-muted-foreground">
+            <div className="px-5 py-6 text-[14px] text-muted-foreground">
                 Could not read the file.
             </div>
         );
     }
 
     return (
-        <pre className="max-h-[32rem] scrollbar-slim overflow-auto px-4 py-4 font-mono text-[12.5px] leading-[1.65] whitespace-pre-wrap">
+        <pre className="max-h-[32rem] scrollbar-slim overflow-auto px-5 py-4 font-mono text-[13px] leading-[1.65] whitespace-pre-wrap">
             {text ?? 'Reading…'}
         </pre>
     );
@@ -70,19 +70,16 @@ export function FilePreview({ share }: { share: FileShare }) {
     if (!src || kind === 'none') {
         return (
             <Frame className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                <FileDashed
-                    weight="thin"
-                    className="size-14 text-muted-foreground/60"
-                />
-                <p className="mt-4 text-[14px] font-medium">
+                <FileDashed weight="thin" className="size-14 text-lavender" />
+                <p className="mt-4 text-[16px] font-bold">
                     No preview for this format
                 </p>
-                <p className="mt-1.5 max-w-[38ch] text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 max-w-[38ch] text-[14px] text-muted-foreground">
                     Browsers cannot render{' '}
                     {share.filename.split('.').pop()?.toUpperCase() ?? 'this'}{' '}
                     files, so downloading is the way in.
                 </p>
-                <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-[11.5px] text-muted-foreground">
+                <p className="mt-4 inline-flex items-center gap-2 rounded-[12px] bg-card px-3 py-1.5 text-[13px] font-bold text-muted-foreground">
                     <FileGlyph
                         mime={share.mime}
                         filename={share.filename}
@@ -100,7 +97,7 @@ export function FilePreview({ share }: { share: FileShare }) {
                 <img
                     src={src}
                     alt={share.filename}
-                    className="max-h-[34rem] w-full bg-[repeating-conic-gradient(var(--muted)_0%_25%,transparent_0%_50%)] bg-[length:18px_18px] object-contain"
+                    className="max-h-[34rem] w-full bg-[repeating-conic-gradient(#1d1736_0%_25%,transparent_0%_50%)] bg-[length:18px_18px] object-contain"
                 />
             </Frame>
         );
@@ -117,7 +114,7 @@ export function FilePreview({ share }: { share: FileShare }) {
                             className="aspect-video w-full object-cover opacity-70"
                         />
                         <div className="absolute inset-0 grid place-items-center">
-                            <span className="flex size-14 items-center justify-center rounded-full border border-border-strong bg-background/85 backdrop-blur-sm">
+                            <span className="flex size-14 items-center justify-center rounded-full bg-foreground text-night">
                                 <Play weight="fill" className="size-5" />
                             </span>
                         </div>
@@ -141,7 +138,7 @@ export function FilePreview({ share }: { share: FileShare }) {
     if (kind === 'audio') {
         return (
             <Frame className="px-4 py-5 sm:px-6 sm:py-6">
-                <p className="mb-3 font-mono text-[11.5px] text-muted-foreground">
+                <p className="mb-3 text-[13px] text-muted-foreground">
                     {share.filename}
                 </p>
                 <audio src={src} controls className="w-full" />

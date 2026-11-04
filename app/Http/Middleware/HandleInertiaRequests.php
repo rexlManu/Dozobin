@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\TakedownStatus;
 use App\Http\Resources\InstallationSettingResource;
 use App\Http\Resources\UserResource;
 use App\Models\InstallationSetting;
+use App\Models\TakedownRequest;
 use App\Models\User;
 use App\Services\InstallationState;
 use App\Services\UpdateChecker;
@@ -57,6 +59,8 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'serverNow' => now()->getTimestampMs(),
+            // The public source of this build, linked from the footer.
+            'sourceUrl' => 'https://github.com/'.config('dozobin.release.repository'),
             'auth' => [
                 'user' => fn () => $user === null
                     ? null
@@ -78,6 +82,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'update' => fn (): ?array => $user?->isAdmin() && $request->routeIs('admin.*')
                 ? $this->updates->status($user)->toArray()
+                : null,
+            // Badge on the admin Reports tab.
+            'openReports' => fn (): ?int => $user?->isAdmin() && $request->routeIs('admin.*')
+                ? TakedownRequest::query()->where('status', TakedownStatus::Open)->count()
                 : null,
             'appearance' => $user?->appearance->value ?? 'system',
             'seo' => fn (): array => $this->seo($request),

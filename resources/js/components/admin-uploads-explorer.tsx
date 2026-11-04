@@ -19,12 +19,13 @@ import {
 import type { SortingState } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Tag } from '@/components/admin-layout';
+import type { TagTone } from '@/components/admin-layout';
 import { useConfirm } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table';
 import { ExpiryLabel } from '@/components/expiry';
 import { FileGlyph } from '@/components/file-glyph';
 import { LibraryTile } from '@/components/library-tile';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -101,9 +102,18 @@ const SCAN_LABEL: Record<MalwareScanStatus, string> = {
     skipped: 'Skipped',
 };
 
+const SCAN_TONE: Record<MalwareScanStatus, TagTone> = {
+    pending: 'lavender',
+    clean: 'mint',
+    detected: 'danger',
+    failed: 'lamp',
+    skipped: 'muted',
+};
+
+/** Pastes are never scanned, so their cell stays empty. */
 function ScanStatusBadge({ share }: { share: Share }) {
     if (share.kind !== 'file') {
-        return <span className="text-muted-foreground">—</span>;
+        return null;
     }
 
     const status = share.malwareScan?.status;
@@ -113,18 +123,33 @@ function ScanStatusBadge({ share }: { share: Share }) {
         'This file has not been queued for scanning.';
 
     return (
-        <Badge
-            variant={
-                status === 'detected' || status === 'failed'
-                    ? 'destructive'
-                    : status === 'pending'
-                      ? 'secondary'
-                      : 'outline'
-            }
-            title={detail}
-        >
+        <Tag tone={status ? SCAN_TONE[status] : 'muted'} title={detail}>
             {status ? SCAN_LABEL[status] : 'Not scanned'}
-        </Badge>
+        </Tag>
+    );
+}
+
+/** The 40px icon blob that leads each row; coral when the share no longer serves. */
+function ShareBlob({ share, broken }: { share: Share; broken: boolean }) {
+    return (
+        <span
+            className={cn(
+                'grid size-10 shrink-0 place-items-center rounded-[14px_16px_12px_18px]',
+                broken
+                    ? 'bg-destructive-soft text-destructive'
+                    : 'bg-sunken text-lavender',
+            )}
+        >
+            {broken ? (
+                <CloudSlash className="size-5" />
+            ) : (
+                <FileGlyph
+                    mime={share.kind === 'file' ? share.mime : 'text/plain'}
+                    filename={share.kind === 'file' ? share.filename : 'paste'}
+                    className="size-5"
+                />
+            )}
+        </span>
     );
 }
 
@@ -321,48 +346,34 @@ export function AdminUploadsExplorer({
                         share.state !== 'ready' || isShareExpired(share, now);
 
                     return (
-                        <div className="flex min-w-0 items-center gap-2">
-                            <span
-                                className={cn(
-                                    'shrink-0',
-                                    broken
-                                        ? 'text-destructive'
-                                        : 'text-muted-foreground',
-                                )}
-                            >
-                                {broken ? (
-                                    <CloudSlash className="size-4" />
-                                ) : (
-                                    <FileGlyph
-                                        mime={
-                                            share.kind === 'file'
-                                                ? share.mime
-                                                : 'text/plain'
-                                        }
-                                        filename={
-                                            share.kind === 'file'
-                                                ? share.filename
-                                                : 'paste'
-                                        }
-                                    />
-                                )}
+                        <div className="flex min-w-0 items-center gap-3">
+                            <ShareBlob share={share} broken={broken} />
+                            <span className="min-w-0">
+                                <span className="flex items-center gap-1.5">
+                                    <Link
+                                        to={sharePath(share)}
+                                        className="min-w-0 truncate font-bold hover:underline"
+                                    >
+                                        {shareLabel(share)}
+                                    </Link>
+                                    {share.password && (
+                                        <LockKey
+                                            aria-label="Password protected"
+                                            className="size-4 shrink-0 text-lamp"
+                                        />
+                                    )}
+                                </span>
+                                <span className="block text-[13px] text-muted-foreground">
+                                    {typeChip(share)} · {share.views}{' '}
+                                    {share.views === 1 ? 'view' : 'views'}
+                                </span>
                             </span>
-                            <Link
-                                to={sharePath(share)}
-                                className={cn(
-                                    'truncate text-[13px] hover:underline',
-                                    share.kind === 'paste' &&
-                                        'font-mono text-[12px]',
-                                )}
-                            >
-                                {shareLabel(share)}
-                            </Link>
-                            {share.password && (
-                                <LockKey className="size-3.5 shrink-0 text-muted-foreground" />
-                            )}
                         </div>
                     );
                 },
+                // Takes the remaining width and truncates: a table cell only clips
+                // when its own width is pinned, which max-w-0 with w-full does.
+                meta: { className: 'w-full max-w-0' },
             }),
             // The owner column is the one thing the scoped page already knows, so it
             // spends the width on something else.
@@ -379,7 +390,7 @@ export function AdminUploadsExplorer({
 
                                   if (!id) {
                                       return (
-                                          <span className="font-mono text-[11.5px] text-muted-foreground">
+                                          <span className="text-[14px] text-muted-foreground">
                                               Guest
                                           </span>
                                       );
@@ -389,7 +400,7 @@ export function AdminUploadsExplorer({
 
                                   if (!name) {
                                       return (
-                                          <span className="font-mono text-[11.5px] text-muted-foreground">
+                                          <span className="text-[14px] text-muted-foreground">
                                               Deleted
                                           </span>
                                       );
@@ -398,7 +409,7 @@ export function AdminUploadsExplorer({
                                   return (
                                       <Link
                                           to={`/admin/users/${id}`}
-                                          className="text-[12.5px] hover:underline"
+                                          className="text-[14px] font-bold whitespace-nowrap hover:underline"
                                       >
                                           {name}
                                       </Link>
@@ -407,16 +418,6 @@ export function AdminUploadsExplorer({
                           },
                       ),
                   ]),
-            col.accessor((s) => typeChip(s), {
-                id: 'type',
-                header: 'Type',
-                cell: (c) => (
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                        {c.getValue<string>()}
-                    </span>
-                ),
-                meta: { className: 'hidden md:table-cell' },
-            }),
             col.display({
                 id: 'scan',
                 header: 'Scan',
@@ -427,24 +428,15 @@ export function AdminUploadsExplorer({
                 id: 'size',
                 header: 'Size',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px]">
+                    <span className="text-[14px] whitespace-nowrap tabular-nums">
                         {formatBytes(c.getValue<number>())}
                     </span>
                 ),
             }),
-            col.accessor('views', {
-                header: 'Views',
-                cell: (c) => (
-                    <span className="font-mono text-[11.5px]">
-                        {c.getValue()}
-                    </span>
-                ),
-                meta: { className: 'hidden lg:table-cell' },
-            }),
             col.accessor('createdAt', {
                 header: 'Added',
                 cell: (c) => (
-                    <span className="font-mono text-[11.5px] whitespace-nowrap text-muted-foreground">
+                    <span className="text-[14px] whitespace-nowrap text-muted-foreground">
                         {relativeTime(c.getValue(), now)}
                     </span>
                 ),
@@ -457,7 +449,7 @@ export function AdminUploadsExplorer({
                 cell: ({ row }) => (
                     <ExpiryLabel
                         expiresAt={row.original.expiresAt}
-                        className="text-[11.5px]"
+                        className="text-[13px] whitespace-nowrap"
                         prefix=""
                     />
                 ),
@@ -576,112 +568,63 @@ export function AdminUploadsExplorer({
                     const owner = ownerName(share.ownerId);
 
                     return (
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-center gap-3">
                             <Checkbox
                                 aria-label={`Select ${shareLabel(share)}`}
-                                className="mt-1 shrink-0"
+                                className="shrink-0"
                                 checked={row.getIsSelected()}
                                 onCheckedChange={(v) =>
                                     row.toggleSelected(v === true)
                                 }
                             />
+                            <ShareBlob share={share} broken={broken} />
                             <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className={cn(
-                                            'shrink-0',
-                                            broken
-                                                ? 'text-destructive'
-                                                : 'text-muted-foreground',
-                                        )}
-                                    >
-                                        {broken ? (
-                                            <CloudSlash className="size-4" />
-                                        ) : (
-                                            <FileGlyph
-                                                mime={
-                                                    share.kind === 'file'
-                                                        ? share.mime
-                                                        : 'text/plain'
-                                                }
-                                                filename={
-                                                    share.kind === 'file'
-                                                        ? share.filename
-                                                        : 'paste'
-                                                }
-                                            />
-                                        )}
-                                    </span>
+                                <div className="flex items-center gap-1.5">
                                     <Link
                                         to={sharePath(share)}
-                                        className={cn(
-                                            'truncate text-[13.5px] font-medium',
-                                            share.kind === 'paste' &&
-                                                'font-mono text-[12.5px] font-normal',
-                                        )}
+                                        className="min-w-0 truncate font-bold"
                                     >
                                         {shareLabel(share)}
                                     </Link>
                                     {share.password && (
-                                        <LockKey className="size-3.5 shrink-0 text-muted-foreground" />
+                                        <LockKey
+                                            aria-label="Password protected"
+                                            className="size-4 shrink-0 text-lamp"
+                                        />
                                     )}
                                 </div>
-                                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] text-muted-foreground">
+                                <p className="text-[13px] text-muted-foreground">
+                                    <ExpiryLabel
+                                        expiresAt={share.expiresAt}
+                                        className="text-[13px]"
+                                        prefix=""
+                                    />
+                                    {' · '}
+                                    {formatBytes(shareSize(share))} ·{' '}
+                                    {typeChip(share)}
+                                    {share.kind === 'file' && (
+                                        <>
+                                            {' · '}
+                                            {share.malwareScan?.status
+                                                ? SCAN_LABEL[
+                                                      share.malwareScan.status
+                                                  ]
+                                                : 'Not scanned'}
+                                        </>
+                                    )}
                                     {!scoped && (
                                         <>
+                                            {' · '}
                                             {share.ownerId && owner ? (
                                                 <Link
                                                     to={`/admin/users/${share.ownerId}`}
-                                                    className="text-foreground"
+                                                    className="font-bold text-foreground"
                                                 >
                                                     {owner}
                                                 </Link>
                                             ) : (
                                                 <span>{owner ?? 'Guest'}</span>
                                             )}
-                                            <span
-                                                aria-hidden
-                                                className="text-border-strong"
-                                            >
-                                                ·
-                                            </span>
-                                        </>
-                                    )}
-                                    <span>{typeChip(share)}</span>
-                                    <span
-                                        aria-hidden
-                                        className="text-border-strong"
-                                    >
-                                        ·
-                                    </span>
-                                    <span>{formatBytes(shareSize(share))}</span>
-                                    <span
-                                        aria-hidden
-                                        className="text-border-strong"
-                                    >
-                                        ·
-                                    </span>
-                                    <ExpiryLabel
-                                        expiresAt={share.expiresAt}
-                                        className="text-[11px]"
-                                        prefix=""
-                                    />
-                                    {share.kind === 'file' && (
-                                        <>
-                                            <span
-                                                aria-hidden
-                                                className="text-border-strong"
-                                            >
-                                                ·
-                                            </span>
-                                            <span>
-                                                {share.malwareScan?.status
-                                                    ? SCAN_LABEL[
-                                                          share.malwareScan
-                                                              .status
-                                                      ]
-                                                    : 'Not scanned'}
-                                            </span>
                                         </>
                                     )}
                                 </p>
@@ -730,7 +673,7 @@ export function AdminUploadsExplorer({
                 }}
                 toolbar={
                     <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
                             <div className="relative min-w-0 flex-1">
                                 <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
@@ -768,7 +711,7 @@ export function AdminUploadsExplorer({
                                     >
                                         <SelectTrigger
                                             aria-label="Filter by owner"
-                                            className="w-[11rem] text-[13px] max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
+                                            className="w-[11rem] max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
                                         >
                                             <SelectValue />
                                         </SelectTrigger>
@@ -793,7 +736,7 @@ export function AdminUploadsExplorer({
                                 >
                                     <SelectTrigger
                                         aria-label="Filter by state"
-                                        className="w-[9.5rem] text-[13px] max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
+                                        className="w-[10rem] max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
@@ -822,21 +765,14 @@ export function AdminUploadsExplorer({
                                         aria-pressed={on}
                                         onClick={() => toggleType(key)}
                                         className={cn(
-                                            'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors',
+                                            'inline-flex items-center gap-1.5 rounded-[13px] border-[1.5px] px-3 py-1.5 text-[14px] font-bold transition-[transform,color,border-color] duration-200 ease-bounce',
                                             on
-                                                ? 'border-transparent bg-foreground text-background'
+                                                ? '-translate-y-px border-lamp bg-lamp text-warn-foreground'
                                                 : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground',
                                         )}
                                     >
                                         {CATEGORY_LABEL[key]}
-                                        <span
-                                            className={cn(
-                                                'font-mono text-[10.5px]',
-                                                on
-                                                    ? 'opacity-60'
-                                                    : 'opacity-70',
-                                            )}
-                                        >
+                                        <span className="font-medium tabular-nums opacity-70">
                                             {typeCounts[key]}
                                         </span>
                                     </button>
@@ -893,15 +829,15 @@ export function AdminUploadsExplorer({
                 }
                 empty={
                     <>
-                        <p className="text-[14px] font-medium">
+                        <p className="text-[17px] font-bold">
                             {narrowed
                                 ? 'Nothing matches that'
-                                : 'Nothing has been shared yet'}
+                                : 'Nothing shared yet'}
                         </p>
-                        <p className="mx-auto mt-1.5 max-w-[42ch] text-[13px] leading-relaxed text-muted-foreground">
+                        <p className="text-muted-foreground">
                             {narrowed
                                 ? 'Try a shorter search, or clear the filters.'
-                                : 'Uploads appear here the moment anyone on this installation shares something.'}
+                                : 'Uploads show up here as soon as someone shares.'}
                         </p>
                     </>
                 }

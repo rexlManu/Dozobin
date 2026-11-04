@@ -26,7 +26,8 @@ final class JoinTransferSessionAction
         }
 
         $participant = $this->resolveParticipant->handle($request, $session);
-        $this->touch->handle($session, $participant, 'joined the session');
+        $arrived = $participant->wasRecentlyCreated || $participant->wasChanged('left_at');
+        $this->touch->handle($session, $participant, $arrived ? 'joined the session' : null);
 
         return $session->fresh(['items.participant', 'participants', 'activities']);
     }

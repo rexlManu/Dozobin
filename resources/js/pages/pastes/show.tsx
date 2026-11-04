@@ -5,6 +5,7 @@ import { AppProviders } from '@/components/app-providers';
 import { AppShell } from '@/components/app-shell';
 import { CodeBlock } from '@/components/code-block';
 import { CopyButton } from '@/components/copy-button';
+import { Dozo } from '@/components/dozo';
 import { ExpiryLabel } from '@/components/expiry';
 import { MarkdownView } from '@/components/markdown-view';
 import { PasswordGate } from '@/components/password-gate';
@@ -134,13 +135,11 @@ function PasteBody({ share }: { share: PasteShare }) {
         raw || share.pasteType !== 'code' ? 'text' : (share.language ?? 'text');
 
     return (
-        <div className="rail py-6 sm:py-8">
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
-                <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-t-xl border border-b-0 border-border bg-card px-3 py-2.5">
-                        <span className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
-                            {typeLabel}
-                        </span>
+        <div className="rail pt-4 pb-20">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+                <div className="min-w-0 overflow-hidden rounded-[28px] border-[1.5px] border-border bg-card">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-sunken px-4 py-2.5">
+                        <span className="font-bold">{typeLabel}</span>
 
                         <div className="ml-auto flex flex-wrap items-center gap-1">
                             {share.pasteType !== 'text' && (
@@ -194,7 +193,7 @@ function PasteBody({ share }: { share: PasteShare }) {
                         </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-b-xl border border-border bg-card">
+                    <div>
                         {showMarkdown ? (
                             <div className="px-4 py-5 sm:px-6 sm:py-6">
                                 <MarkdownView body={share.body} />
@@ -210,7 +209,11 @@ function PasteBody({ share }: { share: PasteShare }) {
                     </div>
                 </div>
 
-                <aside className="lg:sticky lg:top-20 lg:self-start">
+                <aside className="grid gap-4 rounded-[28px] border-[1.5px] border-border bg-card p-6 lg:sticky lg:top-20">
+                    <p className="flex items-center gap-2.5 text-muted-foreground">
+                        <Dozo size={56} mood="happy" />
+                        Someone sent you some text.
+                    </p>
                     <div className="flex flex-col gap-2">
                         <CopyButton
                             value={url}
@@ -227,39 +230,33 @@ function PasteBody({ share }: { share: PasteShare }) {
                         </Button>
                     </div>
 
-                    <dl className="mt-5 divide-y divide-border border-t border-border">
+                    <dl className="border-y-[1.5px] border-dashed border-border py-3">
                         <ShareMetaRow label="Content">{typeLabel}</ShareMetaRow>
                         <ShareMetaRow label="Length">
-                            <span className="font-mono">
+                            <span>
                                 {lines} lines · {formatBytes(bytes)}
                             </span>
                         </ShareMetaRow>
                         <ShareMetaRow label="Created">
                             {formatDateTime(share.createdAt)}
                         </ShareMetaRow>
-                        <ShareMetaRow label="Expires">
+                        <ShareMetaRow label="Link stays">
                             <ExpiryLabel
                                 expiresAt={share.expiresAt}
                                 prefix=""
-                                className="text-[12.5px]"
                             />
                         </ShareMetaRow>
                         <ShareMetaRow label="Opened">
-                            <span className="font-mono">{share.views}×</span>
+                            <span>{share.views}×</span>
                         </ShareMetaRow>
                         {share.password && (
                             <ShareMetaRow label="Access">
                                 <span className="inline-flex items-center gap-1.5">
-                                    <LockKey className="size-3.5" /> Password
+                                    <LockKey className="size-4" /> Password
                                 </span>
                             </ShareMetaRow>
                         )}
                     </dl>
-
-                    <p className="mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
-                        A Paste has no title on purpose. The download filename
-                        comes from its URL.
-                    </p>
                 </aside>
             </div>
         </div>

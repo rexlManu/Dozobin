@@ -30,6 +30,7 @@ final class TransferSessionResource extends JsonResource
                 'device' => $participant->device,
                 'joinedAt' => $participant->joined_at->getTimestampMs(),
                 'self' => $participant->browser_id === $browserId,
+                'left' => $participant->left_at !== null,
             ])->all()),
             'activity' => $this->whenLoaded('activities', fn () => $this->activities->sortByDesc('created_at')->take(30)->values()->map(fn (TransferActivity $activity): array => [
                 'id' => (string) $activity->id,

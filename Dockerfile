@@ -91,7 +91,13 @@ COPY docker/entrypoint.sh /usr/local/bin/dozobin-entrypoint
 ENV APP_VERSION=${APP_VERSION} \
     APP_COMMIT=${APP_COMMIT} \
     APP_BUILT_AT=${APP_BUILT_AT} \
-    FILE_STORE_PATH=/data/files
+    FILE_STORE_PATH=/data/files \
+    BROADCAST_CONNECTION=reverb \
+    REVERB_HOST=127.0.0.1 \
+    REVERB_PORT=6001 \
+    REVERB_SCHEME=http \
+    REVERB_SERVER_HOST=127.0.0.1 \
+    REVERB_SERVER_PORT=6001
 
 RUN php docker/write-build-metadata.php \
     && chmod +x /usr/local/bin/dozobin-entrypoint \

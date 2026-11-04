@@ -1,142 +1,110 @@
-import { FolderOpen } from '@phosphor-icons/react';
-import { useRef, useState } from 'react';
+import { UploadSimple } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 /**
- * The brand mark at display scale: one square handing off to another. Dragging
- * completes the handoff, so the window's single authored motion is the
- * product's single act. Kept to two primitives, like the 16px original.
+ * The drop target inside the Send card. The whole window also accepts a drop,
+ * because people throw files at the window, not at a rectangle; the zone lights
+ * up while a drag is anywhere over the page.
  */
-function DropMark({ landing }: { landing: boolean }) {
-    return (
-        <svg
-            viewBox="0 0 48 48"
-            aria-hidden
-            className="size-[72px] overflow-visible"
-        >
-            <rect
-                x="1.25"
-                y="1.25"
-                width="31.5"
-                height="31.5"
-                rx="6.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.25"
-                className={cn(
-                    'transition-opacity duration-300 ease-out',
-                    landing ? 'opacity-80' : 'opacity-45',
-                )}
-            />
-            <rect
-                x="15.5"
-                y="15.5"
-                width="31.5"
-                height="31.5"
-                rx="6.5"
-                className="fill-primary transition-transform duration-300 ease-out"
-                style={{
-                    transform: landing ? 'translate(-7px, -7px)' : 'none',
-                }}
-            />
-        </svg>
-    );
-}
-
-/**
- * The window is the drop target. There is no box to aim at, because people
- * already throw files at the window rather than at a rectangle inside it.
- *
- * `tray` and `bar` sit inside the same drag surface, so a file dropped on the
- * queue or on the controls still lands.
- */
-export function DropCanvas({
+export function DropZone({
     onFiles,
-    tray,
-    bar,
-    idle,
+    hint,
 }: {
     onFiles: (files: File[]) => void;
-    tray?: React.ReactNode;
-    bar?: React.ReactNode;
-    /**
-     * Nothing is queued yet, so the picker keeps the accent. Once a tray exists,
-     * uploading it is the primary act and the picker steps back to let it hold
-     * the one accent the system allows per screen.
-     */
-    idle?: boolean;
+    /** One quiet line under the button: limits and the clipboard tip. */
+    hint: React.ReactNode;
 }) {
     const [dragging, setDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const onFilesRef = useRef(onFiles);
+
+    useEffect(() => {
+        onFilesRef.current = onFiles;
+    }, [onFiles]);
+
+    useEffect(() => {
+        let depth = 0;
+        const hasFiles = (event: DragEvent) =>
+            Array.from(event.dataTransfer?.types ?? []).includes('Files');
+        const enter = (event: DragEvent) => {
+            if (!hasFiles(event)) {
+                return;
+            }
+
+            depth += 1;
+            setDragging(true);
+        };
+        const leave = () => {
+            depth = Math.max(0, depth - 1);
+
+            if (depth === 0) {
+                setDragging(false);
+            }
+        };
+        const over = (event: DragEvent) => {
+            if (hasFiles(event)) {
+                event.preventDefault();
+            }
+        };
+        const drop = (event: DragEvent) => {
+            if (!hasFiles(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            depth = 0;
+            setDragging(false);
+            const files = Array.from(event.dataTransfer?.files ?? []);
+
+            if (files.length > 0) {
+                onFilesRef.current(files);
+            }
+        };
+
+        window.addEventListener('dragenter', enter);
+        window.addEventListener('dragleave', leave);
+        window.addEventListener('dragover', over);
+        window.addEventListener('drop', drop);
+
+        return () => {
+            window.removeEventListener('dragenter', enter);
+            window.removeEventListener('dragleave', leave);
+            window.removeEventListener('dragover', over);
+            window.removeEventListener('drop', drop);
+        };
+    }, []);
 
     return (
         <div
-            onDragOver={(event) => {
-                event.preventDefault();
-                setDragging(true);
-            }}
-            onDragLeave={(event) => {
-                if (event.currentTarget.contains(event.relatedTarget as Node)) {
-                    return;
-                }
-
-                setDragging(false);
-            }}
-            onDrop={(event) => {
-                event.preventDefault();
-                setDragging(false);
-                const files = Array.from(event.dataTransfer.files);
-
-                if (files.length > 0) {
-                    onFiles(files);
-                }
-            }}
             className={cn(
-                'relative flex h-full flex-col transition-colors duration-150',
-                dragging ? 'bg-primary-soft/50' : 'bg-sunken',
+                'grid min-h-[250px] place-content-center justify-items-center gap-2.5 rounded-[24px] border-[2.5px] border-dashed px-6 py-8 text-center transition-[border-color,background-color,transform] duration-200 ease-bounce',
+                dragging
+                    ? 'scale-[1.01] border-primary bg-primary-soft'
+                    : 'border-border-strong bg-[radial-gradient(circle_at_50%_120%,rgb(185_168_255/0.1),transparent_60%)]',
             )}
         >
-            {/* A rule inset from every edge, so the whole window reads as the target. */}
-            <span
-                aria-hidden
-                className={cn(
-                    'pointer-events-none absolute inset-3 z-10 rounded-lg border-2 border-dashed transition-colors duration-150',
-                    dragging ? 'border-primary/70' : 'border-transparent',
-                )}
-            />
-
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-6 py-10 text-center">
-                <DropMark landing={dragging} />
-
-                <div className="flex flex-col items-center gap-2.5">
-                    <h1 className="text-[30px] leading-[1.1] font-medium tracking-[-0.025em] text-balance sm:text-[38px]">
-                        {dragging ? 'Let go to add them' : 'Drop files here'}
-                    </h1>
-                    <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">
-                        Every file becomes its own share with its own URL.
-                        Nothing is bundled, zipped, or grouped.
-                    </p>
-                </div>
-
-                <Button
-                    type="button"
-                    size="lg"
-                    variant={idle ? 'default' : 'outline'}
-                    onClick={() => inputRef.current?.click()}
-                >
-                    <FolderOpen /> Choose files
-                </Button>
-            </div>
-
-            {tray}
-            {bar}
-
+            <p className="text-[28px] leading-tight font-bold sm:text-[30px]">
+                {dragging ? 'Let go to send them' : 'Drop files here'}
+            </p>
+            <span className="text-muted-foreground">or</span>
+            <Button
+                type="button"
+                size="lg"
+                onClick={() => inputRef.current?.click()}
+            >
+                <UploadSimple weight="bold" /> Choose files
+            </Button>
+            <p className="max-w-[48ch] text-[13px] text-muted-foreground">
+                {hint}
+            </p>
             <input
                 ref={inputRef}
                 type="file"
                 multiple
                 className="sr-only"
+                tabIndex={-1}
                 onChange={(event) => {
                     const files = Array.from(event.target.files ?? []);
 

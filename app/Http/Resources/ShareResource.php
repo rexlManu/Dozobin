@@ -60,7 +60,7 @@ final class ShareResource extends JsonResource
         }
 
         return $base + [
-            'body' => $canRead ? $this->body : '',
+            'body' => $canRead ? ($this->body ?? '') : '',
             'pasteType' => $this->paste_type instanceof PasteType ? $this->paste_type->value : 'text',
             'language' => $this->language,
         ];
