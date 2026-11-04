@@ -59,6 +59,17 @@ it('keeps a report for a link that matches no share', function (): void {
     expect(TakedownRequest::query()->sole()->share_id)->toBeNull();
 });
 
+it('links only Share URLs of this installation', function (string $url): void {
+    Share::factory()->create(['slug' => 'localslug123', 'kind' => ShareKind::Paste]);
+
+    $this->post('/takedown', takedownPayload(['share_url' => $url]))->assertSessionHasNoErrors();
+
+    expect(TakedownRequest::query()->sole()->share_id)->toBeNull();
+})->with([
+    'another site' => ['https://another-site.example/p/localslug123'],
+    'wrong kind' => [fn () => url('/s/localslug123')],
+]);
+
 it('rejects a report without the good faith statement or an email', function (): void {
     $this->post('/takedown', takedownPayload(['good_faith' => false, 'reporter_email' => '']))
         ->assertSessionHasErrors(['good_faith', 'reporter_email']);

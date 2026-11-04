@@ -65,11 +65,13 @@ function StatusTag({ item }: { item: UploadItem }) {
 function UploadRow({
     item,
     share,
+    retryDisabled,
     onRetry,
     onRemove,
 }: {
     item: UploadItem;
     share?: Share;
+    retryDisabled: boolean;
     onRetry: () => void;
     onRemove: () => void;
 }) {
@@ -153,7 +155,12 @@ function UploadRow({
                     </>
                 )}
                 {item.status === 'failed' && (
-                    <Button variant="outline" size="sm" onClick={onRetry}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={retryDisabled}
+                        onClick={onRetry}
+                    >
                         <ArrowClockwise /> Try again
                     </Button>
                 )}
@@ -176,6 +183,7 @@ function UploadRow({
 export function UploadQueue({
     expiration,
     password,
+    waitingForPassword,
     queue,
     shares,
     onStart,
@@ -185,6 +193,8 @@ export function UploadQueue({
 }: {
     expiration: ExpirationKey;
     password: string | null;
+    /** A password is switched on but empty: sending now would skip it. */
+    waitingForPassword: boolean;
     queue: UploadItem[];
     shares: Share[];
     onStart: (
@@ -238,6 +248,12 @@ export function UploadQueue({
                     {ready.length > 0 && (
                         <Button
                             size="sm"
+                            disabled={waitingForPassword}
+                            title={
+                                waitingForPassword
+                                    ? 'Type the password first'
+                                    : undefined
+                            }
                             onClick={() =>
                                 ready.forEach((item) =>
                                     onStart(item.id, expiration, password),
@@ -263,6 +279,7 @@ export function UploadQueue({
                                   )
                                 : undefined
                         }
+                        retryDisabled={waitingForPassword}
                         onRetry={() => onRetry(item.id, expiration, password)}
                         onRemove={() => onRemove(item.id)}
                     />

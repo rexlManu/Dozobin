@@ -179,29 +179,25 @@ function WorkspaceRoute() {
     const waitingForPassword = resolvedOptions.password === '';
     const sendPassword = resolvedOptions.password || null;
 
-    // Files start uploading as soon as they land. The one exception: a password
-    // was switched on but not typed yet, so the rows wait for "Send N files".
+    // Files start uploading as soon as they land. The one exception: with a
+    // password switched on, the rows wait for "Send N files", so a half-typed
+    // password never goes out with them.
     const started = useRef(new Set<string>());
     const { queue, startUpload } = uploads;
+    const protectionOn = resolvedOptions.password !== null;
 
     useEffect(() => {
-        if (waitingForPassword) {
+        if (protectionOn) {
             return;
         }
 
         for (const item of queue) {
             if (item.status === 'queued' && !started.current.has(item.id)) {
                 started.current.add(item.id);
-                startUpload(item.id, resolvedOptions.expiration, sendPassword);
+                startUpload(item.id, resolvedOptions.expiration, null);
             }
         }
-    }, [
-        queue,
-        startUpload,
-        waitingForPassword,
-        resolvedOptions.expiration,
-        sendPassword,
-    ]);
+    }, [queue, startUpload, protectionOn, resolvedOptions.expiration]);
 
     // A clipboard screenshot is the third way in, next to the drag and the picker.
     useEffect(() => {
@@ -416,6 +412,7 @@ function WorkspaceRoute() {
                         <UploadQueue
                             expiration={resolvedOptions.expiration}
                             password={sendPassword}
+                            waitingForPassword={waitingForPassword}
                             queue={uploads.queue}
                             shares={uploads.shares}
                             onStart={uploads.startUpload}

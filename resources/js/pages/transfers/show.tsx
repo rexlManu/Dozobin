@@ -421,7 +421,8 @@ function Compose({
     onSend,
     onAttach,
 }: {
-    onSend: (text: string) => Promise<void>;
+    /** Resolves true once the text is added; on false the text stays for another try. */
+    onSend: (text: string) => Promise<boolean>;
     onAttach: () => void;
 }) {
     const [text, setText] = useState('');
@@ -431,8 +432,9 @@ function Compose({
             return;
         }
 
-        await onSend(text.trim());
-        setText('');
+        if (await onSend(text.trim())) {
+            setText('');
+        }
     };
 
     return (
@@ -816,9 +818,13 @@ function TransferSessionRoute({
                                 });
                             } catch (error) {
                                 toast(firstApiError(error));
+
+                                return false;
                             }
 
                             refresh();
+
+                            return true;
                         }}
                     />
                     <input
