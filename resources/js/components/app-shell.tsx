@@ -268,7 +268,7 @@ export function AppShell({
             </main>
 
             <NightCity />
-            {variant === 'app' && <SiteFooter />}
+            <SiteFooter phoneNav={showNav} />
 
             {showNav && (
                 <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-flow-col gap-1 bg-background/95 px-2 pt-1.5 backdrop-blur-md md:hidden">

@@ -18,7 +18,8 @@ export function PillNav({
     track = false,
 }: {
     label: string;
-    items: { to: string; match?: string; label: string }[];
+    /** `badge` shows a small count, for example open reports. */
+    items: { to: string; match?: string; label: string; badge?: number }[];
     path: string;
     /** Draw the row as a segment track, for the settings tabs under the main pills. */
     track?: boolean;
@@ -59,7 +60,7 @@ export function PillNav({
                             to={item.to}
                             aria-current={active ? 'page' : undefined}
                             className={cn(
-                                'shrink-0 font-bold whitespace-nowrap transition-colors',
+                                'inline-flex shrink-0 items-center gap-1.5 font-bold whitespace-nowrap transition-colors',
                                 track
                                     ? 'rounded-[12px] px-3.5 py-1.5 text-[14px]'
                                     : 'rounded-[14px] px-3.5 py-2 text-[15px]',
@@ -72,6 +73,14 @@ export function PillNav({
                             )}
                         >
                             {item.label}
+                            {item.badge !== undefined && item.badge > 0 && (
+                                <span
+                                    aria-label={`${item.badge} open`}
+                                    className="rounded-full bg-primary px-1.5 text-[12px] leading-[18px] text-primary-foreground tabular-nums"
+                                >
+                                    {item.badge}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}

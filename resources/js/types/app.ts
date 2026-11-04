@@ -22,6 +22,8 @@ export interface SharedPageProps extends PageProps {
         step: InstallStepKey;
     };
     update: UpdateStatus | null;
+    /** Open takedown reports, for administrators on admin pages. */
+    openReports: number | null;
     appearance: Appearance;
     seo: {
         description: string;

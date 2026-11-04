@@ -1,79 +1,69 @@
 import { usePage } from '@inertiajs/react';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { Wordmark } from '@/components/brand';
+import { useOrigin } from '@/hooks/use-origin';
 import { Link } from '@/lib/navigation';
+import { cn } from '@/lib/utils';
 import type { SharedPageProps } from '@/types';
 
-type FooterLink = { to: string; label: string };
-
-function FooterColumn({
-    title,
-    links,
-}: {
-    title: string;
-    links: FooterLink[];
-}) {
-    return (
-        <nav aria-label={title} className="grid content-start gap-2.5">
-            <h2 className="label-meta">{title}</h2>
-            {links.map((link) => (
-                <Link
-                    key={link.to}
-                    to={link.to}
-                    className="w-fit font-bold text-foreground/85 transition-colors hover:text-foreground"
-                >
-                    {link.label}
-                </Link>
-            ))}
-        </nav>
-    );
-}
+/** A Share URL path: `/s/<slug>` or `/p/<slug>`. */
+const SHARE_PATH = /^\/[sp]\/[A-Za-z0-9]+$/;
 
 /**
  * The street under the city: it starts in the colour of the building bases,
- * so the page ends on solid ground. Links follow the visitor's role.
+ * so the page ends on solid ground. It holds the legal pages and the takedown
+ * form. On a share page, "Report content" carries that page's link.
  */
-export function SiteFooter() {
-    const { auth, name, serverNow, sourceUrl } =
-        usePage<SharedPageProps>().props;
-    const signedIn = auth.user !== null;
-    const admin = auth.user?.role === 'admin';
+export function SiteFooter({
+    phoneNav = true,
+}: {
+    /** Leave room for the phone's bottom nav. */
+    phoneNav?: boolean;
+}) {
+    const page = usePage<SharedPageProps>();
+    const { name, serverNow, sourceUrl } = page.props;
+    const origin = useOrigin('');
+    const path = page.url.split('?')[0];
+    const report =
+        SHARE_PATH.test(path) && origin !== ''
+            ? `/takedown?url=${encodeURIComponent(origin + path)}`
+            : '/takedown';
 
-    const share: FooterLink[] = [
-        { to: '/', label: 'Send' },
-        { to: '/transfer', label: 'Transfer' },
+    const links = [
+        { to: '/terms', label: 'Terms of Service' },
+        { to: '/privacy', label: 'Privacy Policy' },
+        { to: report, label: 'Report content' },
     ];
 
-    if (signedIn) {
-        share.push({ to: '/library', label: 'Library' });
-    }
-
-    const account: FooterLink[] = !signedIn
-        ? [
-              { to: '/signin', label: 'Sign in' },
-              { to: '/register', label: 'Create account' },
-          ]
-        : [
-              { to: '/settings', label: 'Settings' },
-              { to: '/settings/tokens', label: 'API tokens' },
-          ];
-
-    if (admin) {
-        account.push({ to: '/admin', label: 'Administration' });
-    }
-
     return (
-        <footer className="bg-linear-to-b from-[#100c16] to-[#06050d] to-60% pb-24 md:pb-0">
-            <div className="rail grid grid-cols-2 gap-8 pt-8 pb-10 sm:grid-cols-[minmax(0,1.6fr)_1fr_1fr] sm:pt-10">
-                <div className="col-span-2 grid content-start gap-3 sm:col-span-1">
+        <footer
+            className={cn(
+                'bg-linear-to-b from-[#100c16] to-[#06050d] to-60%',
+                phoneNav && 'pb-24 md:pb-0',
+            )}
+        >
+            <div className="rail flex flex-col gap-6 pt-8 pb-9 sm:flex-row sm:items-start sm:justify-between sm:pt-10">
+                <div className="grid content-start gap-3">
                     <Wordmark />
                     <p className="max-w-[34ch] text-muted-foreground">
                         Files, text and Transfer Sessions. Every link is
                         unlisted and can expire.
                     </p>
                 </div>
-                <FooterColumn title="Share" links={share} />
-                <FooterColumn title="Account" links={account} />
+                <nav
+                    aria-label="Legal"
+                    className="flex flex-wrap gap-x-6 gap-y-2.5 sm:flex-col sm:items-end"
+                >
+                    {links.map((link) => (
+                        <Link
+                            key={link.label}
+                            to={link.to}
+                            className="w-fit font-bold text-foreground/85 transition-colors hover:text-foreground"
+                        >
+                            {link.label}
+                        </Link>
+                    ))}
+                </nav>
             </div>
             <div className="rail">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-white/[0.06] py-5 text-[13px] text-muted-foreground">

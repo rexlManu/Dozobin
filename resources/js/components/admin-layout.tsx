@@ -16,6 +16,7 @@ const NAV = [
     // "Sessions" rather than "Transfer sessions", because Settings already has
     // a tab by that name. The page's own heading says the full thing.
     { to: '/admin/sessions', match: '/admin/sessions', label: 'Sessions' },
+    { to: '/admin/reports', match: '/admin/reports', label: 'Reports' },
     {
         to: '/admin/settings/access',
         match: '/admin/settings',
@@ -201,6 +202,7 @@ function UpdateNotice() {
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
     const path = usePage().url.split('?')[0];
+    const openReports = usePage<SharedPageProps>().props.openReports;
     const inSettings = isUnder(path, '/admin/settings');
 
     return (
@@ -210,7 +212,15 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                     <h1 className="text-[32px] leading-tight font-bold sm:text-[44px]">
                         Administration
                     </h1>
-                    <PillNav label="Administration" items={NAV} path={path} />
+                    <PillNav
+                        label="Administration"
+                        items={NAV.map((item) =>
+                            item.to === '/admin/reports'
+                                ? { ...item, badge: openReports ?? 0 }
+                                : item,
+                        )}
+                        path={path}
+                    />
                 </div>
             }
         >

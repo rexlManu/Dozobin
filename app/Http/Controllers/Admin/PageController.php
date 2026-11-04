@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Transfers\FindCurrentTransferSessionAction;
+use App\Enums\TakedownStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\InviteCodeResource;
 use App\Http\Resources\ShareResource;
+use App\Http\Resources\TakedownRequestResource;
 use App\Http\Resources\TransferSessionResource;
 use App\Http\Resources\UserResource;
 use App\Models\InstallationSetting;
 use App\Models\InviteCode;
 use App\Models\Share;
+use App\Models\TakedownRequest;
 use App\Models\TransferSession;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -83,6 +86,19 @@ final class PageController extends Controller
             'transfer' => fn () => $this->transfer($request, $current->handle($request)),
             'transferHistory' => fn () => TransferSessionResource::collection(
                 TransferSession::query()->with(['items.participant', 'participants', 'activities'])->latest()->limit(100)->get(),
+            )->resolve($request),
+        ]);
+    }
+
+    public function reports(Request $request): Response
+    {
+        return Inertia::render('admin/reports/index', [
+            'reports' => fn () => TakedownRequestResource::collection(
+                TakedownRequest::query()
+                    ->with(['share.user', 'handler'])
+                    ->orderByRaw('case when status = ? then 0 else 1 end', [TakedownStatus::Open->value])
+                    ->latest()
+                    ->get(),
             )->resolve($request),
         ]);
     }

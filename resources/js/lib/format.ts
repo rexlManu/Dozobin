@@ -1,4 +1,4 @@
-import type { ExpirationKey } from './types';
+import type { ExpirationKey, TakedownReason } from './types';
 
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
@@ -176,3 +176,12 @@ export function shareUrl(share: {
 
     return `${origin}/${path}/${share.id}`;
 }
+
+export const TAKEDOWN_REASON_LABEL: Record<TakedownReason, string> = {
+    copyright: 'Copyright',
+    illegal: 'Illegal content',
+    privacy: 'Private information',
+    malware: 'Malware or phishing',
+    abuse: 'Abuse or harassment',
+    other: 'Something else',
+};

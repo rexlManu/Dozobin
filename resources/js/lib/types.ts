@@ -100,6 +100,34 @@ export interface InviteCode {
     status: InviteCodeStatus;
 }
 
+export type TakedownReason =
+    'copyright' | 'illegal' | 'privacy' | 'malware' | 'abuse' | 'other';
+
+export type TakedownStatus = 'open' | 'resolved' | 'dismissed';
+
+/** A report that a Share URL holds content that should come down. */
+export interface TakedownRequest {
+    id: string;
+    shareUrl: string;
+    reason: TakedownReason;
+    details: string;
+    reporterName: string | null;
+    reporterEmail: string;
+    status: TakedownStatus;
+    handledBy: string | null;
+    handledAt: number | null;
+    createdAt: number;
+    /** The share the link points to, or null when none matches or it was deleted. */
+    share: {
+        id: string;
+        kind: ShareKind;
+        name: string | null;
+        state: string;
+        url: string;
+        owner: string | null;
+    } | null;
+}
+
 export interface LoginSession {
     id: string;
     device: string;
